@@ -2,16 +2,14 @@ import { Suspense } from "react";
 import AdvanceButton from "@/components/AdvanceButton";
 import AutoRefresh from "@/components/AutoRefresh";
 import LocationShare from "@/components/LocationShare";
+import RequireRole from "@/components/RequireRole";
 import Shell from "@/components/Shell";
-import { destinationOf } from "@/lib/parcels";
-import { pointByName, DEFAULT_CENTER } from "@/lib/points";
-import { LAST_STAGE, NO_RUNNER, statusOf, type Parcel } from "@/lib/parcels";
+import { LAST_STAGE, NO_RUNNER, destinationOf, statusOf, type Parcel } from "@/lib/parcels";
+import { DEFAULT_CENTER, pointByName } from "@/lib/points";
 import { listParcels } from "@/lib/store";
+import type { User } from "@/lib/users";
 
 export const metadata = { title: "Runner · Iza" };
-
-// The prototype has no sign-in yet, so every runner is Sipho.
-const RUNNER = "Sipho";
 
 const ACTION: Record<number, string> = {
   0: "Take this job",
@@ -20,40 +18,44 @@ const ACTION: Record<number, string> = {
   3: "Mark delivered",
 };
 
-function mine(p: Parcel) {
+// Open jobs (not yet claimed, or waiting at a point) are for any runner. Jobs already
+// being carried belong to the runner who took them.
+function visibleTo(p: Parcel, user: User) {
   if (p.stage === LAST_STAGE) return false;
-  if (p.stage === 0 || p.stage === 2) return true; // open to any runner
-  return p.runner === RUNNER;
+  if (p.stage === 0 || p.stage === 2) return true;
+  return user.role === "admin" || p.runnerId === user.id;
 }
 
 export default function RunnerPage() {
   return (
     <Shell>
-      <h1 style={{ fontSize: 26 }}>Today&apos;s jobs</h1>
-      <p className="muted" style={{ margin: 0 }}>
-        Signed in as {RUNNER} (example runner).
-      </p>
       <Suspense fallback={<p className="muted">Loading jobs…</p>}>
-        <Jobs />
+        <RequireRole roles={["runner"]} next="/runner">
+          {(user) => <Jobs user={user} />}
+        </RequireRole>
       </Suspense>
     </Shell>
   );
 }
 
-async function Jobs() {
+async function Jobs({ user }: { user: User }) {
   const all = await listParcels();
-  const jobs = all.filter(mine);
+  const jobs = all.filter((p) => visibleTo(p, user));
   const onTheWay = all
-    .filter((p) => p.stage === 3 && p.runner === RUNNER)
+    .filter((p) => p.stage === 3 && (p.runnerId === user.id || user.role === "admin"))
     .map((p) => ({
       code: p.code,
       from: pointByName(p.point) ?? DEFAULT_CENTER,
       to: destinationOf(p),
     }));
-  const done = all.filter((p) => p.stage === LAST_STAGE && p.runner === RUNNER).length;
+  const done = all.filter((p) => p.stage === LAST_STAGE && p.runnerId === user.id).length;
 
   return (
     <>
+      <h1 style={{ fontSize: 26 }}>Today&apos;s jobs</h1>
+      <p className="muted" style={{ margin: 0 }}>
+        Signed in as {user.name}.
+      </p>
       <AutoRefresh />
       <div className="grid2">
         <div className="card">
@@ -100,7 +102,7 @@ async function Jobs() {
               </div>
             )}
           </div>
-          <AdvanceButton code={p.code} label={ACTION[p.stage]} runner={RUNNER} />
+          <AdvanceButton code={p.code} label={ACTION[p.stage]} runner={user.name} />
         </section>
       ))}
     </>

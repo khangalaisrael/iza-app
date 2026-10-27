@@ -2,8 +2,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 import CodeForm from "@/components/CodeForm";
 import Shell from "@/components/Shell";
+import { currentUser } from "@/lib/auth";
 import { statusOf } from "@/lib/parcels";
-import { listParcels } from "@/lib/store";
+import { listParcels, listParcelsFor } from "@/lib/store";
 
 export const metadata = { title: "Track a parcel · Iza" };
 
@@ -25,10 +26,30 @@ export default function TrackPage() {
 }
 
 async function ParcelList() {
-  const all = await listParcels();
+  const user = await currentUser();
+  if (!user) {
+    return (
+      <p className="muted" style={{ margin: 0 }}>
+        <Link href="/signin?next=/track" style={{ color: "var(--primary)", fontWeight: 700 }}>
+          Sign in
+        </Link>{" "}
+        to see the parcels you have sent.
+      </p>
+    );
+  }
+
+  const mine = user.role === "admin" ? await listParcels() : await listParcelsFor(user.id);
+  if (mine.length === 0) {
+    return (
+      <p className="muted" style={{ margin: 0 }}>
+        Nothing yet. Parcels you book show up here.
+      </p>
+    );
+  }
+
   return (
     <>
-      {all.map((p) => (
+      {mine.map((p) => (
         <Link
           key={p.code}
           href={`/track/${p.code}`}

@@ -30,6 +30,8 @@ export type Parcel = {
   plusCode?: string;
   runnerLat?: number; // live position, set while the runner is on the way
   runnerLng?: number;
+  ownerId?: string; // the customer who booked it
+  runnerId?: string; // the runner who claimed it
 };
 
 export const NO_RUNNER = "Not assigned yet";

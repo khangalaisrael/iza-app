@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import AccountButton from "./AccountButton";
 import TabBar from "./TabBar";
 
 export default function Shell({ children }: { children: React.ReactNode }) {
@@ -9,9 +10,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <Link href="/" className="badge" aria-label="Iza home">
           iza
         </Link>
-        <span className="avatar" aria-hidden="true">
-          L
-        </span>
+        <Suspense fallback={<span className="avatar" aria-hidden="true" />}>
+          <AccountButton />
+        </Suspense>
       </header>
       <main className="page">{children}</main>
       <Suspense fallback={<nav className="tabbar" aria-label="Main" />}>

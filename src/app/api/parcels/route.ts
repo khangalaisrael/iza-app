@@ -1,6 +1,7 @@
-import { encodePlusCode } from "@/lib/pluscode";
+import { sameOrigin, userFromRequest } from "@/lib/auth";
 import { NO_RUNNER, type Parcel } from "@/lib/parcels";
-import { saveParcel } from "@/lib/store";
+import { encodePlusCode } from "@/lib/pluscode";
+import { newParcelCode, saveParcel } from "@/lib/store";
 
 type Body = {
   from?: string;
@@ -11,33 +12,43 @@ type Body = {
   lng?: number;
 };
 
+const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+const inRange = (v: unknown, limit: number): v is number =>
+  typeof v === "number" && Number.isFinite(v) && Math.abs(v) <= limit;
+
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as Body | null;
-  if (!body?.from?.trim() || !body.landmark?.trim()) {
-    return Response.json(
-      { error: "Pickup place and delivery landmark are required." },
-      { status: 400 },
-    );
+  if (!sameOrigin(request)) return Response.json({ error: "Not allowed." }, { status: 403 });
+
+  const user = userFromRequest(request);
+  if (!user) return Response.json({ error: "Please sign in to book." }, { status: 401 });
+  if (user.status !== "active" || (user.role !== "customer" && user.role !== "admin")) {
+    return Response.json({ error: "Only customers can book a delivery." }, { status: 403 });
   }
 
-  const hasPin = typeof body.lat === "number" && typeof body.lng === "number";
-  const code = `IZA-${Math.floor(1000 + Math.random() * 9000)}`;
+  const body = (await request.json().catch(() => null)) as Body | null;
+  const from = text(body?.from, 120);
+  const landmark = text(body?.landmark, 200);
+  if (!from || !landmark) {
+    return Response.json({ error: "Pickup place and delivery landmark are required." }, { status: 400 });
+  }
 
+  const hasPin = inRange(body?.lat, 90) && inRange(body?.lng, 180);
   const parcel: Parcel = {
-    code,
-    to: "Customer",
-    pickup: body.from.trim(),
-    landmark: body.landmark.trim(),
+    code: await newParcelCode(),
+    to: user.name,
+    pickup: from,
+    landmark,
     runner: NO_RUNNER,
     stage: 0,
-    point: body.speed === "door" ? "Main hub" : "Corner Shop",
+    point: body?.speed === "door" ? "Main hub" : "Corner Shop",
+    ownerId: user.id,
     ...(hasPin && {
-      lat: body.lat,
-      lng: body.lng,
-      plusCode: encodePlusCode(body.lat!, body.lng!),
+      lat: body!.lat,
+      lng: body!.lng,
+      plusCode: encodePlusCode(body!.lat!, body!.lng!),
     }),
   };
 
   await saveParcel(parcel);
-  return Response.json({ code, plusCode: parcel.plusCode ?? null }, { status: 201 });
+  return Response.json({ code: parcel.code, plusCode: parcel.plusCode ?? null }, { status: 201 });
 }

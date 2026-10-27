@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { approveUserAction } from "@/app/auth/actions";
 import AutoRefresh from "@/components/AutoRefresh";
+import RequireRole from "@/components/RequireRole";
 import { LAST_STAGE, NO_RUNNER, statusOf } from "@/lib/parcels";
 import { listParcels } from "@/lib/store";
+import { listPendingUsers } from "@/lib/users";
 
 export const metadata = { title: "Operations · Iza" };
 
@@ -16,10 +19,11 @@ export default function OpsPage() {
           </Link>
           <h1 style={{ fontSize: 28 }}>Good morning, team</h1>
         </div>
-        <span className="chip chip-honey">Example data</span>
       </header>
       <Suspense fallback={<p className="muted">Loading…</p>}>
-        <Board />
+        <RequireRole roles={[]} next="/ops">
+          {() => <Board />}
+        </RequireRole>
       </Suspense>
     </div>
   );
@@ -27,6 +31,7 @@ export default function OpsPage() {
 
 async function Board() {
   const all = await listParcels();
+  const pending = listPendingUsers();
   const delivered = all.filter((p) => p.stage === LAST_STAGE).length;
   const live = all.filter((p) => p.stage < LAST_STAGE);
   const waiting = all.filter((p) => p.stage === 2).length;
@@ -65,6 +70,35 @@ async function Board() {
           </div>
         ))}
       </div>
+
+      <section className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }} aria-labelledby="approvals">
+        <h2 id="approvals" style={{ fontSize: 20 }}>
+          Waiting for approval
+        </h2>
+        {pending.length === 0 && <p className="muted" style={{ margin: 0 }}>No one is waiting.</p>}
+        {pending.map((u) => (
+          <div
+            key={u.id}
+            style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 0", borderTop: "1px solid var(--line)" }}
+          >
+            <div>
+              <strong>{u.name}</strong>
+              <div className="muted" style={{ fontSize: 14 }}>
+                {u.role === "point" ? `Iza point: ${u.pointName}` : "Runner"} · {u.identifier}
+              </div>
+            </div>
+            <form action={approveUserAction} style={{ display: "flex", gap: 8 }}>
+              <input type="hidden" name="id" value={u.id} />
+              <button className="btn btn-primary" name="decision" value="approve" type="submit" style={{ minHeight: 40 }}>
+                Approve
+              </button>
+              <button className="btn" name="decision" value="reject" type="submit" style={{ minHeight: 40, background: "var(--bg)" }}>
+                Reject
+              </button>
+            </form>
+          </div>
+        ))}
+      </section>
 
       <section className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <h2 style={{ fontSize: 20 }}>Live deliveries</h2>

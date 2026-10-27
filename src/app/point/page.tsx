@@ -1,36 +1,39 @@
 import { Suspense } from "react";
 import AutoRefresh from "@/components/AutoRefresh";
 import CollectForm from "@/components/CollectForm";
+import RequireRole from "@/components/RequireRole";
 import Shell from "@/components/Shell";
 import { statusOf } from "@/lib/parcels";
 import { listParcels } from "@/lib/store";
+import type { User } from "@/lib/users";
 
 export const metadata = { title: "Iza point · Iza" };
-
-// The prototype has no sign-in yet, so this is always the Corner Shop.
-const POINT = "Corner Shop";
 
 export default function PointPage() {
   return (
     <Shell>
-      <h1 style={{ fontSize: 26 }}>{POINT}</h1>
-      <p className="muted" style={{ margin: 0 }}>
-        Iza point · open until 20:00
-      </p>
       <Suspense fallback={<p className="muted">Loading parcels…</p>}>
-        <Parcels />
+        <RequireRole roles={["point"]} next="/point">
+          {(user) => <Parcels user={user} />}
+        </RequireRole>
       </Suspense>
     </Shell>
   );
 }
 
-async function Parcels() {
-  const here = (await listParcels()).filter((p) => p.point === POINT && p.stage <= 2);
+async function Parcels({ user }: { user: User }) {
+  // The team can open any point. A point sees only parcels sent to its own shop.
+  const pointName = user.pointName ?? "Corner Shop";
+  const here = (await listParcels()).filter((p) => p.point === pointName && p.stage <= 2);
   const waiting = here.filter((p) => p.stage === 2);
   const coming = here.filter((p) => p.stage < 2);
 
   return (
     <>
+      <h1 style={{ fontSize: 26 }}>{pointName}</h1>
+      <p className="muted" style={{ margin: 0 }}>
+        Iza point · open until 20:00
+      </p>
       <AutoRefresh />
       <div className="grid2">
         <div className="card">

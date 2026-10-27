@@ -12,13 +12,27 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  // Phone first: this is a phone-width app.
-  projects: [{ name: "phone", use: { ...devices["Pixel 7"] } }],
+  projects: [
+    // Signs in once per role and saves the cookies for the tests.
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
+    // Phone first: this is a phone-width app.
+    {
+      name: "phone",
+      use: { ...devices["Pixel 7"] },
+      dependencies: ["setup"],
+      testIgnore: /auth\.setup\.ts/,
+    },
+  ],
   webServer: {
-    command: `npm run build && npx next start -p ${PORT}`,
+    command: `node scripts/reset-e2e.mjs && npm run build && npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}`,
     timeout: 240_000,
     reuseExistingServer: false,
-    env: { IZA_DATA_FILE: "data/e2e-parcels.json" },
+    // A throwaway database and throwaway demo accounts, only for these tests.
+    env: {
+      IZA_DB_FILE: "data/e2e.db",
+      IZA_SEED_DEMO: "1",
+      IZA_SEED_PASSWORD: "e2e-only-password",
+    },
   },
 });
