@@ -44,3 +44,7 @@ export const points: IzaPoint[] = [
     waiting: 2,
   },
 ];
+
+export function pointByName(name: string): IzaPoint | undefined {
+  return points.find((p) => p.name === name);
+}

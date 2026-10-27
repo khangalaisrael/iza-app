@@ -1,3 +1,6 @@
+import { encodePlusCode } from "./pluscode";
+import { FALLBACK_DESTINATION, type LatLng } from "./geo";
+
 export const STAGES = [
   "Booked",
   "Picked up",
@@ -25,6 +28,8 @@ export type Parcel = {
   lat?: number;
   lng?: number;
   plusCode?: string;
+  runnerLat?: number; // live position, set while the runner is on the way
+  runnerLng?: number;
 };
 
 export const NO_RUNNER = "Not assigned yet";
@@ -81,6 +86,11 @@ export const exampleParcels: Record<string, Parcel> = {
     runner: "Sipho",
     stage: 3,
     point: "Corner Shop",
+    lat: -33.9432,
+    lng: 18.533,
+    plusCode: encodePlusCode(-33.9432, 18.533),
+    runnerLat: -33.9441,
+    runnerLng: 18.5296,
   },
   "IZA-4825": {
     code: "IZA-4825",
@@ -101,3 +111,13 @@ export const exampleParcels: Record<string, Parcel> = {
     point: "Corner Shop",
   },
 };
+
+export function destinationOf(p: Parcel): LatLng {
+  return p.lat !== undefined && p.lng !== undefined ? { lat: p.lat, lng: p.lng } : FALLBACK_DESTINATION;
+}
+
+export function runnerPositionOf(p: Parcel): LatLng | undefined {
+  return p.runnerLat !== undefined && p.runnerLng !== undefined
+    ? { lat: p.runnerLat, lng: p.runnerLng }
+    : undefined;
+}

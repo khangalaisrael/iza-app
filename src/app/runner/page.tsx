@@ -1,7 +1,10 @@
 import { Suspense } from "react";
 import AdvanceButton from "@/components/AdvanceButton";
 import AutoRefresh from "@/components/AutoRefresh";
+import LocationShare from "@/components/LocationShare";
 import Shell from "@/components/Shell";
+import { destinationOf } from "@/lib/parcels";
+import { pointByName, DEFAULT_CENTER } from "@/lib/points";
 import { LAST_STAGE, NO_RUNNER, statusOf, type Parcel } from "@/lib/parcels";
 import { listParcels } from "@/lib/store";
 
@@ -40,6 +43,13 @@ export default function RunnerPage() {
 async function Jobs() {
   const all = await listParcels();
   const jobs = all.filter(mine);
+  const onTheWay = all
+    .filter((p) => p.stage === 3 && p.runner === RUNNER)
+    .map((p) => ({
+      code: p.code,
+      from: pointByName(p.point) ?? DEFAULT_CENTER,
+      to: destinationOf(p),
+    }));
   const done = all.filter((p) => p.stage === LAST_STAGE && p.runner === RUNNER).length;
 
   return (
@@ -59,6 +69,8 @@ async function Jobs() {
           <div style={{ fontWeight: 800, fontSize: 28 }}>{done}</div>
         </div>
       </div>
+
+      <LocationShare jobs={onTheWay} />
 
       {jobs.length === 0 && <p className="muted">No jobs right now. Check back soon.</p>}
 

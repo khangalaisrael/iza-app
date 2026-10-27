@@ -1,8 +1,11 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import AutoRefresh from "@/components/AutoRefresh";
+import MapView from "@/components/MapView";
 import Shell from "@/components/Shell";
-import { NO_RUNNER, etaOf, stepsOf } from "@/lib/parcels";
+import { etaMinutes } from "@/lib/geo";
+import { pointByName } from "@/lib/points";
+import { NO_RUNNER, destinationOf, etaOf, runnerPositionOf, stepsOf } from "@/lib/parcels";
 import { getParcel } from "@/lib/store";
 
 export default function ParcelPage({ params }: PageProps<"/track/[code]">) {
@@ -24,17 +27,33 @@ async function ParcelDetails({
   const parcel = await getParcel(decodeURIComponent(code));
   if (!parcel) notFound();
 
+  const dest = destinationOf(parcel);
+  const runnerPos = parcel.stage === 3 ? runnerPositionOf(parcel) : undefined;
+  const headline = runnerPos ? `About ${etaMinutes(runnerPos, dest)} min away` : etaOf(parcel);
+  const point = pointByName(parcel.point);
+  const showMap = parcel.stage >= 2 && parcel.stage < 4;
+
   return (
     <>
-      <AutoRefresh />
+      <AutoRefresh seconds={parcel.stage === 3 ? 2 : 5} />
       <section className="hero">
         <p className="greeting">Molo, {parcel.to}</p>
-        <h1>{etaOf(parcel)}</h1>
+        <h1>{headline}</h1>
         <p style={{ margin: 0 }}>
           <span className="mono">{parcel.code}</span>
           {parcel.runner !== NO_RUNNER && <> · {parcel.runner} has it</>}
         </p>
       </section>
+
+      {showMap && (
+        <MapView
+          points={point ? [point] : []}
+          pin={dest}
+          runner={runnerPos}
+          center={runnerPos ?? dest}
+          height={240}
+        />
+      )}
 
       <section className="card">
         <p className="muted" style={{ margin: "0 0 12px", fontSize: 14 }}>

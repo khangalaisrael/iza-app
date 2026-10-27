@@ -14,6 +14,9 @@ type LatLng = { lat: number; lng: number };
 type Props = {
   points?: IzaPoint[];
   pin?: LatLng | null;
+  /** Live position of the runner carrying the parcel. */
+  runner?: LatLng | null;
+  center?: LatLng;
   /** When set, tapping the map drops a pin (drop-a-pin addressing). */
   onPick?: (pos: LatLng) => void;
   height?: number;
@@ -21,7 +24,7 @@ type Props = {
 
 const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-export default function MapView({ points = [], pin, onPick, height = 280 }: Props) {
+export default function MapView({ points = [], pin, runner, center, onPick, height = 280 }: Props) {
   if (!apiKey) {
     return (
       <div
@@ -47,7 +50,7 @@ export default function MapView({ points = [], pin, onPick, height = 280 }: Prop
       <div style={{ height, borderRadius: 20, overflow: "hidden" }}>
         <Map
           mapId="DEMO_MAP_ID"
-          defaultCenter={pin ?? DEFAULT_CENTER}
+          defaultCenter={center ?? pin ?? DEFAULT_CENTER}
           defaultZoom={15}
           gestureHandling="greedy"
           disableDefaultUI
@@ -59,6 +62,11 @@ export default function MapView({ points = [], pin, onPick, height = 280 }: Prop
               <Pin background="#ECA72C" borderColor="#1E212B" glyphColor="#1E212B" />
             </AdvancedMarker>
           ))}
+          {runner && (
+            <AdvancedMarker position={runner} title="Your runner">
+              <Pin background="#1E212B" borderColor="#ECA72C" glyphColor="#ECA72C" scale={1.2} />
+            </AdvancedMarker>
+          )}
           {pin && (
             <AdvancedMarker position={pin} title="Your pin">
               <Pin background="#6C63E0" borderColor="#FFFFFF" glyphColor="#FFFFFF" />

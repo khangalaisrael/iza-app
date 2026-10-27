@@ -49,6 +49,10 @@ export default function Home() {
           <span>Shop view</span>
         </Link>
       </div>
+      <Link href="/ops" className="card tile">
+        <strong>Team dashboard</strong>
+        <span>Live deliveries and counts</span>
+      </Link>
     </Shell>
   );
 }
