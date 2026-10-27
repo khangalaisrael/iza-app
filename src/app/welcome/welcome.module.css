@@ -15,44 +15,160 @@
 
 /* Navigation: one line, 72px */
 .nav {
+  --pad: clamp(20px, 5vw, 72px);
   position: sticky;
   top: 0;
-  z-index: 20;
-  background: rgb(255 255 255 / 0.94);
-  backdrop-filter: blur(10px);
+  z-index: 40;
+  background: var(--white);
   border-bottom: 1px solid var(--line);
+  color: var(--ink);
 }
-.navInner {
-  height: 72px;
+.navBar {
+  height: 80px;
+  display: flex;
+  align-items: stretch;
+  gap: 28px;
+  padding-left: 14px;
+}
+.logo {
+  align-self: center;
+  flex-shrink: 0;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--honey);
+  color: var(--panel);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: -0.04em;
+  transition: transform 160ms var(--ease-out);
 }
+.logo:active {
+  transform: scale(0.96);
+}
+
+/* The choices along the top. Each opens a short list on hover or focus, as on Pargo. */
 .links {
   display: flex;
-  gap: 28px;
-  font-weight: 600;
-  font-size: 16px;
+  gap: 8px;
+  align-items: stretch;
+  margin-right: auto;
 }
-.links a {
-  padding: 8px 0;
-  color: var(--muted);
-  transition: color 160ms ease;
-}
-.navActions {
+.group {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
 }
-.ghost {
-  font-weight: 700;
-  padding: 10px 14px;
-  border-radius: 24px;
+.group > a {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 14px;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.group > a > * {
+  pointer-events: none;
+}
+.hasMenu {
+  background-image: linear-gradient(var(--ink), var(--ink));
+  background-repeat: no-repeat;
+  background-size: calc(100% - 28px) 2px;
+  background-position: 14px calc(50% + 18px);
+}
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 270px;
+  margin: 0;
+  padding: 10px 0;
+  list-style: none;
+  background: var(--white);
+  border-top: 5px solid var(--honey);
+  box-shadow: 0 18px 40px rgb(19 32 27 / 0.18);
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 160ms var(--ease-out),
+    transform 160ms var(--ease-out),
+    visibility 0s linear 160ms;
+}
+.group:hover .dropdown,
+.group:focus-within .dropdown {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition-delay: 0s;
+}
+.dropdown a {
+  display: block;
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+.dropdown a:hover,
+.dropdown a:focus-visible {
+  background: var(--tint);
+}
+
+.navActions {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-left: auto;
+}
+.findLink,
+.trackBlock,
+.signBlock {
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.findLink {
+  padding: 0 18px;
+}
+.trackBlock {
+  background: var(--honey);
+  color: var(--ink);
+}
+.signBlock {
+  background: var(--panel);
+  color: var(--white);
+}
+.account {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+.account details {
+  position: relative;
 }
 @media (hover: hover) and (pointer: fine) {
-  .links a:hover {
-    color: var(--primary);
+  .findLink:hover {
+    background: var(--tint);
+  }
+  .trackBlock:hover {
+    background: #f7c85a;
+  }
+  .signBlock:hover {
+    background: var(--primary);
   }
 }
 
@@ -488,9 +604,6 @@
 
 /* Phone and tablet: everything stacks */
 @media (max-width: 960px) {
-  .links {
-    display: none;
-  }
   .hero,
   .addressGrid,
   .pointsGrid {
@@ -522,9 +635,6 @@
   }
 }
 @media (max-width: 560px) {
-  .navActions .ghost {
-    display: none;
-  }
   .stats {
     grid-template-columns: 1fr;
   }
@@ -676,7 +786,7 @@
 /* Phone menu: the full menu is hidden on small screens, so a "Menu" button opens the same links. */
 .mobileMenu {
   display: none;
-  position: relative;
+  align-self: center;
 }
 .mobileMenu summary {
   list-style: none;
@@ -695,13 +805,15 @@
 .mobileLinks {
   position: absolute;
   left: 0;
-  top: 56px;
+  right: 0;
+  top: 100%;
   z-index: 30;
-  min-width: 220px;
+  max-height: calc(100dvh - 80px);
+  overflow-y: auto;
   background: var(--white);
-  border-radius: 18px;
-  padding: 8px;
-  box-shadow: 0 10px 30px rgb(19 32 27 / 0.2);
+  border-top: 5px solid var(--honey);
+  padding: 8px 12px 16px;
+  box-shadow: 0 18px 40px rgb(19 32 27 / 0.2);
   display: flex;
   flex-direction: column;
 }
@@ -711,12 +823,380 @@
   font-weight: 700;
   border-radius: 12px;
 }
-@media (max-width: 960px) {
+.mobileGroup {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+.mobileGroup > a:first-child {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.mobileChild {
+  font-weight: 600 !important;
+  color: var(--muted);
+  padding-left: 28px !important;
+}
+@media (max-width: 1080px) {
   .mobileMenu {
     display: block;
-    margin-right: auto;
   }
-  .navInner {
-    gap: 10px;
+  .links {
+    display: none;
+  }
+  .navBar {
+    gap: 12px;
+  }
+  .findLink {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  .navBar {
+    height: 68px;
+    padding-left: 10px;
+  }
+  .logo {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+  .trackBlock,
+  .signBlock {
+    padding: 0 14px;
+  }
+  .mobileLinks {
+    max-height: calc(100dvh - 68px);
+  }
+}
+
+/* Home page: dark green hero, quick facts, how it works, who it is for */
+.heroBand {
+  background: var(--panel);
+  color: var(--white);
+  background-image:
+    radial-gradient(circle at 90% 10%, rgb(242 182 49 / 0.16), transparent 42%),
+    radial-gradient(circle at 0% 100%, rgb(31 122 85 / 0.5), transparent 50%);
+}
+.heroBand .hero {
+  min-height: min(calc(100dvh - 80px - 120px), 680px);
+}
+.heroBand .heroText p {
+  color: #dcebe2;
+}
+.heroBand .heroText h1 {
+  max-width: 15ch;
+}
+.heroBand .secondary {
+  color: var(--white);
+  box-shadow: inset 0 0 0 2px var(--white);
+}
+.heroBand .mapCaption {
+  color: #b9cbc1;
+}
+.heroBand .heroMap > div:first-child {
+  border-radius: 24px;
+  overflow: hidden;
+}
+.factBar {
+  border-top: 1px solid rgb(255 255 255 / 0.18);
+}
+.factGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 26px 20px 26px 0;
+}
+.fact + .fact {
+  padding-left: 24px;
+  border-left: 1px solid rgb(255 255 255 / 0.18);
+}
+.fact strong {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: clamp(1.9rem, 3.4vw, 2.8rem);
+  line-height: 1.05;
+  color: var(--honey);
+}
+.fact span {
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #dcebe2;
+}
+
+.howRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  position: relative;
+  counter-reset: how;
+}
+.howStep {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 8px;
+}
+.howNum {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--honey);
+  color: var(--panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1.4rem;
+  position: relative;
+  z-index: 1;
+}
+.howStep h3 {
+  font-size: 1.3rem;
+}
+.howStep p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.howRow::before {
+  content: "";
+  position: absolute;
+  left: 26px;
+  right: 26px;
+  top: 34px;
+  border-top: 3px dashed var(--tint);
+}
+
+.wayRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.way {
+  border-radius: 28px;
+  padding: clamp(26px, 3.5vw, 44px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.wayPoint {
+  background: var(--tint);
+}
+.wayDoor {
+  background: var(--panel);
+  color: var(--white);
+}
+.wayPrice {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: clamp(2.6rem, 5vw, 4rem);
+  line-height: 1;
+}
+.wayDoor .wayPrice {
+  color: var(--honey);
+}
+.way h3 {
+  font-size: 1.6rem;
+}
+.way .checks {
+  margin-top: 4px;
+}
+.wayDoor .checks svg {
+  color: var(--honey);
+}
+
+.whoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.who {
+  background: var(--white);
+  border: 2px solid var(--line);
+  border-radius: 24px;
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition:
+    border-color 160ms ease,
+    transform 160ms var(--ease-out);
+}
+.who svg {
+  color: var(--primary);
+}
+.who h3 {
+  font-size: 1.3rem;
+}
+.who p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.who .cellLink {
+  margin-top: auto;
+}
+@media (hover: hover) and (pointer: fine) {
+  .who:hover {
+    border-color: var(--primary);
+    transform: translateY(-3px);
+  }
+}
+
+.safeBand {
+  background: var(--tint);
+}
+.safeGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+}
+.safe h3 {
+  font-size: 1.15rem;
+  margin: 10px 0 6px;
+}
+.safe p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.safe svg {
+  color: var(--primary);
+}
+
+.ctaBand {
+  background: var(--honey);
+}
+.ctaInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px 40px;
+  padding-top: 48px;
+  padding-bottom: 48px;
+}
+.ctaInner h2 {
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+  max-width: 22ch;
+}
+.ctaInner .secondary {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+/* Why Iza page */
+.roleTable {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding-bottom: clamp(48px, 7vw, 96px);
+}
+.roleCard {
+  background: var(--bg);
+  border-radius: 24px;
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.roleCard h3 {
+  font-size: 1.35rem;
+}
+.roleCard p {
+  margin: 0;
+  line-height: 1.5;
+}
+.roleCard .no {
+  color: var(--muted);
+}
+.storyGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(24px, 5vw, 72px);
+  align-items: start;
+  padding-bottom: clamp(40px, 6vw, 80px);
+}
+.storyGrid p {
+  font-size: 1.15rem;
+  line-height: 1.65;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+.anchor {
+  scroll-margin-top: 100px;
+}
+.deepBand {
+  background: var(--panel);
+  color: var(--white);
+}
+
+@media (max-width: 960px) {
+  .factGrid,
+  .howRow,
+  .whoGrid,
+  .safeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fact:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .fact:nth-child(n + 3) {
+    border-top: 1px solid rgb(255 255 255 / 0.18);
+  }
+  .howRow::before {
+    display: none;
+  }
+  .wayRow,
+  .roleTable,
+  .storyGrid {
+    grid-template-columns: 1fr;
+  }
+  .heroBand .hero {
+    min-height: 0;
+  }
+}
+@media (max-width: 560px) {
+  .factGrid,
+  .howRow,
+  .whoGrid,
+  .safeGrid {
+    grid-template-columns: 1fr;
+  }
+  .fact,
+  .fact + .fact {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .fact + .fact {
+    border-top: 1px solid rgb(255 255 255 / 0.18);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .who,
+  .dropdown,
+  .logo {
+    transition: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .hideSmall {
+    display: none;
+  }
+  .account {
+    padding: 0 10px;
   }
 }

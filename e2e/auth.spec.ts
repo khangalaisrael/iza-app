@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test, PASSWORD, signIn } from "./fixtures";
+import { expect, test, PASSWORD, signIn, topMenu } from "./fixtures";
 
 const stamp = () => Date.now().toString().slice(-8);
 
@@ -158,14 +158,14 @@ test("everyone who works lands in their own place after signing in", async ({ br
 test("a runner's screens have no Send tab, and a business has one", async ({ as }) => {
   const runner = await (await as("runner")).newPage();
   await runner.goto("/track/IZA-4821");
-  const bar = runner.getByRole("navigation", { name: "Main" });
+  const bar = await topMenu(runner);
   await expect(bar.getByRole("link", { name: "My jobs" })).toBeVisible();
   await expect(bar.getByRole("link", { name: "Send" })).toHaveCount(0);
   await expect(bar.getByRole("link", { name: "Collect" })).toHaveCount(0);
 
   const business = await (await as("business")).newPage();
   await business.goto("/track/IZA-4821");
-  await expect(business.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Send" })).toBeVisible();
+  await expect((await topMenu(business)).getByRole("link", { name: "Send", exact: true })).toBeVisible();
 });
 
 test("people can only open the screens for their own role", async ({ as }) => {

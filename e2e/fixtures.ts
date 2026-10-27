@@ -39,3 +39,13 @@ export const test = base.extend<Fixtures>({
 });
 
 export { expect };
+
+// The top menu: a row of links on a computer, behind a Menu button on a phone. Returns whichever one is showing.
+export async function topMenu(page: import("@playwright/test").Page) {
+  const button = page.locator("summary", { hasText: /^Menu$/ });
+  if (await button.isVisible()) {
+    await button.click();
+    return page.getByRole("navigation", { name: "Menu" });
+  }
+  return page.getByRole("navigation", { name: "Main" });
+}

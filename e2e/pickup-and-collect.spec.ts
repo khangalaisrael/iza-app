@@ -1,4 +1,4 @@
-import { authFile, expect, test } from "./fixtures";
+import { authFile, expect, test, topMenu } from "./fixtures";
 
 // Somewhere in Langa, close to the Fresh Cuts Barber Iza point.
 const NEAR_BARBER = { latitude: -33.9426, longitude: 18.5319 };
@@ -129,7 +129,7 @@ test("the home screen is for customers, and everyone who works is taken to their
   const customer = await (await as("customer")).newPage();
   await customer.goto("/");
   await expect(customer.getByRole("link", { name: /Earn with Iza/ })).toBeVisible();
-  await expect(customer.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Send" })).toHaveCount(0);
+  await expect((await topMenu(customer)).getByRole("link", { name: "Send" })).toHaveCount(0);
 
   const lands: [Parameters<typeof as>[0], RegExp][] = [
     ["runner", /\/runner$/],
@@ -144,12 +144,12 @@ test("the home screen is for customers, and everyone who works is taken to their
   }
 });
 
-test("the home screen is simple: four things to do and a code box", async ({ page }) => {
+test("the home page explains Iza, with a code box and big buttons", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "What would you like to do?" })).toBeVisible();
-  for (const name of ["Send a parcel", "Collect nearby", "Where's my parcel?", "For my business"]) {
-    await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
+  for (const name of ["How Iza works", "Then you choose", "Safe, because it is local", "Iza is for everyone on the street"]) {
+    await expect(page.getByRole("heading", { name })).toBeVisible();
   }
+  await expect(page.getByLabel("Parcel code")).toBeVisible();
   const small = await page.evaluate(
     () =>
       [...document.querySelectorAll("a.btn, button.btn, a.tile, a.tab")]

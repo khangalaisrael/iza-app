@@ -1,6 +1,6 @@
-import { expect, test } from "./fixtures";
+import { expect, test, topMenu } from "./fixtures";
 
-const PUBLIC_PAGES = ["/", "/welcome", "/join", "/business", "/signin", "/signup", "/send", "/track", "/points", "/collect", "/runner", "/point", "/ops"];
+const PUBLIC_PAGES = ["/", "/welcome", "/join", "/business", "/why", "/signin", "/signup", "/send", "/track", "/points", "/collect", "/runner", "/point", "/ops"];
 
 test("nothing scrolls sideways at phone width", async ({ page }) => {
   test.setTimeout(120_000);
@@ -40,27 +40,33 @@ test("nothing scrolls sideways when signed in either", async ({ as }) => {
 test("the website has the same menu on every page, like the design", async ({ browser, baseURL }) => {
   const ctx = await browser.newContext({ baseURL, viewport: { width: 1280, height: 800 } });
   const page = await ctx.newPage();
-  for (const path of ["/welcome", "/join", "/business"]) {
+  for (const path of ["/", "/join", "/business", "/why"]) {
     await page.goto(path);
     const nav = page.getByRole("navigation", { name: "Main" });
-    for (const name of ["Send", "Collect", "For business", "Join us", "Why Iza"]) {
-      await expect(nav.getByRole("link", { name })).toBeVisible();
+    for (const name of ["Send", "Collect", "For my business", "Why Iza"]) {
+      await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
     }
+    await expect(page.getByRole("link", { name: "Track", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
   }
+  // Each choice opens a short list when you point at it.
+  await page.goto("/");
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Send", exact: true }).hover();
+  await expect(page.getByRole("link", { name: "How sending works" })).toBeVisible();
   await ctx.close();
 });
 
 test("on a phone the website menu opens from a Menu button", async ({ page }) => {
   await page.goto("/join");
-  await page.getByText("Menu", { exact: true }).click();
-  const menu = page.getByRole("navigation", { name: "Menu" });
-  for (const name of ["Send", "Collect", "For business", "Join us", "Why Iza"]) {
-    await expect(menu.getByRole("link", { name })).toBeVisible();
+  const menu = await topMenu(page);
+  for (const name of ["Send", "Collect", "For my business", "Why Iza"]) {
+    await expect(menu.getByRole("link", { name, exact: true })).toBeVisible();
   }
 });
 
 test("the website opens with a heading and a way to send and track", async ({ page }) => {
   await page.goto("/welcome");
+  await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Order anywhere. Collect around the corner.");
   await page.getByLabel("Parcel code").fill("IZA-4821");
   await page.getByRole("button", { name: "Find it" }).click();
@@ -68,7 +74,7 @@ test("the website opens with a heading and a way to send and track", async ({ pa
 });
 
 test("the website questions open and close", async ({ page }) => {
-  await page.goto("/welcome");
+  await page.goto("/");
   await page.getByText("How much does it cost?").click();
   await expect(page.getByText("R12 if you collect at an Iza point")).toBeVisible();
 });
@@ -85,7 +91,7 @@ test("join us offers runners, Iza points and businesses their own way in", async
   await expect(page.getByLabel("When are you open?")).toBeVisible();
 
   await page.goto("/join");
-  await page.getByRole("link", { name: "Open a business account" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Open a business account" }).click();
   await expect(page.getByRole("radio", { name: /I send parcels/ })).toBeChecked();
 });
 

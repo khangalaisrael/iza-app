@@ -33,7 +33,7 @@ export default function BusinessPage() {
           </div>
         </div>
 
-        <div className={styles.wrap} style={{ paddingTop: 48 }}>
+        <div className={`${styles.wrap} ${styles.anchor}`} id="how" style={{ paddingTop: 48 }}>
           <div className={styles.sectionHead}>
             <h2>How it works for you</h2>
           </div>
@@ -47,7 +47,7 @@ export default function BusinessPage() {
           </div>
         </div>
 
-        <div className={styles.wrap}>
+        <div className={`${styles.wrap} ${styles.anchor}`} id="cost">
           <div className={styles.sectionHead}>
             <h2>What it costs</h2>
           </div>

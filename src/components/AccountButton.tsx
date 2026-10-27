@@ -2,6 +2,7 @@ import Link from "next/link";
 import { signOutAction } from "@/app/auth/actions";
 import { currentUser } from "@/lib/auth";
 import { WORKSPACE } from "@/lib/roles";
+import type { User } from "@/lib/users";
 
 const roleLabel = {
   customer: "Customer",
@@ -22,6 +23,10 @@ export default async function AccountButton() {
     );
   }
 
+  return <AccountMenu user={user} />;
+}
+
+export function AccountMenu({ user }: { user: User }) {
   return (
     <details className="account">
       <summary className="avatar" aria-label={`Account menu for ${user.name}`}>

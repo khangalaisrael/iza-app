@@ -1200,3 +1200,41 @@ select.input {
   color: var(--danger);
   font-weight: 700;
 }
+
+.btn-honey {
+  background: var(--honey);
+  color: var(--ink);
+}
+.btn-honey:not(:disabled):hover {
+  background: #f7c85a;
+}
+
+/* Pages inside the website frame: a readable column under the top bar */
+.shell {
+  max-width: 680px;
+}
+.portalCrumb {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 14px clamp(14px, 4vw, 40px) 0;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 15px;
+}
+.portalCrumb strong {
+  font-family: var(--font-heading);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.portalMain {
+  padding-top: 12px;
+}
+
+/* Room under the last button, so it is never stuck against the bottom edge of a phone */
+.page {
+  padding-bottom: 96px;
+}

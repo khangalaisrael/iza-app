@@ -1,8 +1,6 @@
-import Link from "next/link";
-import { Suspense } from "react";
-import AccountButton from "./AccountButton";
+import { SiteHeader } from "./SiteChrome";
 
-// The frame for the working screens (runner, Iza point, business, team): wide on a computer, one column on a phone.
+// The frame for the working screens (runner, Iza point, business, team): the website's top bar, then wide on a computer and one column on a phone.
 export default function PortalShell({
   title,
   subtitle,
@@ -14,18 +12,11 @@ export default function PortalShell({
 }) {
   return (
     <div className="portal">
-      <header className="portalBar">
-        <Link href="/" className="badge" aria-label="Iza home">
-          iza
-        </Link>
-        <div className="portalTitle">
-          <strong>{title}</strong>
-          {subtitle && <span>{subtitle}</span>}
-        </div>
-        <Suspense fallback={<span className="avatar" aria-hidden="true" />}>
-          <AccountButton />
-        </Suspense>
-      </header>
+      <SiteHeader />
+      <div className="portalCrumb">
+        <strong>{title}</strong>
+        {subtitle && <span>{subtitle}</span>}
+      </div>
       <main className="portalMain">{children}</main>
     </div>
   );
