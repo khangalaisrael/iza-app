@@ -1,69 +1,54 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import Link from "next/link";
+import CodeForm from "@/components/CodeForm";
+import Shell from "@/components/Shell";
+
+const tiles = [
+  { href: "/send", title: "Send something", note: "From R12" },
+  { href: "/track/IZA-4825", title: "Collect nearby", note: "1 parcel ready" },
+  { href: "/track", title: "Where's my parcel?", note: "1 on the way" },
+  { href: "/send", title: "For my business", note: "Daily pickups" },
+];
 
 export default function Home() {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <Shell>
+      <section className="hero">
+        <p className="greeting">Molo, Lindiwe</p>
+        <h1>Order anywhere. Collect around the corner.</h1>
+        <CodeForm />
+      </section>
+
+      <h2 className="section-title">What would you like to do?</h2>
+      <div className="grid2">
+        {tiles.map((t) => (
+          <Link key={t.title} href={t.href} className="card tile">
+            <strong>{t.title}</strong>
+            <span>{t.note}</span>
+          </Link>
+        ))}
+      </div>
+
+      <div className="card" style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <div style={{ flexGrow: 1, minWidth: 0 }}>
+          <div className="muted" style={{ fontSize: 13 }}>
+            Your Iza address
+          </div>
+          <div className="mono" style={{ fontSize: 15 }}>
+            LANGA-BLUEGATE-27
+          </div>
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        <span className="chip chip-primary">Share</span>
+      </div>
+      <div className="grid2">
+        <Link href="/runner" className="card tile">
+          <strong>Earn with Iza</strong>
+          <span>Runner jobs</span>
+        </Link>
+        <Link href="/point" className="card tile">
+          <strong>Host an Iza point</strong>
+          <span>Shop view</span>
+        </Link>
+      </div>
+    </Shell>
   );
 }
