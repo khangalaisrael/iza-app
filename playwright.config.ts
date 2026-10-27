@@ -6,6 +6,8 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
   retries: 0,
+  // The first request after a cold start boots the test database, which can take a few seconds.
+  expect: { timeout: 15_000 },
   reporter: [["list"]],
   use: {
     baseURL: `http://localhost:${PORT}`,

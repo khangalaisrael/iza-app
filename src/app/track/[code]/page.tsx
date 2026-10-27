@@ -39,6 +39,9 @@ function redact(p: Parcel): Parcel {
     plusCode: undefined,
     runnerLat: undefined,
     runnerLng: undefined,
+    pickupLat: undefined,
+    pickupLng: undefined,
+    pickupPlusCode: undefined,
   };
 }
 

@@ -1,58 +1,92 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { MagnifyingGlass, MapPin, Package, Storefront } from "@phosphor-icons/react/dist/ssr";
 import CodeForm from "@/components/CodeForm";
 import Shell from "@/components/Shell";
+import { currentUser } from "@/lib/auth";
+import type { User } from "@/lib/users";
 
 const tiles = [
-  { href: "/send", title: "Send something", note: "From R12" },
-  { href: "/track/IZA-4825", title: "Collect nearby", note: "1 parcel ready" },
-  { href: "/track", title: "Where's my parcel?", note: "1 on the way" },
-  { href: "/send", title: "For my business", note: "Daily pickups" },
+  { href: "/send", title: "Send something", note: "From R12", icon: Package },
+  { href: "/collect", title: "Collect nearby", note: "Find a shop near you", icon: MapPin },
+  { href: "/track", title: "Where's my parcel?", note: "Use your code", icon: MagnifyingGlass },
+  { href: "/welcome#business", title: "For my business", note: "Daily pickups", icon: Storefront },
 ];
 
 export default function Home() {
   return (
     <Shell>
-      <section className="hero">
-        <p className="greeting">Molo, Lindiwe</p>
-        <h1>Order anywhere. Collect around the corner.</h1>
-        <CodeForm />
-      </section>
+      <Suspense fallback={<Greeting name={null} />}>
+        <Top />
+      </Suspense>
 
       <h2 className="section-title">What would you like to do?</h2>
       <div className="grid2">
-        {tiles.map((t) => (
-          <Link key={t.title} href={t.href} className="card tile">
-            <strong>{t.title}</strong>
-            <span>{t.note}</span>
+        {tiles.map(({ href, title, note, icon: Icon }) => (
+          <Link key={title} href={href} className="card tile">
+            <span className="tileIcon">
+              <Icon size={30} weight="bold" aria-hidden="true" />
+            </span>
+            <strong>{title}</strong>
+            <span>{note}</span>
           </Link>
         ))}
       </div>
 
-      <div className="card" style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        <div style={{ flexGrow: 1, minWidth: 0 }}>
-          <div className="muted" style={{ fontSize: 13 }}>
-            Your Iza address
-          </div>
-          <div className="mono" style={{ fontSize: 15 }}>
-            LANGA-BLUEGATE-27
-          </div>
-        </div>
-        <span className="chip chip-primary">Share</span>
-      </div>
-      <div className="grid2">
-        <Link href="/runner" className="card tile">
-          <strong>Earn with Iza</strong>
-          <span>Runner jobs</span>
-        </Link>
-        <Link href="/point" className="card tile">
-          <strong>Host an Iza point</strong>
-          <span>Shop view</span>
-        </Link>
-      </div>
-      <Link href="/ops" className="card tile">
-        <strong>Team dashboard</strong>
-        <span>Live deliveries and counts</span>
-      </Link>
+      <Suspense fallback={null}>
+        <RoleLink />
+      </Suspense>
     </Shell>
+  );
+}
+
+function Greeting({ name }: { name: string | null }) {
+  return (
+    <section className="hero">
+      <p className="greeting">Molo, {name ?? "neighbour"}</p>
+      <h1>Order anywhere. Collect around the corner.</h1>
+      <CodeForm />
+    </section>
+  );
+}
+
+async function Top() {
+  const user = await currentUser();
+  return <Greeting name={user ? user.name.split(" ")[0] : null} />;
+}
+
+// One extra door, and only for the person it is meant for.
+const roleLinks: Record<User["role"], { href: string; title: string; note: string } | null> = {
+  runner: { href: "/runner", title: "Today's jobs", note: "See what to collect and deliver" },
+  point: { href: "/point", title: "My shop", note: "Parcels waiting for people" },
+  admin: { href: "/ops", title: "Team dashboard", note: "Deliveries and approvals" },
+  customer: null,
+};
+
+async function RoleLink() {
+  const user = await currentUser();
+  const link = user ? roleLinks[user.role] : null;
+
+  if (link) {
+    return (
+      <Link href={link.href} className="banner">
+        <span>
+          <strong>{link.title}</strong>
+          <small>{link.note}</small>
+        </span>
+        <span aria-hidden="true">→</span>
+      </Link>
+    );
+  }
+
+  // Everyone else is invited to earn with Iza.
+  return (
+    <Link href="/signup" className="banner">
+      <span>
+        <strong>Earn with Iza</strong>
+        <small>Become a runner or host an Iza point</small>
+      </span>
+      <span aria-hidden="true">→</span>
+    </Link>
   );
 }

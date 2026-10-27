@@ -22,3 +22,13 @@ export function etaMinutes(from: LatLng, to: LatLng): number {
 export function lerp(a: LatLng, b: LatLng, t: number): LatLng {
   return { lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t };
 }
+
+// A person walks about 5 km an hour, a little over 80 metres a minute.
+export function walkMinutes(from: LatLng, to: LatLng): number {
+  return Math.max(1, Math.round((distanceKm(from, to) * 1.3) / 0.083));
+}
+
+// Opens turn-by-turn directions in the phone's maps app.
+export function directionsUrl(to: LatLng): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${to.lat},${to.lng}`;
+}

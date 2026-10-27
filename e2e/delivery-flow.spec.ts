@@ -8,8 +8,10 @@ test("a parcel goes from booked to delivered across customer, runner and shop", 
   await customer.goto("/send");
   await customer.getByLabel("Pick up from").fill("Thembi's Kitchen");
   await customer.getByLabel(/Deliver to/).fill("Blue gate by the Engen");
-  await customer.getByRole("button", { name: "Book delivery" }).click();
-  await expect(customer.getByText("Enkosi! Your parcel is booked.")).toBeVisible();
+  // To an Iza point, so the shop gets it too.
+  await customer.getByText("To an Iza point").click();
+  await customer.getByRole("button", { name: "Book it" }).click();
+  await expect(customer.getByText("Enkosi! It's booked.")).toBeVisible();
   const code = (await customer.locator(".mono").first().innerText()).trim();
   expect(code).toMatch(CODE);
 
@@ -62,8 +64,8 @@ test("a stranger sees where a parcel is, but not who it is for or where it is go
   await customer.goto("/send");
   await customer.getByLabel("Pick up from").fill("Secret Bakery");
   await customer.getByLabel(/Deliver to/).fill("Third house past the red wall");
-  await customer.getByRole("button", { name: "Book delivery" }).click();
-  await expect(customer.getByText("Enkosi! Your parcel is booked.")).toBeVisible();
+  await customer.getByRole("button", { name: "Book it" }).click();
+  await expect(customer.getByText("Enkosi! It's booked.")).toBeVisible();
   const code = (await customer.locator(".mono").first().innerText()).trim();
 
   const stranger = await browser.newPage({ baseURL });

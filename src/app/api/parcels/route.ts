@@ -4,12 +4,13 @@ import { encodePlusCode } from "@/lib/pluscode";
 import { newParcelCode, saveParcel } from "@/lib/store";
 
 type Body = {
-  from?: string;
-  landmark?: string;
-  size?: string;
-  speed?: string;
-  lat?: number;
+  from?: string; // the place to collect it from, in words
+  landmark?: string; // where it should go, in words
+  speed?: string; // "door" or "shop"
+  lat?: number; // where it should go, as coordinates
   lng?: number;
+  pickupLat?: number; // where to collect it, as coordinates (from the sender's phone or a map pin)
+  pickupLng?: number;
 };
 
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -26,13 +27,19 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json().catch(() => null)) as Body | null;
-  const from = text(body?.from, 120);
+  const hasPickupPin = inRange(body?.pickupLat, 90) && inRange(body?.pickupLng, 180);
+  const hasPin = inRange(body?.lat, 90) && inRange(body?.lng, 180);
+
+  // Words or coordinates are both fine for the pickup. Neither is not.
+  const from = text(body?.from, 120) || (hasPickupPin ? "Pinned location" : "");
   const landmark = text(body?.landmark, 200);
-  if (!from || !landmark) {
-    return Response.json({ error: "Pickup place and delivery landmark are required." }, { status: 400 });
+  if (!from) {
+    return Response.json({ error: "Tell us where to collect it: share your location or name the place." }, { status: 400 });
+  }
+  if (!landmark) {
+    return Response.json({ error: "Tell us where it should go. A landmark is enough." }, { status: 400 });
   }
 
-  const hasPin = inRange(body?.lat, 90) && inRange(body?.lng, 180);
   const parcel: Parcel = {
     code: await newParcelCode(),
     to: user.name,
@@ -42,6 +49,11 @@ export async function POST(request: Request) {
     stage: 0,
     point: body?.speed === "door" ? "Main hub" : "Corner Shop",
     ownerId: user.id,
+    ...(hasPickupPin && {
+      pickupLat: body!.pickupLat,
+      pickupLng: body!.pickupLng,
+      pickupPlusCode: encodePlusCode(body!.pickupLat!, body!.pickupLng!),
+    }),
     ...(hasPin && {
       lat: body!.lat,
       lng: body!.lng,

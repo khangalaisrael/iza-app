@@ -4,7 +4,8 @@ import AutoRefresh from "@/components/AutoRefresh";
 import LocationShare from "@/components/LocationShare";
 import RequireRole from "@/components/RequireRole";
 import Shell from "@/components/Shell";
-import { LAST_STAGE, NO_RUNNER, destinationOf, statusOf, type Parcel } from "@/lib/parcels";
+import { directionsUrl } from "@/lib/geo";
+import { LAST_STAGE, destinationOf, statusOf, type Parcel } from "@/lib/parcels";
 import { DEFAULT_CENTER, pointByName } from "@/lib/points";
 import { listParcels } from "@/lib/store";
 import type { User } from "@/lib/users";
@@ -72,7 +73,7 @@ async function Jobs({ user }: { user: User }) {
         </div>
       </div>
 
-      <LocationShare jobs={onTheWay} />
+      <LocationShare jobs={onTheWay} demo={user.role === "admin"} />
 
       {jobs.length === 0 && <p className="muted">No jobs right now. Check back soon.</p>}
 
@@ -84,23 +85,25 @@ async function Jobs({ user }: { user: User }) {
             </span>
             <span className="chip chip-honey">{statusOf(p)}</span>
           </div>
-          <div style={{ fontSize: 15 }}>
-            <div>
-              <strong>From:</strong> {p.pickup}
+          <div className="jobLines">
+            <div className="jobLine">
+              <span className="jobLabel">Collect from</span>
+              <strong>{p.pickup}</strong>
+              {p.pickupLat !== undefined && p.pickupLng !== undefined && (
+                <a className="linkBtn" href={directionsUrl({ lat: p.pickupLat, lng: p.pickupLng })} target="_blank" rel="noopener noreferrer">
+                  Open the pickup spot in Maps
+                </a>
+              )}
             </div>
-            <div>
-              <strong>To:</strong> {p.landmark}
+            <div className="jobLine">
+              <span className="jobLabel">Take to</span>
+              <strong>{p.landmark}</strong>
+              {p.lat !== undefined && p.lng !== undefined && (
+                <a className="linkBtn" href={directionsUrl({ lat: p.lat, lng: p.lng })} target="_blank" rel="noopener noreferrer">
+                  Open the delivery spot in Maps
+                </a>
+              )}
             </div>
-            {p.runner !== NO_RUNNER && p.stage > 0 && (
-              <div className="muted" style={{ fontSize: 13 }}>
-                Runner: {p.runner}
-              </div>
-            )}
-            {p.plusCode && (
-              <div className="mono muted" style={{ fontSize: 13 }}>
-                Pin: {p.plusCode}
-              </div>
-            )}
           </div>
           <AdvanceButton code={p.code} label={ACTION[p.stage]} runner={user.name} />
         </section>

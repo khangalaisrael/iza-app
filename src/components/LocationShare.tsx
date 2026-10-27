@@ -18,7 +18,7 @@ async function report(code: string, pos: LatLng) {
  * "Share live location" uses the phone's GPS; "Demo ride" walks the runner from the
  * Iza point to the customer so the tracking map can be shown without leaving the desk.
  */
-export default function LocationShare({ jobs }: { jobs: Job[] }) {
+export default function LocationShare({ jobs, demo = false }: { jobs: Job[]; demo?: boolean }) {
   const [sharing, setSharing] = useState(false);
   const [riding, setRiding] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -71,7 +71,7 @@ export default function LocationShare({ jobs }: { jobs: Job[] }) {
   return (
     <section className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <strong>Let customers see you</strong>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: demo ? "1fr 1fr" : "1fr", gap: 8 }}>
         <button
           type="button"
           className={sharing ? "btn btn-primary" : "btn"}
@@ -80,12 +80,14 @@ export default function LocationShare({ jobs }: { jobs: Job[] }) {
         >
           {sharing ? "Stop sharing" : "Share live location"}
         </button>
-        <button type="button" className="btn btn-primary" disabled={riding} onClick={() => setRiding(true)}>
-          {riding ? "Riding…" : "Demo ride"}
-        </button>
+        {demo && (
+          <button type="button" className="btn btn-primary" disabled={riding} onClick={() => setRiding(true)}>
+            {riding ? "Riding…" : "Demo ride"}
+          </button>
+        )}
       </div>
       <span className="muted" style={{ fontSize: 13 }} aria-live="polite">
-        {note ?? "Demo ride moves a test runner to the customer in 20 seconds."}
+        {note ?? (demo ? "Demo ride moves a test runner to the customer in 20 seconds." : "Customers can follow you on their map while you deliver.")}
       </span>
     </section>
   );

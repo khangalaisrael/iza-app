@@ -10,8 +10,8 @@ const tabs = [
     label: "Send",
     icon: "M4 7h16v13H4zM4 11h16M12 7v4",
   },
+  { href: "/collect", label: "Collect", icon: "M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z" },
   { href: "/track", label: "Track", icon: "M18 11a7 7 0 11-14 0 7 7 0 0114 0zM20 20l-4-4" },
-  { href: "/points", label: "Points", icon: "M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z" },
 ];
 
 export default function TabBar() {

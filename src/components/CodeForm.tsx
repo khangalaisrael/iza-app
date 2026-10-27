@@ -20,7 +20,7 @@ export default function CodeForm({ cta = "Find it" }: { cta?: string }) {
       </label>
       <input
         id="parcel-code"
-        placeholder="Parcel code, e.g. IZA-4821"
+        placeholder="Your parcel code"
         value={code}
         onChange={(e) => setCode(e.target.value)}
         autoComplete="off"

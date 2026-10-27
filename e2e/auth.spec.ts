@@ -11,7 +11,7 @@ test("signed-out visitors are sent to sign in, then back where they were going",
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/send$/);
-  await expect(page.getByRole("heading", { name: "Send something" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Send a parcel" })).toBeVisible();
 });
 
 test("a wrong password gives one plain message, and does not say whether the account exists", async ({ page }) => {
@@ -46,7 +46,7 @@ test("a new customer can join and send straight away", async ({ page }) => {
   await page.getByLabel("Password").fill("a-good-long-password");
   await page.getByRole("button", { name: "Create my account" }).click();
   await expect(page).toHaveURL(/\/send$/);
-  await expect(page.getByRole("heading", { name: "Send something" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Send a parcel" })).toBeVisible();
 });
 
 test("signing up twice with the same email is refused", async ({ page }) => {

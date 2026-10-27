@@ -53,6 +53,10 @@ const SCHEMA = [
     updated_at BIGINT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS parcels_owner_idx ON parcels (owner_id)`,
+  // Where the runner collects it from, shared by the sender as coordinates.
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS pickup_lat DOUBLE PRECISION`,
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS pickup_lng DOUBLE PRECISION`,
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS pickup_plus_code TEXT`,
 ];
 
 type G = typeof globalThis & { __izaDb?: Promise<Db> };

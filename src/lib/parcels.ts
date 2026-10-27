@@ -30,6 +30,9 @@ export type Parcel = {
   plusCode?: string;
   runnerLat?: number; // live position, set while the runner is on the way
   runnerLng?: number;
+  pickupLat?: number; // where the runner collects it from
+  pickupLng?: number;
+  pickupPlusCode?: string;
   ownerId?: string; // the customer who booked it
   runnerId?: string; // the runner who claimed it
 };

@@ -198,7 +198,7 @@
   gap: 18px;
 }
 .addressCard small {
-  color: #cfcaf8;
+  color: #b9cbc1;
   font-size: 1rem;
 }
 .code {
@@ -221,7 +221,7 @@
 }
 .contrastOld {
   background: rgb(255 255 255 / 0.1);
-  color: #e6e3fb;
+  color: #dcebe2;
 }
 .contrastNew {
   background: var(--honey);
@@ -261,7 +261,7 @@
   color: var(--white);
 }
 .cellSend p {
-  color: #e6e3fb;
+  color: #dcebe2;
 }
 .cellCollect {
   background: var(--tint);
@@ -296,7 +296,7 @@
   color: var(--white);
 }
 .why .sectionHead p {
-  color: #e6e3fb;
+  color: #dcebe2;
 }
 .stats {
   display: grid;
@@ -330,7 +330,7 @@
 }
 .stat a {
   font-size: 0.9rem;
-  color: #cfcaf8;
+  color: #b9cbc1;
   text-decoration: underline;
   text-underline-offset: 3px;
   width: fit-content;
@@ -432,18 +432,18 @@
 .footerGrid li {
   display: inline-block;
   padding: 6px 0;
-  color: #e6e3fb;
+  color: #dcebe2;
 }
 .footerBrand p {
   max-width: 28ch;
-  color: #e6e3fb;
+  color: #dcebe2;
 }
 .legal {
   margin-top: 48px;
   padding-top: 24px;
   border-top: 1px solid rgb(255 255 255 / 0.25);
   font-size: 0.9rem;
-  color: #cfcaf8;
+  color: #b9cbc1;
 }
 
 /* Motion: the hero settles in, sections rise as they arrive.

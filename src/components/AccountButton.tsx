@@ -14,7 +14,7 @@ export default async function AccountButton() {
 
   if (!user) {
     return (
-      <Link href="/signin" className="btn btn-primary" style={{ minHeight: 40, padding: "0 16px", fontSize: 15 }}>
+      <Link href="/signin" className="btn btn-primary" style={{ minHeight: 48, padding: "0 20px", fontSize: 16 }}>
         Sign in
       </Link>
     );
