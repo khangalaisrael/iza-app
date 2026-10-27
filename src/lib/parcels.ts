@@ -47,6 +47,7 @@ export type Parcel = {
   pickupLat?: number; // where the runner collects it from
   pickupLng?: number;
   pickupPlusCode?: string;
+  deliveryPin?: string; // 4 digits the customer reads out to the runner at the door
   ownerId?: string; // the business that sent it
   runnerId?: string; // the runner who claimed it
 };
@@ -115,6 +116,7 @@ export const exampleParcels: Record<string, Parcel> = {
     pointId: "LANGA-CORNER-02",
     choice: "door",
     fee: FEE_DOOR,
+    deliveryPin: "7305",
     lat: -33.9432,
     lng: 18.533,
     plusCode: encodePlusCode(-33.9432, 18.533),

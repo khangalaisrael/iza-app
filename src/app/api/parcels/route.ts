@@ -2,7 +2,7 @@ import { sameOrigin, userFromRequest } from "@/lib/auth";
 import { FEE_POINT, NO_RUNNER, type Parcel } from "@/lib/parcels";
 import { getPointById } from "@/lib/pointStore";
 import { encodePlusCode } from "@/lib/pluscode";
-import { newParcelCode, saveParcel } from "@/lib/store";
+import { addEvent, newDeliveryPin, newParcelCode, saveParcel } from "@/lib/store";
 import { normalizeIdentifier } from "@/lib/users";
 
 type Body = {
@@ -61,6 +61,7 @@ export async function POST(request: Request) {
     size: ["Small", "Medium", "Large"].includes(text(body?.size, 10)) ? text(body?.size, 10) : "Small",
     ...(text(body?.note, 200) && { note: text(body?.note, 200) }),
     ownerId: user.id,
+    deliveryPin: newDeliveryPin(),
     ...(hasPickupPin && {
       pickupLat: body!.pickupLat,
       pickupLng: body!.pickupLng,
@@ -69,5 +70,6 @@ export async function POST(request: Request) {
   };
 
   await saveParcel(parcel);
+  await addEvent(parcel.code, "booked", `Booked. A runner will collect it and take it to ${point.name}.`, user.name);
   return Response.json({ code: parcel.code, point: point.name, phone }, { status: 201 });
 }

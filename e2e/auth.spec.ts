@@ -140,9 +140,37 @@ test("a point application needs the place's name, a location and its hours", asy
   await expect(page.locator("form [role=alert]")).toContainText("Search for your place");
 });
 
+test("everyone who works lands in their own place after signing in", async ({ browser, baseURL }) => {
+  const lands: [string, RegExp][] = [
+    ["sipho@iza.test", /\/runner$/],
+    ["thembi@iza.test", /\/parcels$/],
+    ["cornershop@iza.test", /\/point$/],
+    ["admin@iza.test", /\/ops$/],
+  ];
+  for (const [who, url] of lands) {
+    const page = await browser.newPage({ baseURL });
+    await signIn(page, who);
+    await expect(page, who).toHaveURL(url);
+    await page.close();
+  }
+});
+
+test("a runner's screens have no Send tab, and a business has one", async ({ as }) => {
+  const runner = await (await as("runner")).newPage();
+  await runner.goto("/track/IZA-4821");
+  const bar = runner.getByRole("navigation", { name: "Main" });
+  await expect(bar.getByRole("link", { name: "My jobs" })).toBeVisible();
+  await expect(bar.getByRole("link", { name: "Send" })).toHaveCount(0);
+  await expect(bar.getByRole("link", { name: "Collect" })).toHaveCount(0);
+
+  const business = await (await as("business")).newPage();
+  await business.goto("/track/IZA-4821");
+  await expect(business.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Send" })).toBeVisible();
+});
+
 test("people can only open the screens for their own role", async ({ as }) => {
   const customer = await (await as("customer")).newPage();
-  for (const path of ["/runner", "/point", "/ops"]) {
+  for (const path of ["/runner", "/point", "/ops", "/parcels"]) {
     await customer.goto(path);
     await expect(customer).toHaveURL(/\/$/);
   }
@@ -150,15 +178,18 @@ test("people can only open the screens for their own role", async ({ as }) => {
   await customer.goto("/send");
   await expect(customer.getByRole("heading", { name: "Sending is for businesses" })).toBeVisible();
 
+  // A runner who tries anywhere else is brought back to their jobs.
   const runner = await (await as("runner")).newPage();
-  await runner.goto("/ops");
-  await expect(runner).toHaveURL(/\/$/);
-  await runner.goto("/point");
-  await expect(runner).toHaveURL(/\/$/);
+  for (const path of ["/ops", "/point", "/parcels", "/"]) {
+    await runner.goto(path);
+    await expect(runner, path).toHaveURL(/\/runner$/);
+  }
 
   const business = await (await as("business")).newPage();
-  await business.goto("/runner");
-  await expect(business).toHaveURL(/\/$/);
+  for (const path of ["/runner", "/ops", "/point"]) {
+    await business.goto(path);
+    await expect(business, path).toHaveURL(/\/parcels$/);
+  }
 });
 
 test("the booking and status APIs refuse people who should not use them", async ({ as, request }) => {
@@ -166,7 +197,7 @@ test("the booking and status APIs refuse people who should not use them", async 
 
   // Signed out.
   expect((await request.post("/api/parcels", { data: booking })).status()).toBe(401);
-  expect((await request.patch("/api/parcels/IZA-4830", { data: { action: "advance" } })).status()).toBe(401);
+  expect((await request.patch("/api/parcels/IZA-4830", { data: { action: "accept" } })).status()).toBe(401);
 
   // Only businesses book.
   for (const role of ["customer", "runner", "point"] as const) {
@@ -176,9 +207,9 @@ test("the booking and status APIs refuse people who should not use them", async 
 
   // A customer or a business cannot take a runner's job, and a runner cannot hand over at a shop.
   const customer = await as("customer");
-  expect((await customer.request.patch("/api/parcels/IZA-4830", { data: { action: "advance" } })).status()).toBe(403);
+  expect((await customer.request.patch("/api/parcels/IZA-4830", { data: { action: "accept" } })).status()).toBe(403);
   const business = await as("business");
-  expect((await business.request.patch("/api/parcels/IZA-4830", { data: { action: "advance" } })).status()).toBe(403);
+  expect((await business.request.patch("/api/parcels/IZA-4830", { data: { action: "accept" } })).status()).toBe(403);
   const runner = await as("runner");
   expect((await runner.request.patch("/api/parcels/IZA-4825", { data: { action: "collect" } })).status()).toBe(403);
 

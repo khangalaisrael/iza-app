@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { signOutAction } from "@/app/auth/actions";
 import { currentUser } from "@/lib/auth";
+import { WORKSPACE } from "@/lib/roles";
 
 const roleLabel = {
   customer: "Customer",
@@ -30,6 +31,11 @@ export default async function AccountButton() {
         <strong>{user.name}</strong>
         <span className="muted">{roleLabel[user.role]}</span>
         {user.status === "pending" && <span className="chip chip-honey">Waiting for approval</span>}
+        {user.status === "active" && user.role !== "customer" && (
+          <Link href={WORKSPACE[user.role].href} className="btn btn-soft btn-block" style={{ minHeight: 44 }}>
+            {WORKSPACE[user.role].label}
+          </Link>
+        )}
         <form action={signOutAction}>
           <button className="btn btn-block" type="submit" style={{ minHeight: 40 }}>
             Sign out

@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { approveUserAction } from "@/app/auth/actions";
 import AddPointForm from "@/components/AddPointForm";
 import AutoRefresh from "@/components/AutoRefresh";
+import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
 import { LAST_STAGE, NO_RUNNER, statusOf } from "@/lib/parcels";
 import { listParcels } from "@/lib/store";
@@ -13,21 +14,13 @@ export const metadata = { title: "Operations · Iza" };
 
 export default function OpsPage() {
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <Link href="/" className="badge" aria-label="Iza home">
-            iza
-          </Link>
-          <h1 style={{ fontSize: 28 }}>Good morning, team</h1>
-        </div>
-      </header>
+    <PortalShell title="Team dashboard" subtitle="Deliveries, approvals and Iza points">
       <Suspense fallback={<p className="muted">Loading…</p>}>
         <RequireRole roles={[]} next="/ops">
           {() => <Board />}
         </RequireRole>
       </Suspense>
-    </div>
+    </PortalShell>
   );
 }
 

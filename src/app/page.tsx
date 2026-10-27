@@ -3,7 +3,9 @@ import { Suspense } from "react";
 import { MagnifyingGlass, MapPin, Package, Storefront } from "@phosphor-icons/react/dist/ssr";
 import CodeForm from "@/components/CodeForm";
 import Shell from "@/components/Shell";
+import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
+import { landingFor } from "@/lib/roles";
 import type { User } from "@/lib/users";
 
 const tiles = [
@@ -52,6 +54,8 @@ function Greeting({ name }: { name: string | null }) {
 
 async function Top() {
   const user = await currentUser();
+  // Runners, shops, businesses and the team have their own place. The customer home is not for them.
+  if (user && user.role !== "customer") redirect(landingFor(user.role));
   return <Greeting name={user ? user.name.split(" ")[0] : null} />;
 }
 

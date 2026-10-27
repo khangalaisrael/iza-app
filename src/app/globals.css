@@ -1129,3 +1129,74 @@ body {
 select.input {
   appearance: auto;
 }
+
+/* ---------------------------------------------------------------
+   Runner job screens: one next step, big buttons, quick updates
+   --------------------------------------------------------------- */
+.jobPanel {
+  border: 3px solid var(--honey);
+  gap: 16px;
+}
+.jobPanel h2 {
+  font-size: 24px;
+}
+.actionRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.actionRow .btn {
+  flex: 1 1 160px;
+}
+.pinBox {
+  margin-top: 4px;
+}
+.pinInput {
+  font-family: var(--font-mono);
+  font-size: 32px;
+  letter-spacing: 12px;
+  text-align: center;
+  max-width: 240px;
+}
+.problemBox summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--muted);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.pinCard {
+  border: 3px solid var(--primary);
+  text-align: center;
+}
+
+/* The list of updates on a parcel */
+.feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.feedItem {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.feedItem:first-child {
+  border-top: 0;
+}
+.feedTime {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--muted);
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.feedItem.warn {
+  color: var(--danger);
+  font-weight: 700;
+}

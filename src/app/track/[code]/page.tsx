@@ -3,13 +3,14 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import AutoRefresh from "@/components/AutoRefresh";
 import ChooseDelivery from "@/components/ChooseDelivery";
+import EventFeed from "@/components/EventFeed";
 import MapView from "@/components/MapView";
 import Shell from "@/components/Shell";
 import { currentUser } from "@/lib/auth";
 import { etaMinutes } from "@/lib/geo";
 import { destinationOf, etaOf, runnerPositionOf, stepsOf, type Parcel } from "@/lib/parcels";
 import { getPointById, type IzaPoint } from "@/lib/pointStore";
-import { getParcel } from "@/lib/store";
+import { getParcel, listEvents } from "@/lib/store";
 import type { User } from "@/lib/users";
 
 export default function ParcelPage({ params }: PageProps<"/track/[code]">) {
@@ -56,7 +57,7 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
   const found = await getParcel(decodeURIComponent(code));
   if (!found) notFound();
 
-  const point = found.pointId ? await getPointById(found.pointId) : undefined;
+  const [point, events] = await Promise.all([found.pointId ? getPointById(found.pointId) : undefined, listEvents(found.code)]);
   const user = await currentUser();
   const full = canSeePrivate(user, found, point);
   const parcel = full ? found : redact(found);
@@ -82,6 +83,16 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
       {canChoose && (
         <section className="card">
           <ChooseDelivery key={`${parcel.choice}-${parcel.stage}`} code={parcel.code} pointName={parcel.point} current={parcel.choice} />
+        </section>
+      )}
+
+      {parcel.choice === "door" && parcel.stage >= 2 && parcel.stage < 4 && parcel.deliveryPin && (
+        <section className="card stack pinCard" aria-label="Your delivery code">
+          <h2>Your delivery code</h2>
+          <div className="bigCode mono">{parcel.deliveryPin}</div>
+          <p className="muted" style={{ margin: 0 }}>
+            Tell the runner this code at your door. Don&apos;t share it before they arrive.
+          </p>
         </section>
       )}
 
@@ -127,6 +138,7 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
           ))}
         </ol>
       </section>
+      <EventFeed events={events} />
     </>
   );
 }

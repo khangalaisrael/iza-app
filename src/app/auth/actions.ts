@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { endSession, requireUser, safeNext, startSession } from "@/lib/auth";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "@/lib/password";
+import { landingFor } from "@/lib/roles";
 import { POINT_KINDS, createPoint, setPointStatusForOwner } from "@/lib/pointStore";
 import {
   clearFailures,
@@ -20,6 +21,12 @@ export type AuthState = { error?: string; values?: Record<string, string> };
 
 const SIGNUP_ROLES: Role[] = ["customer", "business", "runner", "point"];
 const WRONG = "That phone number, email or password isn't right.";
+
+// Where to go after signing in: back to the page they were trying to reach, otherwise their own workspace.
+function destination(next: FormDataEntryValue | null, role: Role): string {
+  const wanted = safeNext(next);
+  return wanted === "/" ? landingFor(role) : wanted;
+}
 
 export async function signUpAction(_prev: AuthState, form: FormData): Promise<AuthState> {
   const name = String(form.get("name") ?? "").trim();
@@ -87,7 +94,7 @@ export async function signUpAction(_prev: AuthState, form: FormData): Promise<Au
     });
   }
   await startSession(user.id);
-  redirect(approved ? safeNext(form.get("next")) : "/pending");
+  redirect(approved ? destination(form.get("next"), user.role) : "/pending");
 }
 
 export async function signInAction(_prev: AuthState, form: FormData): Promise<AuthState> {
@@ -109,7 +116,7 @@ export async function signInAction(_prev: AuthState, form: FormData): Promise<Au
 
   await clearFailures(identifier);
   await startSession(user.id);
-  redirect(user.status === "active" ? safeNext(form.get("next")) : "/pending");
+  redirect(user.status === "active" ? destination(form.get("next"), user.role) : "/pending");
 }
 
 export async function signOutAction(): Promise<void> {

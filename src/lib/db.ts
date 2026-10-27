@@ -82,6 +82,19 @@ const SCHEMA = [
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS fee INTEGER`,
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS size TEXT`,
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS note TEXT`,
+
+  // The customer reads this 4-digit code out at the door. A parcel cannot be marked delivered without it.
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS delivery_pin TEXT`,
+  // Every step a runner takes leaves a line here. Tracking pages are just this list.
+  `CREATE TABLE IF NOT EXISTS parcel_events (
+    id TEXT PRIMARY KEY,
+    code TEXT NOT NULL REFERENCES parcels(code) ON DELETE CASCADE,
+    at BIGINT NOT NULL,
+    kind TEXT NOT NULL,
+    text TEXT NOT NULL,
+    actor TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS parcel_events_code_idx ON parcel_events (code, at)`,
 ];
 
 type G = typeof globalThis & { __izaDb?: Promise<Db> };
@@ -182,4 +195,5 @@ async function seedDemo(d: Db) {
       );
     }
   }
+  await d.query("UPDATE parcels SET delivery_pin = '1234' WHERE delivery_pin IS NULL");
 }

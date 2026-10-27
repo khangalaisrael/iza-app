@@ -22,7 +22,8 @@ test("a business shares its location, and the runner can open the pickup spot in
 
   const runner = await (await as("runner")).newPage();
   await runner.goto("/runner");
-  const link = runner.locator("article", { hasText: code }).getByRole("link", { name: "Open the pickup spot in Maps" });
+  await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this job" }).click();
+  const link = runner.getByRole("link", { name: "Open directions" });
   await expect(link).toBeVisible();
   await expect(link).toHaveAttribute("href", /destination=-33\.9441,18\.5298/);
   await sender.close();
@@ -124,20 +125,23 @@ test("the runner has a map with a find-my-location button that works on a comput
   await ctx.close();
 });
 
-test("the home screen shows each person only the extra door that is theirs", async ({ as }) => {
+test("the home screen is for customers, and everyone who works is taken to their own place", async ({ as }) => {
   const customer = await (await as("customer")).newPage();
   await customer.goto("/");
   await expect(customer.getByRole("link", { name: /Earn with Iza/ })).toBeVisible();
-  await expect(customer.getByRole("link", { name: /Today's jobs/ })).toHaveCount(0);
-  await expect(customer.getByRole("link", { name: /Team dashboard/ })).toHaveCount(0);
+  await expect(customer.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Send" })).toHaveCount(0);
 
-  const runner = await (await as("runner")).newPage();
-  await runner.goto("/");
-  await expect(runner.getByRole("link", { name: /Today's jobs/ })).toBeVisible();
-
-  const admin = await (await as("admin")).newPage();
-  await admin.goto("/");
-  await expect(admin.getByRole("link", { name: /Team dashboard/ })).toBeVisible();
+  const lands: [Parameters<typeof as>[0], RegExp][] = [
+    ["runner", /\/runner$/],
+    ["point", /\/point$/],
+    ["business", /\/parcels$/],
+    ["admin", /\/ops$/],
+  ];
+  for (const [role, url] of lands) {
+    const page = await (await as(role)).newPage();
+    await page.goto("/");
+    await expect(page, role).toHaveURL(url);
+  }
 });
 
 test("the home screen is simple: four things to do and a code box", async ({ page }) => {
