@@ -14,7 +14,7 @@ const nunito = Nunito_Sans({
 });
 
 const mono = JetBrains_Mono({
-  variable: "--font-mono",
+  variable: "--font-jetbrains",
   subsets: ["latin"],
   weight: ["500"],
 });

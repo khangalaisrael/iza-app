@@ -16,7 +16,7 @@
 
   --font-heading: var(--font-rubik), system-ui, sans-serif;
   --font-body: var(--font-nunito), system-ui, sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, monospace;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 
 * {

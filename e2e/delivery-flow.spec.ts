@@ -51,11 +51,27 @@ test("a runner cannot report a location for a parcel that is not on the way", as
 });
 
 test("nothing scrolls sideways at phone width", async ({ page }) => {
-  for (const path of ["/", "/send", "/track", "/points", "/runner", "/point"]) {
+  for (const path of ["/", "/welcome", "/send", "/track", "/points", "/runner", "/point", "/ops"]) {
     await page.goto(path);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow, `${path} overflows by ${overflow}px`).toBeLessThanOrEqual(0);
   }
+});
+
+test("the website opens with a heading and a way to send and track", async ({ page }) => {
+  await page.goto("/welcome");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Order anywhere. Collect around the corner.");
+  await expect(page.getByRole("link", { name: "Send a parcel" }).first()).toBeVisible();
+  await page.getByLabel("Parcel code").fill("IZA-4821");
+  await page.getByRole("button", { name: "Find it" }).click();
+  await expect(page).toHaveURL(/\/track\/IZA-4821$/);
+});
+
+test("the website questions open and close", async ({ page }) => {
+  await page.goto("/welcome");
+  const q = page.getByText("How much does it cost?");
+  await q.click();
+  await expect(page.getByText("R12 if you collect at an Iza point")).toBeVisible();
 });
