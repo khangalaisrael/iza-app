@@ -53,7 +53,7 @@ export default function SendForm() {
 
   if (sent) {
     return (
-      <div className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div className="card pop" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <h2>Enkosi! Your parcel is booked.</h2>
         <p className="muted" style={{ margin: 0 }}>
           A runner will collect it today. Share this code with the person

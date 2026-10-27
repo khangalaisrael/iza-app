@@ -4,11 +4,11 @@ import { exampleParcels, type Parcel } from "./parcels";
 
 // Local JSON file store so bookings survive a restart during development.
 // Swap for a real database (Postgres) before deploying: files don't persist on Vercel.
-const FILE = path.join(process.cwd(), "data", "parcels.json");
+const FILE = process.env.IZA_DATA_FILE ?? path.join(process.cwd(), "data", "parcels.json");
 
 async function readSaved(): Promise<Record<string, Parcel>> {
   try {
-    return JSON.parse(await fs.readFile(FILE, "utf8"));
+    return JSON.parse(await fs.readFile(/*turbopackIgnore: true*/ FILE, "utf8"));
   } catch {
     return {};
   }

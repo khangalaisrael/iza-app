@@ -422,3 +422,136 @@ select {
 .timeline small {
   color: var(--muted);
 }
+
+/* ---------------------------------------------------------------
+   Motion (Emil Kowalski's rules: under 300ms, strong ease-out,
+   exact properties, press feedback, hover only where hover exists)
+   --------------------------------------------------------------- */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.btn,
+.choice span,
+.card.tile,
+.tab,
+.badge {
+  transition:
+    transform 160ms var(--ease-out),
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+/* Every pressable thing answers the finger. */
+.btn:active,
+.card.tile:active,
+.choice span:active,
+.badge:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+  .card.tile:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* Screens settle in: a short stagger so the page doesn't pop all at once. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page > * {
+  animation: rise 280ms var(--ease-out) both;
+}
+.page > *:nth-child(2) { animation-delay: 40ms; }
+.page > *:nth-child(3) { animation-delay: 80ms; }
+.page > *:nth-child(4) { animation-delay: 120ms; }
+.page > *:nth-child(5) { animation-delay: 160ms; }
+.page > *:nth-child(n + 6) { animation-delay: 200ms; }
+
+/* The booking confirmation lands, it doesn't appear from nowhere. */
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.pop {
+  animation: pop 220ms var(--ease-out) both;
+}
+
+/* The current stage breathes, so the customer sees where the parcel is. */
+.timeline .now .dot {
+  position: relative;
+}
+.timeline .now .dot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--honey);
+  opacity: 0.5;
+  animation: ping 1800ms var(--ease-out) infinite;
+}
+@keyframes ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  80%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Fewer, gentler: keep the fades, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .page > * {
+    animation: fade 200ms ease both;
+    transform: none;
+  }
+  .pop {
+    animation: fade 200ms ease both;
+  }
+  .timeline .now .dot::after {
+    animation: none;
+    opacity: 0;
+  }
+  .btn:active,
+  .card.tile:active,
+  .choice span:active,
+  .badge:active {
+    transform: none;
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
