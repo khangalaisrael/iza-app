@@ -6,7 +6,8 @@ export const ACCOUNTS = {
   admin: "admin@iza.test",
   runner: "sipho@iza.test",
   point: "cornershop@iza.test",
-  customer: "lindiwe@iza.test",
+  customer: "0823456789",
+  business: "thembi@iza.test",
 } as const;
 
 export type Role = keyof typeof ACCOUNTS;

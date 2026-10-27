@@ -15,7 +15,11 @@ export default function SignUpPage({ searchParams }: PageProps<"/signup">) {
   );
 }
 
+const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
 async function Form({ searchParams }: { searchParams: PageProps<"/signup">["searchParams"] }) {
-  const { next } = await searchParams;
-  return <AuthForm mode="signup" next={safeNext(Array.isArray(next) ? next[0] : next)} />;
+  const { next, as } = await searchParams;
+  // /signup?as=runner opens the form already set to the right way of joining.
+  const startRole = ["customer", "business", "runner", "point"].includes(first(as) ?? "") ? first(as)! : "customer";
+  return <AuthForm mode="signup" next={safeNext(first(next))} startRole={startRole} />;
 }

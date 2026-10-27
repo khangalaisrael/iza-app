@@ -1,113 +1,181 @@
 import { Suspense } from "react";
 import AdvanceButton from "@/components/AdvanceButton";
 import AutoRefresh from "@/components/AutoRefresh";
+import FindMeMap from "@/components/FindMeMap";
 import LocationShare from "@/components/LocationShare";
+import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
-import Shell from "@/components/Shell";
 import { directionsUrl } from "@/lib/geo";
-import { LAST_STAGE, destinationOf, statusOf, type Parcel } from "@/lib/parcels";
-import { DEFAULT_CENTER, pointByName } from "@/lib/points";
+import { LAST_STAGE, type Parcel } from "@/lib/parcels";
+import { listApprovedPoints, type IzaPoint } from "@/lib/pointStore";
 import { listParcels } from "@/lib/store";
 import type { User } from "@/lib/users";
 
 export const metadata = { title: "Runner · Iza" };
 
-const ACTION: Record<number, string> = {
-  0: "Take this job",
-  1: "Dropped at the Iza point",
-  2: "Pick up and start delivery",
-  3: "Mark delivered",
-};
-
-// Open jobs (not yet claimed, or waiting at a point) are for any runner. Jobs already
-// being carried belong to the runner who took them.
-function visibleTo(p: Parcel, user: User) {
-  if (p.stage === LAST_STAGE) return false;
-  if (p.stage === 0 || p.stage === 2) return true;
-  return user.role === "admin" || p.runnerId === user.id;
-}
-
 export default function RunnerPage() {
   return (
-    <Shell>
+    <PortalShell title="Runner" subtitle="Jobs near you">
       <Suspense fallback={<p className="muted">Loading jobs…</p>}>
         <RequireRole roles={["runner"]} next="/runner">
-          {(user) => <Jobs user={user} />}
+          {(user) => <Board user={user} />}
         </RequireRole>
       </Suspense>
-    </Shell>
+    </PortalShell>
   );
 }
 
-async function Jobs({ user }: { user: User }) {
-  const all = await listParcels();
-  const jobs = all.filter((p) => visibleTo(p, user));
-  const onTheWay = all
-    .filter((p) => p.stage === 3 && (p.runnerId === user.id || user.role === "admin"))
-    .map((p) => ({
-      code: p.code,
-      from: pointByName(p.point) ?? DEFAULT_CENTER,
-      to: destinationOf(p),
-    }));
+type Job = {
+  parcel: Parcel;
+  kind: "collect" | "deliver"; // collect from a business, or deliver from the point to a door
+  fromLabel: string;
+  from?: { lat: number; lng: number };
+  toLabel: string;
+  to?: { lat: number; lng: number };
+  action: string;
+};
+
+function jobFor(p: Parcel, point?: IzaPoint): Job | null {
+  const spot = point ? { lat: point.lat, lng: point.lng } : undefined;
+  const pickupSpot = p.pickupLat !== undefined && p.pickupLng !== undefined ? { lat: p.pickupLat, lng: p.pickupLng } : undefined;
+  const doorSpot = p.lat !== undefined && p.lng !== undefined ? { lat: p.lat, lng: p.lng } : undefined;
+
+  if (p.stage === 0 || p.stage === 1) {
+    return {
+      parcel: p,
+      kind: "collect",
+      fromLabel: p.pickup,
+      from: pickupSpot,
+      toLabel: p.point,
+      to: spot,
+      action: p.stage === 0 ? "Accept this job" : "I dropped it at the Iza point",
+    };
+  }
+  if ((p.stage === 2 && p.choice === "door") || p.stage === 3) {
+    return {
+      parcel: p,
+      kind: "deliver",
+      fromLabel: p.point,
+      from: spot,
+      toLabel: p.landmark || "The customer's door",
+      to: doorSpot,
+      action: p.stage === 2 ? "Accept this delivery" : "I delivered it",
+    };
+  }
+  return null;
+}
+
+async function Board({ user }: { user: User }) {
+  const [all, points] = await Promise.all([listParcels(), listApprovedPoints()]);
+  const byId = new Map(points.map((p) => [p.id, p]));
+  const isTeam = user.role === "admin";
+
+  const jobs = all
+    .map((p) => jobFor(p, p.pointId ? byId.get(p.pointId) : undefined))
+    .filter((j): j is Job => j !== null);
+
+  // Open jobs: nobody has taken them yet. My jobs: the ones I took and have not finished.
+  const open = jobs.filter((j) => j.parcel.stage === 0 || j.parcel.stage === 2);
+  const mine = jobs.filter((j) => (j.parcel.stage === 1 || j.parcel.stage === 3) && (isTeam || j.parcel.runnerId === user.id));
   const done = all.filter((p) => p.stage === LAST_STAGE && p.runnerId === user.id).length;
+
+  const onTheWay = all
+    .filter((p) => p.stage === 3 && (p.runnerId === user.id || isTeam))
+    .map((p) => {
+      const pt = p.pointId ? byId.get(p.pointId) : undefined;
+      const from = pt ? { lat: pt.lat, lng: pt.lng } : { lat: -33.9437, lng: 18.5305 };
+      const to = p.lat !== undefined && p.lng !== undefined ? { lat: p.lat, lng: p.lng } : from;
+      return { code: p.code, from, to };
+    });
+
+  const spots = [...open, ...mine]
+    .flatMap((j) => [j.from && { id: `${j.parcel.code}-a`, name: j.fromLabel, ...j.from }, j.to && { id: `${j.parcel.code}-b`, name: j.toLabel, ...j.to }])
+    .filter((s): s is { id: string; name: string; lat: number; lng: number } => !!s);
 
   return (
     <>
-      <h1 style={{ fontSize: 26 }}>Today&apos;s jobs</h1>
-      <p className="muted" style={{ margin: 0 }}>
-        Signed in as {user.name}.
-      </p>
       <AutoRefresh />
-      <div className="grid2">
-        <div className="card">
-          <div className="muted" style={{ fontSize: 12 }}>
-            Jobs for you
+      <div className="portalGrid">
+        <div className="stack">
+          <div className="statRow">
+            <div className="card stat">
+              <span className="muted">Open jobs</span>
+              <strong>{open.length}</strong>
+            </div>
+            <div className="card stat">
+              <span className="muted">Your jobs</span>
+              <strong>{mine.length}</strong>
+            </div>
+            <div className="card stat">
+              <span className="muted">Delivered</span>
+              <strong>{done}</strong>
+            </div>
           </div>
-          <div style={{ fontWeight: 800, fontSize: 28 }}>{jobs.length}</div>
+
+          <LocationShare jobs={onTheWay} demo={isTeam} />
+
+          <section className="stack" aria-labelledby="mine-h">
+            <h2 id="mine-h">Your jobs</h2>
+            {mine.length === 0 && <p className="muted">You haven&apos;t taken a job yet. Accept one below.</p>}
+            {mine.map((j) => (
+              <JobCard key={j.parcel.code} job={j} />
+            ))}
+          </section>
+
+          <section className="stack" aria-labelledby="open-h">
+            <h2 id="open-h">Jobs you can take</h2>
+            {open.length === 0 && <p className="muted">No open jobs right now. This page updates by itself.</p>}
+            {open.map((j) => (
+              <JobCard key={j.parcel.code} job={j} />
+            ))}
+          </section>
         </div>
-        <div className="card">
-          <div className="muted" style={{ fontSize: 12 }}>
-            Delivered
-          </div>
-          <div style={{ fontWeight: 800, fontSize: 28 }}>{done}</div>
-        </div>
+
+        <aside className="portalAside" aria-label="Map">
+          <FindMeMap spots={spots} height={460} />
+        </aside>
       </div>
-
-      <LocationShare jobs={onTheWay} demo={user.role === "admin"} />
-
-      {jobs.length === 0 && <p className="muted">No jobs right now. Check back soon.</p>}
-
-      {jobs.map((p) => (
-        <section key={p.code} className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className="mono" style={{ fontSize: 14 }}>
-              {p.code}
-            </span>
-            <span className="chip chip-honey">{statusOf(p)}</span>
-          </div>
-          <div className="jobLines">
-            <div className="jobLine">
-              <span className="jobLabel">Collect from</span>
-              <strong>{p.pickup}</strong>
-              {p.pickupLat !== undefined && p.pickupLng !== undefined && (
-                <a className="linkBtn" href={directionsUrl({ lat: p.pickupLat, lng: p.pickupLng })} target="_blank" rel="noopener noreferrer">
-                  Open the pickup spot in Maps
-                </a>
-              )}
-            </div>
-            <div className="jobLine">
-              <span className="jobLabel">Take to</span>
-              <strong>{p.landmark}</strong>
-              {p.lat !== undefined && p.lng !== undefined && (
-                <a className="linkBtn" href={directionsUrl({ lat: p.lat, lng: p.lng })} target="_blank" rel="noopener noreferrer">
-                  Open the delivery spot in Maps
-                </a>
-              )}
-            </div>
-          </div>
-          <AdvanceButton code={p.code} label={ACTION[p.stage]} runner={user.name} />
-        </section>
-      ))}
     </>
+  );
+}
+
+function JobCard({ job }: { job: Job }) {
+  const { parcel: p } = job;
+  return (
+    <article className="card jobCard">
+      <div className="jobHead">
+        <span className={job.kind === "collect" ? "chip chip-honey" : "chip chip-primary"}>
+          {job.kind === "collect" ? "Collect from a business" : "Deliver to a door"}
+        </span>
+        <span className="mono">{p.code}</span>
+      </div>
+      <div className="jobLines">
+        <div className="jobLine">
+          <span className="jobLabel">Pick it up at</span>
+          <strong>{job.fromLabel}</strong>
+          {job.from && (
+            <a className="linkBtn" href={directionsUrl(job.from)} target="_blank" rel="noopener noreferrer">
+              Open the pickup spot in Maps
+            </a>
+          )}
+        </div>
+        <div className="jobLine">
+          <span className="jobLabel">Take it to</span>
+          <strong>{job.toLabel}</strong>
+          {job.to && (
+            <a className="linkBtn" href={directionsUrl(job.to)} target="_blank" rel="noopener noreferrer">
+              Open the drop-off spot in Maps
+            </a>
+          )}
+        </div>
+        {p.note && (
+          <div className="jobLine">
+            <span className="jobLabel">Note</span>
+            <span>{p.note}</span>
+          </div>
+        )}
+      </div>
+      <AdvanceButton code={p.code} label={job.action} />
+    </article>
   );
 }

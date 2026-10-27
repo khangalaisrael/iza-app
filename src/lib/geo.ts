@@ -32,3 +32,16 @@ export function walkMinutes(from: LatLng, to: LatLng): number {
 export function directionsUrl(to: LatLng): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${to.lat},${to.lng}`;
 }
+
+// "07:00 to 19:00" -> is the place open now (South African time)? null when the hours can't be read.
+export function openNow(hours: string, now: Date = new Date()): boolean | null {
+  const m = hours.match(/(\d{1,2}):(\d{2})\s*(?:to|-|–)\s*(\d{1,2}):(\d{2})/i);
+  if (!m) return /24\s*hours?/i.test(hours) ? true : null;
+  const parts = new Intl.DateTimeFormat("en-ZA", { timeZone: "Africa/Johannesburg", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(now);
+  const h = Number(parts.find((p) => p.type === "hour")?.value);
+  const min = Number(parts.find((p) => p.type === "minute")?.value);
+  const at = (h % 24) * 60 + min;
+  const from = Number(m[1]) * 60 + Number(m[2]);
+  const to = Number(m[3]) * 60 + Number(m[4]);
+  return from <= to ? at >= from && at < to : at >= from || at < to;
+}

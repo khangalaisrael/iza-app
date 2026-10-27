@@ -1,9 +1,13 @@
 import { expect, test } from "./fixtures";
 
+const PUBLIC_PAGES = ["/", "/welcome", "/join", "/business", "/signin", "/signup", "/send", "/track", "/points", "/collect", "/runner", "/point", "/ops"];
+
 test("nothing scrolls sideways at phone width", async ({ page }) => {
-  for (const path of ["/", "/welcome", "/signin", "/signup", "/send", "/track", "/points", "/runner", "/point", "/ops"]) {
+  test.setTimeout(120_000);
+  for (const path of PUBLIC_PAGES) {
     await page.goto(path);
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(400);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
@@ -12,21 +16,52 @@ test("nothing scrolls sideways at phone width", async ({ page }) => {
 });
 
 test("nothing scrolls sideways when signed in either", async ({ as }) => {
-  const page = await (await as("admin")).newPage();
-  for (const path of ["/", "/send", "/track", "/runner", "/point", "/ops"]) {
+  const checks: [Parameters<typeof as>[0], string[]][] = [
+    ["admin", ["/", "/ops", "/runner", "/point", "/send"]],
+    ["business", ["/", "/send", "/track"]],
+    ["runner", ["/", "/runner"]],
+    ["point", ["/", "/point"]],
+    ["customer", ["/", "/collect", "/track"]],
+  ];
+  for (const [role, paths] of checks) {
+    const page = await (await as(role)).newPage();
+    for (const path of paths) {
+      await page.goto(path);
+      await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(400);
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow, `${role} ${path} overflows by ${overflow}px`).toBeLessThanOrEqual(0);
+    }
+  }
+});
+
+test("the website has the same menu on every page, like the design", async ({ browser, baseURL }) => {
+  const ctx = await browser.newContext({ baseURL, viewport: { width: 1280, height: 800 } });
+  const page = await ctx.newPage();
+  for (const path of ["/welcome", "/join", "/business"]) {
     await page.goto(path);
-    await page.waitForLoadState("networkidle");
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    );
-    expect(overflow, `${path} overflows by ${overflow}px`).toBeLessThanOrEqual(0);
+    const nav = page.getByRole("navigation", { name: "Main" });
+    for (const name of ["Send", "Collect", "For business", "Join us", "Why Iza"]) {
+      await expect(nav.getByRole("link", { name })).toBeVisible();
+    }
+  }
+  await ctx.close();
+});
+
+test("on a phone the website menu opens from a Menu button", async ({ page }) => {
+  await page.goto("/join");
+  await page.getByText("Menu", { exact: true }).click();
+  const menu = page.getByRole("navigation", { name: "Menu" });
+  for (const name of ["Send", "Collect", "For business", "Join us", "Why Iza"]) {
+    await expect(menu.getByRole("link", { name })).toBeVisible();
   }
 });
 
 test("the website opens with a heading and a way to send and track", async ({ page }) => {
   await page.goto("/welcome");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Order anywhere. Collect around the corner.");
-  await expect(page.getByRole("link", { name: "Send a parcel" }).first()).toBeVisible();
   await page.getByLabel("Parcel code").fill("IZA-4821");
   await page.getByRole("button", { name: "Find it" }).click();
   await expect(page).toHaveURL(/\/track\/IZA-4821$/);
@@ -38,12 +73,35 @@ test("the website questions open and close", async ({ page }) => {
   await expect(page.getByText("R12 if you collect at an Iza point")).toBeVisible();
 });
 
-test("a signed-in customer sees their own parcels, and nobody else's", async ({ as, page }) => {
+test("join us offers runners, Iza points and businesses their own way in", async ({ page }) => {
+  await page.goto("/join");
+  await page.getByRole("link", { name: "Apply to be a runner" }).click();
+  await expect(page).toHaveURL(/\/signup\?as=runner/);
+  await expect(page.getByRole("radio", { name: /I want to deliver/ })).toBeChecked();
+
+  await page.goto("/join");
+  await page.getByRole("link", { name: "Register your place" }).click();
+  await expect(page.getByRole("radio", { name: /host an Iza point/ })).toBeChecked();
+  await expect(page.getByLabel("When are you open?")).toBeVisible();
+
+  await page.goto("/join");
+  await page.getByRole("link", { name: "Open a business account" }).click();
+  await expect(page.getByRole("radio", { name: /I send parcels/ })).toBeChecked();
+});
+
+test("the business page explains what the customer pays", async ({ page }) => {
+  await page.goto("/business");
+  await expect(page.getByRole("heading", { name: "Your customers, reached. Wherever they live." })).toBeVisible();
+  await expect(page.getByText(/R12 to an Iza point/)).toBeVisible();
+  await expect(page.getByText(/they pay R8 extra/)).toBeVisible();
+});
+
+test("a customer sees the parcels addressed to their number, and nobody else's", async ({ as, page }) => {
   await page.goto("/track");
-  await expect(page.getByText("to see the parcels you have sent")).toBeVisible();
+  await expect(page.getByText("to see your parcels")).toBeVisible();
 
   const customer = await (await as("customer")).newPage();
   await customer.goto("/track");
   await expect(customer.getByText("IZA-4821")).toBeVisible();
-  await expect(customer.getByText("IZA-4830")).toHaveCount(0); // someone else's example parcel
+  await expect(customer.getByText("IZA-4830")).toHaveCount(0); // for someone else
 });

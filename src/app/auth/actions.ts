@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { endSession, requireUser, safeNext, startSession } from "@/lib/auth";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "@/lib/password";
+import { POINT_KINDS, createPoint, setPointStatusForOwner } from "@/lib/pointStore";
 import {
   clearFailures,
   createUser,
@@ -14,9 +15,10 @@ import {
   type Role,
 } from "@/lib/users";
 
-export type AuthState = { error?: string };
+// `values` gives back what was typed (never the password), so an error does not wipe the form.
+export type AuthState = { error?: string; values?: Record<string, string> };
 
-const SIGNUP_ROLES: Role[] = ["customer", "runner", "point"];
+const SIGNUP_ROLES: Role[] = ["customer", "business", "runner", "point"];
 const WRONG = "That phone number, email or password isn't right.";
 
 export async function signUpAction(_prev: AuthState, form: FormData): Promise<AuthState> {
@@ -25,17 +27,38 @@ export async function signUpAction(_prev: AuthState, form: FormData): Promise<Au
   const password = String(form.get("password") ?? "");
   const role = String(form.get("role") ?? "customer") as Role;
   const pointName = String(form.get("pointName") ?? "").trim();
+  const pointKind = String(form.get("pointKind") ?? "");
+  const pointAddress = String(form.get("pointAddress") ?? "").trim();
+  const pointHours = String(form.get("pointHours") ?? "").trim();
+  const pointLat = Number(form.get("pointLat"));
+  const pointLng = Number(form.get("pointLng"));
+  const pointLocated =
+    form.get("pointLat") !== "" && form.get("pointLng") !== "" && Number.isFinite(pointLat) && Number.isFinite(pointLng) &&
+    Math.abs(pointLat) <= 90 && Math.abs(pointLng) <= 180;
 
-  if (name.length < 2 || name.length > 60) return { error: "Tell us your name (2 to 60 letters)." };
-  if (!identifier) return { error: "Enter a phone number or an email address." };
-  if (password.length < 8 || password.length > 200) return { error: "Use a password of at least 8 characters." };
-  if (!SIGNUP_ROLES.includes(role)) return { error: "Choose how you will use Iza." };
-  if (role === "point" && (pointName.length < 2 || pointName.length > 60)) {
-    return { error: "Tell us the name of your shop or point." };
+  const values = {
+    name,
+    identifier: String(form.get("identifier") ?? ""),
+    pointName,
+    pointKind,
+    pointHours,
+    pointAddress,
+  };
+  const fail = (error: string): AuthState => ({ error, values });
+
+  if (name.length < 2 || name.length > 60) return fail("Tell us your name (2 to 60 letters).");
+  if (!identifier) return fail("Enter a phone number or an email address.");
+  if (password.length < 8 || password.length > 200) return fail("Use a password of at least 8 characters.");
+  if (!SIGNUP_ROLES.includes(role)) return fail("Choose how you will use Iza.");
+  if (role === "point") {
+    if (pointName.length < 2 || pointName.length > 60) return fail("Tell us the name of your shop or place.");
+    if (!(POINT_KINDS as readonly string[]).includes(pointKind)) return fail("Choose what kind of place it is.");
+    if (!pointLocated) return fail("Search for your place, or tap the map, so runners can find it.");
+    if (pointHours.length < 3 || pointHours.length > 80) return fail("Tell us when you are open, for example 07:00 to 20:00.");
   }
-  if (await findUserByIdentifier(identifier)) return { error: "That phone number or email already has an account. Try signing in." };
+  if (await findUserByIdentifier(identifier)) return fail("That phone number or email already has an account. Try signing in.");
 
-  // Customers start straight away. Runners and shops wait until the team approves them.
+  // Customers start straight away. Businesses, runners and Iza points wait until the team approves them.
   const approved = role === "customer";
   let user;
   try {
@@ -49,7 +72,19 @@ export async function signUpAction(_prev: AuthState, form: FormData): Promise<Au
     });
   } catch {
     // Two people signing up with the same details at the same moment: the database lets only one through.
-    return { error: "That phone number or email already has an account. Try signing in." };
+    return fail("That phone number or email already has an account. Try signing in.");
+  }
+  if (role === "point") {
+    await createPoint({
+      name: pointName,
+      kind: pointKind,
+      address: pointAddress || pointName,
+      lat: pointLat,
+      lng: pointLng,
+      hours: pointHours,
+      phone: identifier.includes("@") ? null : identifier,
+      ownerId: user.id,
+    });
   }
   await startSession(user.id);
   redirect(approved ? safeNext(form.get("next")) : "/pending");
@@ -82,12 +117,36 @@ export async function signOutAction(): Promise<void> {
   redirect("/");
 }
 
+// The team adds an Iza point themselves (for example the hub), and it is live straight away.
+export async function addPointAction(_prev: AuthState, form: FormData): Promise<AuthState> {
+  await requireUser(["admin"], "/ops");
+  const name = String(form.get("pointName") ?? "").trim();
+  const kind = String(form.get("pointKind") ?? "");
+  const address = String(form.get("pointAddress") ?? "").trim();
+  const hours = String(form.get("pointHours") ?? "").trim();
+  const lat = Number(form.get("pointLat"));
+  const lng = Number(form.get("pointLng"));
+  const values = { pointName: name, pointKind: kind, pointHours: hours, pointAddress: address };
+
+  if (name.length < 2 || name.length > 60) return { error: "Give the place a name.", values };
+  if (!(POINT_KINDS as readonly string[]).includes(kind)) return { error: "Choose what kind of place it is.", values };
+  if (form.get("pointLat") === "" || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    return { error: "Search for the place, use your location or tap the map first.", values };
+  }
+  if (hours.length < 3 || hours.length > 80) return { error: "Tell us when it is open, for example 07:00 to 20:00.", values };
+
+  await createPoint({ name, kind, address: address || name, lat, lng, hours, ownerId: null, status: "approved" });
+  redirect("/ops?added=1");
+}
+
 export async function approveUserAction(form: FormData): Promise<void> {
   await requireUser(["admin"], "/ops");
   const id = String(form.get("id") ?? "");
   const decision = String(form.get("decision") ?? "");
   if (id && (decision === "approve" || decision === "reject")) {
     await setUserStatus(id, decision === "approve" ? "active" : "disabled");
+    // An Iza point appears on the public map only once its owner is approved.
+    await setPointStatusForOwner(id, decision === "approve" ? "approved" : "rejected");
   }
   redirect("/ops");
 }

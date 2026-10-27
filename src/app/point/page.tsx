@@ -1,74 +1,98 @@
 import { Suspense } from "react";
 import AutoRefresh from "@/components/AutoRefresh";
 import CollectForm from "@/components/CollectForm";
+import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
-import Shell from "@/components/Shell";
-import { statusOf } from "@/lib/parcels";
+import { openNow } from "@/lib/geo";
+import { statusOf, type Parcel } from "@/lib/parcels";
+import { getPointByOwner } from "@/lib/pointStore";
 import { listParcels } from "@/lib/store";
 import type { User } from "@/lib/users";
 
-export const metadata = { title: "Iza point · Iza" };
+export const metadata = { title: "My Iza point · Iza" };
 
 export default function PointPage() {
   return (
-    <Shell>
+    <PortalShell title="My Iza point" subtitle="Parcels in and out">
       <Suspense fallback={<p className="muted">Loading parcels…</p>}>
         <RequireRole roles={["point"]} next="/point">
-          {(user) => <Parcels user={user} />}
+          {(user) => <Board user={user} />}
         </RequireRole>
       </Suspense>
-    </Shell>
+    </PortalShell>
   );
 }
 
-async function Parcels({ user }: { user: User }) {
-  // The team can open any point. A point sees only parcels sent to its own shop.
-  const pointName = user.pointName ?? "Corner Shop";
-  const here = (await listParcels()).filter((p) => p.point === pointName && p.stage <= 2);
-  const waiting = here.filter((p) => p.stage === 2);
-  const coming = here.filter((p) => p.stage < 2);
+async function Board({ user }: { user: User }) {
+  const isTeam = user.role === "admin";
+  const point = isTeam ? undefined : await getPointByOwner(user.id);
+  const all = await listParcels();
+
+  // A point sees only the parcels sent to its own shop. The team sees every point.
+  const here = all.filter((p) => p.stage <= 2 && (isTeam || (point && p.pointId === point.id)));
+  const arriving = here.filter((p) => p.stage < 2);
+  const ready = here.filter((p) => p.stage === 2 && p.choice !== "door");
+  const forDoor = here.filter((p) => p.stage === 2 && p.choice === "door");
+  const open = point ? openNow(point.hours) : null;
 
   return (
     <>
-      <h1 style={{ fontSize: 26 }}>{pointName}</h1>
-      <p className="muted" style={{ margin: 0 }}>
-        Iza point · open until 20:00
-      </p>
       <AutoRefresh />
-      <div className="grid2">
-        <div className="card">
-          <div className="muted" style={{ fontSize: 12 }}>
-            To collect
-          </div>
-          <div style={{ fontWeight: 800, fontSize: 28 }}>{waiting.length}</div>
+      <div>
+        <h1>{point?.name ?? "All Iza points"}</h1>
+        {point && (
+          <p className="lead">
+            {point.kind}, open {point.hours}
+            {open === true && " · open now"}
+            {open === false && " · closed now"}
+          </p>
+        )}
+      </div>
+
+      <div className="statRow">
+        <div className="card stat">
+          <span className="muted">Coming to you</span>
+          <strong>{arriving.length}</strong>
         </div>
-        <div className="card">
-          <div className="muted" style={{ fontSize: 12 }}>
-            On the way here
-          </div>
-          <div style={{ fontWeight: 800, fontSize: 28 }}>{coming.length}</div>
+        <div className="card stat">
+          <span className="muted">Ready to collect</span>
+          <strong>{ready.length}</strong>
+        </div>
+        <div className="card stat">
+          <span className="muted">Going out to a door</span>
+          <strong>{forDoor.length}</strong>
         </div>
       </div>
 
-      <CollectForm />
+      <div className="portalGrid">
+        <div className="stack">
+          <h2>Someone at the counter?</h2>
+          <CollectForm />
+          <ParcelList title="Ready to collect" parcels={ready} empty="Nothing waiting for collection." />
+        </div>
+        <div className="stack">
+          <ParcelList title="Coming to you" parcels={arriving} empty="Nothing on its way here." />
+          <ParcelList title="Going out to a door" parcels={forDoor} empty="No door deliveries waiting for a runner." />
+        </div>
+      </div>
+    </>
+  );
+}
 
-      <h2 className="section-title">Parcels here</h2>
-      {here.length === 0 && <p className="muted">Nothing here right now.</p>}
-      {here.map((p) => (
-        <div
-          key={p.code}
-          className="card"
-          style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-        >
-          <div>
-            <div style={{ fontWeight: 600 }}>For {p.to}</div>
-            <div className="mono muted" style={{ fontSize: 13 }}>
-              {p.code}
-            </div>
+function ParcelList({ title, parcels, empty }: { title: string; parcels: Parcel[]; empty: string }) {
+  return (
+    <section className="stack" aria-label={title} style={{ gap: 10 }}>
+      <h2>{title}</h2>
+      {parcels.length === 0 && <p className="muted">{empty}</p>}
+      {parcels.map((p) => (
+        <div key={p.code} className="card nearby">
+          <div className="nearbyBody">
+            <strong>For {p.to}</strong>
+            <div className="mono muted">{p.code}</div>
           </div>
-          <span className={p.stage === 2 ? "chip chip-primary" : "chip"}>{statusOf(p)}</span>
+          <span className="chip chip-primary">{statusOf(p)}</span>
         </div>
       ))}
-    </>
+    </section>
   );
 }

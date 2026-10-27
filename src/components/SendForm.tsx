@@ -1,36 +1,49 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import LocationPicker, { type Coords } from "./LocationPicker";
+import { walkMinutes } from "@/lib/geo";
+import { FEE_DOOR_EXTRA, FEE_POINT } from "@/lib/parcels";
+import { whatsappLink } from "@/lib/whatsapp";
 
-const methods = [
-  { id: "door", title: "To their door", note: "A local runner brings it", price: 20 },
-  { id: "shop", title: "To an Iza point", note: "A shop near them, ready to collect", price: 12 },
-];
+export type PointChoice = { id: string; name: string; kind: string; hours: string; lat: number; lng: number };
 
-export default function SendForm() {
+const sizes = ["Small", "Medium", "Large"];
+
+// A business books a parcel to an Iza point. The customer then chooses to collect it or have it brought to their door.
+export default function SendForm({
+  points,
+  siteUrl,
+  initialPointId,
+}: {
+  points: PointChoice[];
+  siteUrl: string;
+  initialPointId?: string;
+}) {
   const [from, setFrom] = useState("");
   const [pickup, setPickup] = useState<Coords | null>(null);
-  const [landmark, setLandmark] = useState("");
-  const [dropPin, setDropPin] = useState<Coords | null>(null);
-  const [method, setMethod] = useState("door");
-  const [sent, setSent] = useState<{ code: string } | null>(null);
+  const [toName, setToName] = useState("");
+  const [toPhone, setToPhone] = useState("");
+  const [pointId, setPointId] = useState(
+    points.find((p) => p.id === initialPointId)?.id ?? points[0]?.id ?? "",
+  );
+  const [size, setSize] = useState("Small");
+  const [note, setNote] = useState("");
+  const [sent, setSent] = useState<{ code: string; point: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const price = methods.find((m) => m.id === method)?.price ?? 20;
+  // Once the business has shared where it is, show the closest points first.
+  const ordered = useMemo(() => {
+    if (!pickup) return points.map((p) => ({ p, minutes: null as number | null }));
+    return points
+      .map((p) => ({ p, minutes: walkMinutes(pickup, p) }))
+      .sort((a, b) => (a.minutes as number) - (b.minutes as number));
+  }, [pickup, points]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!from.trim() && !pickup) {
-      setError("Tell us where to collect it: share your location or name the place.");
-      return;
-    }
-    if (!landmark.trim()) {
-      setError("Tell us where it should go. A landmark is enough.");
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -39,12 +52,13 @@ export default function SendForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           from,
-          landmark,
-          speed: method,
           pickupLat: pickup?.lat,
           pickupLng: pickup?.lng,
-          lat: dropPin?.lat,
-          lng: dropPin?.lng,
+          toName,
+          toPhone,
+          pointId,
+          size,
+          note,
         }),
       });
       const data = await res.json();
@@ -58,13 +72,21 @@ export default function SendForm() {
   }
 
   if (sent) {
+    const link = `${siteUrl}/track/${sent.code}`;
+    const message = `Molo ${toName}! A parcel is waiting for you at ${sent.point}. Your Iza code is ${sent.code}. Choose to collect it or have it brought to your door: ${link}`;
     return (
       <div className="card pop done">
         <h1>Enkosi! It&apos;s booked.</h1>
-        <p className="muted">A runner will come for it. Give this code to the person who is waiting for it.</p>
+        <p className="muted">A runner will collect it from you. Now tell {toName} their code.</p>
         <div className="bigCode mono">{sent.code}</div>
-        <Link className="btn btn-primary" href={`/track/${sent.code}`}>
+        <a className="btn btn-primary" href={whatsappLink(toPhone, message)} target="_blank" rel="noopener noreferrer">
+          Send the code on WhatsApp
+        </a>
+        <Link className="btn btn-soft" href={`/track/${sent.code}`}>
           See where it is
+        </Link>
+        <Link className="linkBtn" href="/send" onClick={() => setSent(null)}>
+          Send another parcel
         </Link>
       </div>
     );
@@ -72,54 +94,91 @@ export default function SendForm() {
 
   return (
     <form onSubmit={onSubmit} className="stack" noValidate>
-      <h1>Send a parcel</h1>
+      <div>
+        <h1>Send a parcel</h1>
+        <p className="lead">It goes to an Iza point near your customer. They choose how they want it.</p>
+      </div>
 
-      <LocationPicker
-        id="from"
-        label="Pick up from"
-        placeholder="e.g. Thembi's Kitchen"
-        value={from}
-        onValue={setFrom}
-        coords={pickup}
-        onCoords={setPickup}
-        canUseMyLocation
-      />
+      <section className="stack" aria-labelledby="who-sending">
+        <h2 id="who-sending">Where do we collect it?</h2>
+        <LocationPicker
+          id="from"
+          label="Pick up from"
+          hint="A shop name, a street or a landmark."
+          placeholder="e.g. Thembi's Kitchen, Langa"
+          value={from}
+          onValue={setFrom}
+          coords={pickup}
+          onCoords={setPickup}
+          canUseMyLocation
+        />
+      </section>
 
-      <LocationPicker
-        id="to"
-        label="Deliver to"
-        hint="A landmark is enough, like the blue gate by the Engen."
-        placeholder="e.g. Blue gate by the Engen"
-        value={landmark}
-        onValue={setLandmark}
-        coords={dropPin}
-        onCoords={setDropPin}
-      />
+      <section className="stack" aria-labelledby="who-for">
+        <h2 id="who-for">Who is it for?</h2>
+        <div className="card stack">
+          <div className="field">
+            <label htmlFor="toName">Their name</label>
+            <input id="toName" className="input" value={toName} onChange={(e) => setToName(e.target.value)} autoComplete="off" />
+          </div>
+          <div className="field">
+            <label htmlFor="toPhone">Their WhatsApp number</label>
+            <small className="muted">We send them the delivery code.</small>
+            <input
+              id="toPhone"
+              className="input"
+              type="tel"
+              inputMode="tel"
+              placeholder="082 345 6789"
+              value={toPhone}
+              onChange={(e) => setToPhone(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      </section>
 
       <fieldset className="field bigChoices">
-        <legend>How should it arrive?</legend>
-        {methods.map((m) => (
-          <label key={m.id} className="bigChoice">
-            <input
-              type="radio"
-              name="method"
-              value={m.id}
-              checked={method === m.id}
-              onChange={() => setMethod(m.id)}
-            />
+        <legend>Which Iza point should it go to?</legend>
+        {points.length === 0 && <p className="muted">No Iza points yet. The team is adding them.</p>}
+        {ordered.map(({ p, minutes }, i) => (
+          <label key={p.id} className="bigChoice">
+            <input type="radio" name="point" value={p.id} checked={pointId === p.id} onChange={() => setPointId(p.id)} />
             <span>
-              <strong>{m.title}</strong>
-              <small>{m.note}</small>
-              <b className="price">R{m.price}</b>
+              <strong>{p.name}</strong>
+              <small>
+                {p.kind}, open {p.hours}
+                {minutes !== null && ` · ${minutes} min from you${i === 0 ? ", closest" : ""}`}
+              </small>
             </span>
           </label>
         ))}
       </fieldset>
 
+      <fieldset className="field">
+        <legend>How big is it?</legend>
+        <div className="pills">
+          {sizes.map((s) => (
+            <label key={s} className="pill">
+              <input type="radio" name="size" value={s} checked={size === s} onChange={() => setSize(s)} />
+              <span>{s}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <div className="field">
+        <label htmlFor="note">A note for the runner (optional)</label>
+        <input id="note" className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Ask for Thembi at the back door" />
+      </div>
+
       <div className="total" aria-live="polite">
         <span>You pay</span>
-        <strong>R{price}</strong>
+        <strong>R{FEE_POINT}</strong>
       </div>
+      <p className="muted" style={{ margin: 0 }}>
+        If your customer wants it brought to their door, they pay R{FEE_DOOR_EXTRA} extra.
+      </p>
 
       {error && (
         <p role="alert" className="problem">
@@ -127,7 +186,7 @@ export default function SendForm() {
         </p>
       )}
 
-      <button className="btn btn-block" type="submit" disabled={busy}>
+      <button className="btn btn-block" type="submit" disabled={busy || points.length === 0}>
         {busy ? "Booking…" : "Book it"}
       </button>
     </form>

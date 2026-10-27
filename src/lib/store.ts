@@ -1,6 +1,6 @@
 import { randomInt } from "node:crypto";
 import { db } from "./db";
-import type { Parcel } from "./parcels";
+import type { Choice, Parcel } from "./parcels";
 
 type Row = {
   code: string;
@@ -20,6 +20,12 @@ type Row = {
   pickup_lat: number | null;
   pickup_lng: number | null;
   pickup_plus_code: string | null;
+  recipient_phone: string | null;
+  point_id: string | null;
+  choice: string | null;
+  fee: number | null;
+  size: string | null;
+  note: string | null;
 };
 
 function fromRow(r: Row): Parcel {
@@ -39,6 +45,12 @@ function fromRow(r: Row): Parcel {
     ...(r.pickup_lat !== null && { pickupLat: r.pickup_lat }),
     ...(r.pickup_lng !== null && { pickupLng: r.pickup_lng }),
     ...(r.pickup_plus_code !== null && { pickupPlusCode: r.pickup_plus_code }),
+    ...(r.recipient_phone !== null && { recipientPhone: r.recipient_phone }),
+    ...(r.point_id !== null && { pointId: r.point_id }),
+    ...(r.choice !== null && { choice: r.choice as Choice }),
+    ...(r.fee !== null && { fee: r.fee }),
+    ...(r.size !== null && { size: r.size }),
+    ...(r.note !== null && { note: r.note }),
     ...(r.owner_id !== null && { ownerId: r.owner_id }),
     ...(r.runner_id !== null && { runnerId: r.runner_id }),
   };
@@ -54,19 +66,24 @@ export async function saveParcel(p: Parcel): Promise<void> {
   await (
     await db()
   ).query(
-    `INSERT INTO parcels (code, owner_id, runner_id, to_name, pickup, landmark, runner, stage, point, lat, lng, plus_code, runner_lat, runner_lng, pickup_lat, pickup_lng, pickup_plus_code, created_at, updated_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$18)
+    `INSERT INTO parcels (code, owner_id, runner_id, to_name, pickup, landmark, runner, stage, point,
+       lat, lng, plus_code, runner_lat, runner_lng, pickup_lat, pickup_lng, pickup_plus_code,
+       recipient_phone, point_id, choice, fee, size, note, created_at, updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$24)
      ON CONFLICT (code) DO UPDATE SET
        owner_id = EXCLUDED.owner_id, runner_id = EXCLUDED.runner_id, to_name = EXCLUDED.to_name,
        pickup = EXCLUDED.pickup, landmark = EXCLUDED.landmark, runner = EXCLUDED.runner,
        stage = EXCLUDED.stage, point = EXCLUDED.point, lat = EXCLUDED.lat, lng = EXCLUDED.lng,
        plus_code = EXCLUDED.plus_code, runner_lat = EXCLUDED.runner_lat, runner_lng = EXCLUDED.runner_lng,
        pickup_lat = EXCLUDED.pickup_lat, pickup_lng = EXCLUDED.pickup_lng, pickup_plus_code = EXCLUDED.pickup_plus_code,
+       recipient_phone = EXCLUDED.recipient_phone, point_id = EXCLUDED.point_id, choice = EXCLUDED.choice,
+       fee = EXCLUDED.fee, size = EXCLUDED.size, note = EXCLUDED.note,
        updated_at = EXCLUDED.updated_at`,
     [
       p.code, p.ownerId ?? null, p.runnerId ?? null, p.to, p.pickup, p.landmark, p.runner, p.stage, p.point,
       p.lat ?? null, p.lng ?? null, p.plusCode ?? null, p.runnerLat ?? null, p.runnerLng ?? null,
-      p.pickupLat ?? null, p.pickupLng ?? null, p.pickupPlusCode ?? null, now,
+      p.pickupLat ?? null, p.pickupLng ?? null, p.pickupPlusCode ?? null,
+      p.recipientPhone ?? null, p.pointId ?? null, p.choice ?? null, p.fee ?? null, p.size ?? null, p.note ?? null, now,
     ],
   );
 }
@@ -77,10 +94,19 @@ export async function listParcels(): Promise<Parcel[]> {
   return rows.map(fromRow);
 }
 
+// A business sees what it sent.
 export async function listParcelsFor(ownerId: string): Promise<Parcel[]> {
   const rows = await (
     await db()
   ).query<Row>("SELECT * FROM parcels WHERE owner_id = $1 ORDER BY created_at DESC", [ownerId]);
+  return rows.map(fromRow);
+}
+
+// A customer sees what is addressed to their WhatsApp number.
+export async function listParcelsToPhone(phone: string): Promise<Parcel[]> {
+  const rows = await (
+    await db()
+  ).query<Row>("SELECT * FROM parcels WHERE recipient_phone = $1 ORDER BY created_at DESC", [phone]);
   return rows.map(fromRow);
 }
 

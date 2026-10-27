@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { db } from "./db";
 
-export type Role = "customer" | "runner" | "point" | "admin";
+export type Role = "customer" | "business" | "runner" | "point" | "admin";
 export type Status = "active" | "pending" | "disabled";
 
 export type User = {

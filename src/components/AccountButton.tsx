@@ -4,6 +4,7 @@ import { currentUser } from "@/lib/auth";
 
 const roleLabel = {
   customer: "Customer",
+  business: "Business",
   runner: "Runner",
   point: "Iza point",
   admin: "Iza team",

@@ -7,10 +7,10 @@ import { currentUser } from "@/lib/auth";
 import type { User } from "@/lib/users";
 
 const tiles = [
-  { href: "/send", title: "Send something", note: "From R12", icon: Package },
+  { href: "/send", title: "Send a parcel", note: "For shops and sellers", icon: Package },
   { href: "/collect", title: "Collect nearby", note: "Find a shop near you", icon: MapPin },
   { href: "/track", title: "Where's my parcel?", note: "Use your code", icon: MagnifyingGlass },
-  { href: "/welcome#business", title: "For my business", note: "Daily pickups", icon: Storefront },
+  { href: "/business", title: "For my business", note: "Daily pickups", icon: Storefront },
 ];
 
 export default function Home() {
@@ -60,6 +60,7 @@ const roleLinks: Record<User["role"], { href: string; title: string; note: strin
   runner: { href: "/runner", title: "Today's jobs", note: "See what to collect and deliver" },
   point: { href: "/point", title: "My shop", note: "Parcels waiting for people" },
   admin: { href: "/ops", title: "Team dashboard", note: "Deliveries and approvals" },
+  business: { href: "/send", title: "Send a parcel", note: "To an Iza point near your customer" },
   customer: null,
 };
 
@@ -81,7 +82,7 @@ async function RoleLink() {
 
   // Everyone else is invited to earn with Iza.
   return (
-    <Link href="/signup" className="banner">
+    <Link href="/join" className="banner">
       <span>
         <strong>Earn with Iza</strong>
         <small>Become a runner or host an Iza point</small>

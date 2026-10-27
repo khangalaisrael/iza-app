@@ -1,22 +1,30 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   AdvancedMarker,
   APIProvider,
   Map,
   Pin,
+  useMap,
   type MapMouseEvent,
 } from "@vis.gl/react-google-maps";
-import { DEFAULT_CENTER, type IzaPoint } from "@/lib/points";
 
 type LatLng = { lat: number; lng: number };
 
+export const DEFAULT_CENTER: LatLng = { lat: -33.9437, lng: 18.5305 };
+
+type MapPoint = { id: string; name: string; lat: number; lng: number };
+
 type Props = {
-  points?: IzaPoint[];
+  points?: MapPoint[];
   pin?: LatLng | null;
   /** Live position of the runner carrying the parcel. */
   runner?: LatLng | null;
+  /** Where the person is right now. The map moves here whenever this changes. */
+  me?: LatLng | null;
   center?: LatLng;
+  zoom?: number;
   /** When set, tapping the map drops a pin (drop-a-pin addressing). */
   onPick?: (pos: LatLng) => void;
   height?: number;
@@ -24,7 +32,21 @@ type Props = {
 
 const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-export default function MapView({ points = [], pin, runner, center, onPick, height = 280 }: Props) {
+// Moves the map when the place it should show changes, on a phone or a computer.
+function Recenter({ to }: { to: LatLng | null | undefined }) {
+  const map = useMap();
+  const lat = to?.lat;
+  const lng = to?.lng;
+  useEffect(() => {
+    if (map && lat !== undefined && lng !== undefined) {
+      map.panTo({ lat, lng });
+      if ((map.getZoom() ?? 0) < 15) map.setZoom(16);
+    }
+  }, [map, lat, lng]);
+  return null;
+}
+
+export default function MapView({ points = [], pin, runner, me, center, zoom = 15, onPick, height = 280 }: Props) {
   if (!apiKey) {
     return (
       <div
@@ -50,15 +72,17 @@ export default function MapView({ points = [], pin, runner, center, onPick, heig
       <div style={{ height, borderRadius: 20, overflow: "hidden" }}>
         <Map
           mapId="DEMO_MAP_ID"
-          defaultCenter={center ?? pin ?? DEFAULT_CENTER}
-          defaultZoom={15}
+          defaultCenter={me ?? center ?? pin ?? DEFAULT_CENTER}
+          defaultZoom={zoom}
           gestureHandling="greedy"
           disableDefaultUI
           zoomControl
           onClick={handleClick}
         >
+          <Recenter to={me} />
+          <Recenter to={pin} />
           {points.map((p) => (
-            <AdvancedMarker key={p.code} position={p} title={p.name}>
+            <AdvancedMarker key={p.id} position={p} title={p.name}>
               <Pin background="#f2b631" borderColor="#13201b" glyphColor="#13201b" />
             </AdvancedMarker>
           ))}
@@ -70,6 +94,11 @@ export default function MapView({ points = [], pin, runner, center, onPick, heig
           {pin && (
             <AdvancedMarker position={pin} title="Your pin">
               <Pin background="#1f7a55" borderColor="#FFFFFF" glyphColor="#FFFFFF" />
+            </AdvancedMarker>
+          )}
+          {me && (
+            <AdvancedMarker position={me} title="You are here">
+              <div className="meDot" aria-label="You are here" />
             </AdvancedMarker>
           )}
         </Map>

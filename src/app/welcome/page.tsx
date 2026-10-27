@@ -10,8 +10,9 @@ import {
   Storefront,
 } from "@phosphor-icons/react/dist/ssr";
 import CodeForm from "@/components/CodeForm";
-import MapView from "@/components/MapView";
-import { points } from "@/lib/points";
+import { Suspense } from "react";
+import PointsPreview from "@/components/PointsPreview";
+import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import styles from "./welcome.module.css";
 
 export const metadata = {
@@ -84,27 +85,7 @@ const faqs = [
 export default function Welcome() {
   return (
     <div className={styles.site}>
-      <header className={styles.nav}>
-        <div className={`${styles.wrap} ${styles.navInner}`}>
-          <Link href="/welcome" className="badge" aria-label="Iza home">
-            iza
-          </Link>
-          <nav className={styles.links} aria-label="Sections">
-            <a href="#send">Send</a>
-            <a href="#points">Collect</a>
-            <a href="#business">For business</a>
-            <a href="#faq">Questions</a>
-          </nav>
-          <div className={styles.navActions}>
-            <Link href="/track" className={styles.ghost}>
-              Track
-            </Link>
-            <Link href="/send" className="btn">
-              Send a parcel
-            </Link>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main>
         <section className={`${styles.wrap} ${styles.hero}`}>
@@ -112,7 +93,7 @@ export default function Welcome() {
             <h1>Order anywhere. Collect around the corner.</h1>
             <p>Neighbourhood delivery for Cape Town. A landmark is enough, no street address needed.</p>
             <div className={styles.ctas}>
-              <Link href="/send" className="btn">
+              <Link href="/business" className="btn">
                 Send a parcel
               </Link>
               <Link href="/points" className={`btn ${styles.secondary}`}>
@@ -121,7 +102,9 @@ export default function Welcome() {
             </div>
           </div>
           <div className={styles.heroMap}>
-            <MapView points={points} height={420} />
+            <Suspense fallback={null}>
+              <PointsPreview height={420} list={false} />
+            </Suspense>
             <p className={styles.mapCaption}>Iza points around Langa, where parcels wait for you.</p>
           </div>
         </section>
@@ -176,10 +159,10 @@ export default function Welcome() {
           <div className={styles.bento}>
             <div className={`${styles.cell} ${styles.cellSend}`}>
               <Package size={44} weight="bold" aria-hidden="true" />
-              <h3>Send something</h3>
-              <p>To a door or an Iza point, from R12.</p>
-              <Link href="/send" className={styles.cellLink}>
-                Book a delivery <ArrowRight size={20} weight="bold" aria-hidden="true" />
+              <h3>Send a parcel</h3>
+              <p>Businesses send to an Iza point near the customer. They choose to collect it or have it at their door.</p>
+              <Link href="/business" className={styles.cellLink}>
+                How it works for business <ArrowRight size={20} weight="bold" aria-hidden="true" />
               </Link>
             </div>
             <div className={`${styles.cell} ${styles.cellCollect}`} id="collect">
@@ -193,8 +176,8 @@ export default function Welcome() {
               <Storefront size={40} weight="bold" aria-hidden="true" />
               <h3>Deliver for my business</h3>
               <p>Daily pickups at a set time, and you see every delivery live.</p>
-              <Link href="/ops" className={styles.cellLink}>
-                See the dashboard <ArrowRight size={20} weight="bold" aria-hidden="true" />
+              <Link href="/business" className={styles.cellLink}>
+                Talk to us <ArrowRight size={20} weight="bold" aria-hidden="true" />
               </Link>
             </div>
           </div>
@@ -234,23 +217,9 @@ export default function Welcome() {
               minutes&apos; walk away.
             </p>
           </div>
-          <div className={styles.pointsGrid}>
-            <MapView points={points} height={380} />
-            <div className={styles.pointList}>
-              {points.map((p) => (
-                <div key={p.code} className={styles.pointRow}>
-                  <div>
-                    <strong>{p.name}</strong>
-                    <span>{p.hours}</span>
-                  </div>
-                  <span className="chip chip-primary">{p.waiting} waiting</span>
-                </div>
-              ))}
-              <Link href="/points" className={`btn btn-primary`}>
-                See all points
-              </Link>
-            </div>
-          </div>
+          <Suspense fallback={null}>
+            <PointsPreview />
+          </Suspense>
         </section>
 
         <section className={`${styles.wrap} ${styles.section} ${styles.reveal}`} id="faq" style={{ paddingTop: 0 }}>
@@ -271,55 +240,7 @@ export default function Welcome() {
         </section>
       </main>
 
-      <footer className={styles.footer}>
-        <div className={styles.wrap}>
-          <div className={styles.footerGrid}>
-            <div className={styles.footerBrand}>
-              <span className="badge" aria-label="Iza">
-                iza
-              </span>
-              <p>Delivered by your neighbours.</p>
-            </div>
-            <div>
-              <h3>Get things moving</h3>
-              <ul>
-                <li>
-                  <Link href="/send">Send a parcel</Link>
-                </li>
-                <li>
-                  <Link href="/track">Where&apos;s my parcel?</Link>
-                </li>
-                <li>
-                  <Link href="/points">Points near me</Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3>Join us</h3>
-              <ul>
-                <li>
-                  <Link href="/runner">Become a runner</Link>
-                </li>
-                <li>
-                  <Link href="/point">Host an Iza point</Link>
-                </li>
-                <li>
-                  <Link href="/ops">For business</Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3>Say hello</h3>
-              <ul>
-                <li>WhatsApp [number]</li>
-                <li>[email]</li>
-                <li>Rondebosch, Cape Town</li>
-              </ul>
-            </div>
-          </div>
-          <p className={styles.legal}>&copy; 2026 The Iza Collective, UCT MakersForge</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

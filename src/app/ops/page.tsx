@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { approveUserAction } from "@/app/auth/actions";
+import AddPointForm from "@/components/AddPointForm";
 import AutoRefresh from "@/components/AutoRefresh";
 import RequireRole from "@/components/RequireRole";
 import { LAST_STAGE, NO_RUNNER, statusOf } from "@/lib/parcels";
 import { listParcels } from "@/lib/store";
+import { listPendingPoints } from "@/lib/pointStore";
 import { listPendingUsers } from "@/lib/users";
 
 export const metadata = { title: "Operations · Iza" };
@@ -31,7 +33,9 @@ export default function OpsPage() {
 
 async function Board() {
   const all = await listParcels();
-  const pending = await listPendingUsers();
+  const [pending, pendingPoints] = await Promise.all([listPendingUsers(), listPendingPoints()]);
+  const placeOf = new Map(pendingPoints.map((p) => [p.ownerId, p]));
+  const roleLabel = { business: "Business", runner: "Runner", point: "Iza point", customer: "Customer", admin: "Team" } as const;
   const delivered = all.filter((p) => p.stage === LAST_STAGE).length;
   const live = all.filter((p) => p.stage < LAST_STAGE);
   const waiting = all.filter((p) => p.stage === 2).length;
@@ -84,7 +88,14 @@ async function Board() {
             <div>
               <strong>{u.name}</strong>
               <div className="muted" style={{ fontSize: 14 }}>
-                {u.role === "point" ? `Iza point: ${u.pointName}` : "Runner"} · {u.identifier}
+                {roleLabel[u.role]} · {u.identifier}
+              </div>
+              {u.role === "point" && placeOf.get(u.id) && (
+                <div className="muted" style={{ fontSize: 14 }}>
+                  {placeOf.get(u.id)!.name}, {placeOf.get(u.id)!.kind}. {placeOf.get(u.id)!.address}. Open {placeOf.get(u.id)!.hours}.
+                </div>
+              )}
+              <div>
               </div>
             </div>
             <form action={approveUserAction} style={{ display: "flex", gap: 8 }}>
@@ -98,6 +109,14 @@ async function Board() {
             </form>
           </div>
         ))}
+      </section>
+
+      <section className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }} aria-labelledby="add-point">
+        <h2 id="add-point" style={{ fontSize: 20 }}>
+          Add an Iza point
+        </h2>
+        <p className="muted" style={{ margin: 0 }}>For places the team sets up itself, like the hub. They appear on the map straight away.</p>
+        <AddPointForm />
       </section>
 
       <section className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>

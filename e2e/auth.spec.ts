@@ -1,13 +1,24 @@
+import type { Page } from "@playwright/test";
 import { expect, test, PASSWORD, signIn } from "./fixtures";
+
+const stamp = () => Date.now().toString().slice(-8);
+
+async function signUp(page: Page, opts: { role: string; name: string; id: string; password?: string }) {
+  await page.goto("/signup");
+  await page.getByText(opts.role, { exact: true }).click();
+  await page.getByLabel(/Your name|Business name/).fill(opts.name);
+  await page.getByLabel("Phone number or email").fill(opts.id);
+  await page.getByLabel("Password").fill(opts.password ?? "a-good-long-password");
+}
 
 test("signed-out visitors are sent to sign in, then back where they were going", async ({ page }) => {
   for (const path of ["/send", "/runner", "/point", "/ops"]) {
     await page.goto(path);
-    await expect(page).toHaveURL(new RegExp(`/signin\\?next=${encodeURIComponent(path).replace("%", "%")}`));
+    await expect(page).toHaveURL(new RegExp(`/signin\\?next=${encodeURIComponent(path)}`));
   }
 
   await page.goto("/send");
-  await page.getByLabel("Phone number or email").fill("lindiwe@iza.test");
+  await page.getByLabel("Phone number or email").fill("thembi@iza.test");
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/send$/);
@@ -15,20 +26,15 @@ test("signed-out visitors are sent to sign in, then back where they were going",
 });
 
 test("a wrong password gives one plain message, and does not say whether the account exists", async ({ page }) => {
-  await signIn(page, "lindiwe@iza.test", "not-the-password");
+  await signIn(page, "thembi@iza.test", "not-the-password");
   await expect(page.locator("form [role=alert]")).toHaveText("That phone number, email or password isn't right.");
-
   await signIn(page, "nobody@iza.test", "not-the-password");
   await expect(page.locator("form [role=alert]")).toHaveText("That phone number, email or password isn't right.");
 });
 
 test("five wrong tries lock the account for a while, even with the right password", async ({ page }) => {
-  // Its own account, so locking it does not disturb the other tests.
   const id = `lockme-${Date.now()}@iza.test`;
-  await page.goto("/signup");
-  await page.getByLabel("Your name").fill("Lock Me");
-  await page.getByLabel("Phone number or email").fill(id);
-  await page.getByLabel("Password").fill(PASSWORD);
+  await signUp(page, { role: "I'm getting a parcel", name: "Lock Me", id, password: PASSWORD });
   await page.getByRole("button", { name: "Create my account" }).click();
   await expect(page).toHaveURL(/\/$/);
   await page.getByLabel(/Account menu/).click();
@@ -39,58 +45,99 @@ test("five wrong tries lock the account for a while, even with the right passwor
   await expect(page.locator("form [role=alert]")).toContainText("Too many tries");
 });
 
-test("a new customer can join and send straight away", async ({ page }) => {
-  await page.goto("/signup?next=/send");
-  await page.getByLabel("Your name").fill("Nomsa");
-  await page.getByLabel("Phone number or email").fill(`08${Date.now().toString().slice(-8)}`);
-  await page.getByLabel("Password").fill("a-good-long-password");
+test("a new customer can join straight away", async ({ page }) => {
+  await signUp(page, { role: "I'm getting a parcel", name: "Nomsa", id: `08${stamp()}` });
   await page.getByRole("button", { name: "Create my account" }).click();
-  await expect(page).toHaveURL(/\/send$/);
-  await expect(page.getByRole("heading", { name: "Send a parcel" })).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByLabel(/Account menu/)).toBeVisible();
 });
 
 test("signing up twice with the same email is refused", async ({ page }) => {
-  await page.goto("/signup");
-  await page.getByLabel("Your name").fill("Copy Cat");
-  await page.getByLabel("Phone number or email").fill("LINDIWE@iza.test");
-  await page.getByLabel("Password").fill("a-good-long-password");
+  await signUp(page, { role: "I'm getting a parcel", name: "Copy Cat", id: "THEMBI@iza.test" });
   await page.getByRole("button", { name: "Create my account" }).click();
   await expect(page.locator("form [role=alert]")).toContainText("already has an account");
 });
 
 test("a short password is refused", async ({ page }) => {
-  await page.goto("/signup");
-  await page.getByLabel("Your name").fill("Short Pass");
-  await page.getByLabel("Phone number or email").fill("short@iza.test");
-  await page.getByLabel("Password").fill("short");
+  await signUp(page, { role: "I'm getting a parcel", name: "Short Pass", id: "short@iza.test", password: "short" });
   await page.getByRole("button", { name: "Create my account" }).click();
   await expect(page.locator("form [role=alert]")).toContainText("at least 8 characters");
 });
 
 test("a new runner waits for approval, and the team can approve them", async ({ page, as }) => {
   const id = `runner-${Date.now()}@iza.test`;
-  await page.goto("/signup");
-  await page.getByLabel("Your name").fill("Zola Runner");
-  await page.getByText("Deliver as a runner").click();
-  await page.getByLabel("Phone number or email").fill(id);
-  await page.getByLabel("Password").fill("a-good-long-password");
-  await page.getByRole("button", { name: "Create my account" }).click();
+  await signUp(page, { role: "I want to deliver", name: "Zola Runner", id });
+  await page.getByRole("button", { name: "Send my application" }).click();
   await expect(page).toHaveURL(/\/pending$/);
 
-  // Still waiting: the runner screen stays closed.
   await page.goto("/runner");
   await expect(page).toHaveURL(/\/pending$/);
 
-  // The team approves.
   const admin = await (await as("admin")).newPage();
   await admin.goto("/ops");
   await expect(admin.getByText("Zola Runner")).toBeVisible();
-  await admin.getByRole("button", { name: "Approve" }).first().click();
+  await admin.locator("div", { hasText: "Zola Runner" }).getByRole("button", { name: "Approve" }).last().click();
   await expect(admin.getByText("Zola Runner")).toHaveCount(0);
 
-  // Now the runner screen opens.
   await page.goto("/runner");
-  await expect(page.getByRole("heading", { name: "Today's jobs" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Jobs you can take" })).toBeVisible();
+});
+
+test("a new business waits for approval, then can book parcels", async ({ page, as }) => {
+  const id = `biz-${Date.now()}@iza.test`;
+  await signUp(page, { role: "I send parcels", name: "Mama Lindiwe's Cakes", id });
+  await page.getByRole("button", { name: "Send my application" }).click();
+  await expect(page).toHaveURL(/\/pending$/);
+
+  const admin = await (await as("admin")).newPage();
+  await admin.goto("/ops");
+  await expect(admin.getByText("Mama Lindiwe's Cakes")).toBeVisible();
+  await admin.locator("div", { hasText: "Mama Lindiwe's Cakes" }).getByRole("button", { name: "Approve" }).last().click();
+
+  await page.goto("/send");
+  await expect(page.getByRole("heading", { name: "Send a parcel" })).toBeVisible();
+});
+
+test("someone applies to host an Iza point, and it only shows on the map once the team approves", async ({ browser, baseURL, as }) => {
+  // The shop owner is standing in the shop, so they use their location.
+  const ctx = await browser.newContext({ baseURL, geolocation: { latitude: -33.9441, longitude: 18.5311 }, permissions: ["geolocation"] });
+  const page = await ctx.newPage();
+  const id = `shop-${Date.now()}@iza.test`;
+  await signUp(page, { role: "I'll host an Iza point", name: "Mama Joy", id });
+  await page.getByLabel("Name of your shop or place").fill("Joy's Tuckshop");
+  await page.getByRole("button", { name: "Use my location" }).click();
+  await expect(page.getByText("Location saved.")).toBeVisible();
+  await page.getByLabel("When are you open?").fill("07:00 to 20:00");
+  await page.getByRole("button", { name: "Send my application" }).click();
+  await expect(page).toHaveURL(/\/pending$/);
+
+  // Not on the public list yet.
+  const visitor = await browser.newPage({ baseURL });
+  await visitor.goto("/points");
+  await expect(visitor.getByRole("heading", { name: "Iza points near you" })).toBeVisible();
+  await expect(visitor.getByText("Joy's Tuckshop")).toHaveCount(0);
+
+  // The team sees what was applied for, and approves.
+  const admin = await (await as("admin")).newPage();
+  await admin.goto("/ops");
+  await expect(admin.getByText(/Joy's Tuckshop, Spaza shop/)).toBeVisible();
+  await admin.locator("div", { hasText: "Mama Joy" }).getByRole("button", { name: "Approve" }).last().click();
+
+  await visitor.reload();
+  await expect(visitor.getByText("Joy's Tuckshop")).toBeVisible();
+  await ctx.close();
+});
+
+test("a point application needs the place's name, a location and its hours", async ({ page }) => {
+  await signUp(page, { role: "I'll host an Iza point", name: "Half Done", id: `half-${Date.now()}@iza.test` });
+  await page.getByRole("button", { name: "Send my application" }).click();
+  await expect(page.locator("form [role=alert]")).toContainText("name of your shop");
+  // What was typed is still there after an error. Only the password has to be typed again.
+  await expect(page.getByLabel("Your name")).toHaveValue("Half Done");
+  await page.getByLabel("Name of your shop or place").fill("Half Done Shop");
+  await page.getByLabel("Password").fill("a-good-long-password");
+  await page.getByRole("button", { name: "Send my application" }).click();
+  await expect(page.locator("form [role=alert]")).toContainText("Search for your place");
 });
 
 test("people can only open the screens for their own role", async ({ as }) => {
@@ -99,40 +146,79 @@ test("people can only open the screens for their own role", async ({ as }) => {
     await customer.goto(path);
     await expect(customer).toHaveURL(/\/$/);
   }
+  // A customer who opens the sending page is told it is for businesses, not bounced.
+  await customer.goto("/send");
+  await expect(customer.getByRole("heading", { name: "Sending is for businesses" })).toBeVisible();
 
   const runner = await (await as("runner")).newPage();
   await runner.goto("/ops");
   await expect(runner).toHaveURL(/\/$/);
+  await runner.goto("/point");
+  await expect(runner).toHaveURL(/\/$/);
+
+  const business = await (await as("business")).newPage();
+  await business.goto("/runner");
+  await expect(business).toHaveURL(/\/$/);
 });
 
 test("the booking and status APIs refuse people who should not use them", async ({ as, request }) => {
+  const booking = { from: "a", toName: "Someone", toPhone: "0821112222", pointId: "LANGA-CORNER-02" };
+
   // Signed out.
-  expect((await request.post("/api/parcels", { data: { from: "a", landmark: "b" } })).status()).toBe(401);
+  expect((await request.post("/api/parcels", { data: booking })).status()).toBe(401);
   expect((await request.patch("/api/parcels/IZA-4830", { data: { action: "advance" } })).status()).toBe(401);
 
-  // A customer cannot move a parcel along or hand one over.
+  // Only businesses book.
+  for (const role of ["customer", "runner", "point"] as const) {
+    const ctx = await as(role);
+    expect((await ctx.request.post("/api/parcels", { data: booking })).status(), role).toBe(403);
+  }
+
+  // A customer or a business cannot take a runner's job, and a runner cannot hand over at a shop.
   const customer = await as("customer");
   expect((await customer.request.patch("/api/parcels/IZA-4830", { data: { action: "advance" } })).status()).toBe(403);
-  expect((await customer.request.patch("/api/parcels/IZA-4825", { data: { action: "collect" } })).status()).toBe(403);
-
-  // A runner cannot book.
+  const business = await as("business");
+  expect((await business.request.patch("/api/parcels/IZA-4830", { data: { action: "advance" } })).status()).toBe(403);
   const runner = await as("runner");
-  expect((await runner.request.post("/api/parcels", { data: { from: "a", landmark: "b" } })).status()).toBe(403);
+  expect((await runner.request.patch("/api/parcels/IZA-4825", { data: { action: "collect" } })).status()).toBe(403);
 
   // Writes from another website are refused.
-  const forged = await customer.request.post("/api/parcels", {
-    data: { from: "a", landmark: "b" },
-    headers: { Origin: "https://evil.example" },
-  });
+  const biz = await as("business");
+  const forged = await biz.request.post("/api/parcels", { data: booking, headers: { Origin: "https://evil.example" } });
   expect(forged.status()).toBe(403);
 });
 
 test("signing out ends the session", async ({ page }) => {
-  // A fresh sign-in of its own: signing out ends only that session, not the saved ones other tests use.
-  await signIn(page, "lindiwe@iza.test");
+  await signIn(page, "thembi@iza.test");
   await expect(page.getByLabel(/Account menu/)).toBeVisible();
   await page.getByLabel(/Account menu/).click();
   await page.getByRole("button", { name: "Sign out" }).click();
   await page.goto("/send");
   await expect(page).toHaveURL(/\/signin\?next=%2Fsend/);
+});
+
+test("the team can add an Iza point themselves, and it is live straight away", async ({ browser, baseURL, as }) => {
+  const ctx = await browser.newContext({
+    baseURL,
+    storageState: "e2e/.auth/admin.json",
+    geolocation: { latitude: -33.9452, longitude: 18.5322 },
+    permissions: ["geolocation"],
+  });
+  const page = await ctx.newPage();
+  await page.goto("/ops");
+  const form = page.getByRole("region", { name: "Add an Iza point" });
+  await form.getByRole("button", { name: "Add this Iza point" }).click();
+  await expect(form.getByRole("alert")).toContainText("Give the place a name");
+
+  await form.getByLabel("Name of the place").fill("Hub Test Corner");
+  await form.getByRole("button", { name: "Use my location" }).click();
+  await expect(form.getByText("Location saved.")).toBeVisible();
+  await form.getByLabel("When is it open?").fill("08:00 to 17:00");
+  await form.getByRole("button", { name: "Add this Iza point" }).click();
+  await expect(page).toHaveURL(/\/ops\?added=1/);
+
+  const visitor = await browser.newPage({ baseURL });
+  await visitor.goto("/points");
+  await expect(visitor.getByText("Hub Test Corner")).toBeVisible();
+  await ctx.close();
 });

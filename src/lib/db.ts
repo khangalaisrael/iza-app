@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { exampleParcels } from "./parcels";
+import { points as seedPoints } from "./points";
 import { hashPasswordSync } from "./password";
 
 // Postgres everywhere, so the SQL is the same on a laptop and in production.
@@ -57,6 +58,30 @@ const SCHEMA = [
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS pickup_lat DOUBLE PRECISION`,
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS pickup_lng DOUBLE PRECISION`,
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS pickup_plus_code TEXT`,
+
+  // A business sends, the customer chooses how to receive it, runners and Iza points do the work.
+  `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`,
+  `ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('customer','business','runner','point','admin'))`,
+  `CREATE TABLE IF NOT EXISTS points (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    address TEXT NOT NULL,
+    lat DOUBLE PRECISION NOT NULL,
+    lng DOUBLE PRECISION NOT NULL,
+    hours TEXT NOT NULL,
+    phone TEXT,
+    owner_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    status TEXT NOT NULL CHECK (status IN ('pending','approved','rejected')),
+    created_at BIGINT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS points_status_idx ON points (status)`,
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS recipient_phone TEXT`,
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS point_id TEXT`,
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS choice TEXT`,
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS fee INTEGER`,
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS size TEXT`,
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS note TEXT`,
 ];
 
 type G = typeof globalThis & { __izaDb?: Promise<Db> };
@@ -110,25 +135,18 @@ async function seedDemo(d: Db) {
     return;
   }
 
-  const [parcels] = await d.query<{ n: number }>("SELECT COUNT(*)::int AS n FROM parcels");
-  if (parcels.n === 0) {
-    const now = Date.now();
-    for (const p of Object.values(exampleParcels)) {
-      await d.query(
-        `INSERT INTO parcels (code, to_name, pickup, landmark, runner, stage, point, lat, lng, plus_code, runner_lat, runner_lng, created_at, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$13) ON CONFLICT (code) DO NOTHING`,
-        [p.code, p.to, p.pickup, p.landmark, p.runner, p.stage, p.point,
-         p.lat ?? null, p.lng ?? null, p.plusCode ?? null, p.runnerLat ?? null, p.runnerLng ?? null, now],
-      );
-    }
-  }
-
   const [users] = await d.query<{ n: number }>("SELECT COUNT(*)::int AS n FROM users");
   if (users.n > 0) return;
 
   const hash = hashPasswordSync(password);
   const now = Date.now();
-  const ids = { admin: randomUUID(), runner: randomUUID(), point: randomUUID(), customer: randomUUID() };
+  const ids = {
+    admin: randomUUID(),
+    runner: randomUUID(),
+    point: randomUUID(),
+    customer: randomUUID(),
+    business: randomUUID(),
+  };
   const add = (id: string, name: string, identifier: string, role: string, pointName: string | null) =>
     d.query(
       `INSERT INTO users (id, name, identifier, password_hash, role, status, point_name, created_at)
@@ -138,8 +156,30 @@ async function seedDemo(d: Db) {
   await add(ids.admin, "Iza team", "admin@iza.test", "admin", null);
   await add(ids.runner, "Sipho", "sipho@iza.test", "runner", null);
   await add(ids.point, "Corner Shop", "cornershop@iza.test", "point", "Corner Shop");
-  await add(ids.customer, "Lindiwe", "lindiwe@iza.test", "customer", null);
+  await add(ids.customer, "Lindiwe", "0823456789", "customer", null);
+  await add(ids.business, "Thembi's Kitchen", "thembi@iza.test", "business", null);
 
-  await d.query("UPDATE parcels SET owner_id = $1 WHERE to_name = 'Lindiwe' AND owner_id IS NULL", [ids.customer]);
-  await d.query("UPDATE parcels SET runner_id = $1 WHERE runner = 'Sipho' AND runner_id IS NULL", [ids.runner]);
+  // The three example Iza points, all approved. Corner Shop belongs to its demo owner.
+  const kinds: Record<string, string> = { hub: "Iza hub", shop: "Spaza shop" };
+  for (const p of seedPoints) {
+    await d.query(
+      `INSERT INTO points (id, name, kind, address, lat, lng, hours, owner_id, status, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'approved',$9) ON CONFLICT (id) DO NOTHING`,
+      [p.code, p.name, p.name === "Fresh Cuts Barber" ? "Salon and barber" : kinds[p.kind], `${p.name}, ${p.area}`, p.lat, p.lng, p.hours, p.name === "Corner Shop" ? ids.point : null, now],
+    );
+  }
+
+  const [parcels] = await d.query<{ n: number }>("SELECT COUNT(*)::int AS n FROM parcels");
+  if (parcels.n === 0) {
+    for (const p of Object.values(exampleParcels)) {
+      await d.query(
+        `INSERT INTO parcels (code, owner_id, runner_id, to_name, pickup, landmark, runner, stage, point, point_id, choice, fee, recipient_phone,
+           lat, lng, plus_code, runner_lat, runner_lng, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$19) ON CONFLICT (code) DO NOTHING`,
+        [p.code, ids.business, p.runner === "Sipho" ? ids.runner : null, p.to, p.pickup, p.landmark, p.runner, p.stage, p.point,
+         p.pointId ?? null, p.choice ?? null, p.fee ?? null, p.recipientPhone ?? null,
+         p.lat ?? null, p.lng ?? null, p.plusCode ?? null, p.runnerLat ?? null, p.runnerLng ?? null, now],
+      );
+    }
+  }
 }

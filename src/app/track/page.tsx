@@ -4,7 +4,7 @@ import CodeForm from "@/components/CodeForm";
 import Shell from "@/components/Shell";
 import { currentUser } from "@/lib/auth";
 import { statusOf } from "@/lib/parcels";
-import { listParcels, listParcelsFor } from "@/lib/store";
+import { listParcels, listParcelsFor, listParcelsToPhone } from "@/lib/store";
 
 export const metadata = { title: "Track a parcel · Iza" };
 
@@ -33,16 +33,24 @@ async function ParcelList() {
         <Link href="/signin?next=/track" style={{ color: "var(--primary)", fontWeight: 700 }}>
           Sign in
         </Link>{" "}
-        to see the parcels you have sent.
+        to see your parcels.
       </p>
     );
   }
 
-  const mine = user.role === "admin" ? await listParcels() : await listParcelsFor(user.id);
+  // A business sees what it sent. A customer sees what is addressed to their number. The team sees all.
+  const mine =
+    user.role === "admin"
+      ? await listParcels()
+      : user.role === "business"
+        ? await listParcelsFor(user.id)
+        : user.role === "customer"
+          ? await listParcelsToPhone(user.identifier)
+          : [];
   if (mine.length === 0) {
     return (
       <p className="muted" style={{ margin: 0 }}>
-        Nothing yet. Parcels you book show up here.
+        Nothing yet. Your parcels show up here.
       </p>
     );
   }
