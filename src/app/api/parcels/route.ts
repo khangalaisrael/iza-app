@@ -19,7 +19,7 @@ const inRange = (v: unknown, limit: number): v is number =>
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return Response.json({ error: "Not allowed." }, { status: 403 });
 
-  const user = userFromRequest(request);
+  const user = await userFromRequest(request);
   if (!user) return Response.json({ error: "Please sign in to book." }, { status: 401 });
   if (user.status !== "active" || (user.role !== "customer" && user.role !== "admin")) {
     return Response.json({ error: "Only customers can book a delivery." }, { status: 403 });

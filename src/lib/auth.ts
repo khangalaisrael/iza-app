@@ -12,9 +12,13 @@ const SESSION_DAYS = 30;
 export async function startSession(userId: string): Promise<void> {
   const token = newToken();
   const maxAge = SESSION_DAYS * 24 * 60 * 60;
-  db()
-    .prepare("INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)")
-    .run(hashToken(token), userId, Date.now() + maxAge * 1000);
+  await (
+    await db()
+  ).query("INSERT INTO sessions (token_hash, user_id, expires_at) VALUES ($1, $2, $3)", [
+    hashToken(token),
+    userId,
+    Date.now() + maxAge * 1000,
+  ]);
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true, // page scripts can't read it
     sameSite: "lax", // not sent on cross-site form posts
@@ -27,21 +31,24 @@ export async function startSession(userId: string): Promise<void> {
 export async function endSession(): Promise<void> {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
-  if (token) db().prepare("DELETE FROM sessions WHERE token_hash = ?").run(hashToken(token));
+  if (token) await (await db()).query("DELETE FROM sessions WHERE token_hash = $1", [hashToken(token)]);
   jar.delete(SESSION_COOKIE);
 }
 
-function userForToken(token: string | undefined): User | null {
+async function userForToken(token: string | undefined): Promise<User | null> {
   if (!token) return null;
-  const row = db()
-    .prepare("SELECT user_id, expires_at FROM sessions WHERE token_hash = ?")
-    .get(hashToken(token)) as { user_id: string; expires_at: number } | undefined;
-  if (!row) return null;
-  if (row.expires_at < Date.now()) {
-    db().prepare("DELETE FROM sessions WHERE token_hash = ?").run(hashToken(token));
+  const d = await db();
+  const hash = hashToken(token);
+  // Expiry is checked in SQL, so the database's rows decide, not a clock read in JS.
+  const [row] = await d.query<{ user_id: string }>(
+    "SELECT user_id FROM sessions WHERE token_hash = $1 AND expires_at > $2",
+    [hash, Date.now()],
+  );
+  if (!row) {
+    await d.query("DELETE FROM sessions WHERE token_hash = $1 AND expires_at <= $2", [hash, Date.now()]);
     return null;
   }
-  const user = findUserById(row.user_id);
+  const user = await findUserById(row.user_id);
   return user && user.status !== "disabled" ? user : null;
 }
 
@@ -52,7 +59,7 @@ export const currentUser = cache(async (): Promise<User | null> => {
 });
 
 // For API routes, which read the cookie off the request.
-export function userFromRequest(request: Request): User | null {
+export async function userFromRequest(request: Request): Promise<User | null> {
   const header = request.headers.get("cookie") ?? "";
   const match = header.split(/;\s*/).find((c) => c.startsWith(`${SESSION_COOKIE}=`));
   return userForToken(match?.slice(SESSION_COOKIE.length + 1));

@@ -44,57 +44,64 @@ export function normalizeIdentifier(raw: string): string | null {
   return /^\d{9,15}$/.test(digits) ? digits : null;
 }
 
-export function findUserByIdentifier(identifier: string): (User & { passwordHash: string }) | undefined {
-  const row = db().prepare("SELECT * FROM users WHERE identifier = ?").get(identifier) as UserRow | undefined;
+export async function findUserByIdentifier(
+  identifier: string,
+): Promise<(User & { passwordHash: string }) | undefined> {
+  const [row] = await (await db()).query<UserRow>("SELECT * FROM users WHERE identifier = $1", [identifier]);
   return row ? { ...toUser(row), passwordHash: row.password_hash } : undefined;
 }
 
-export function findUserById(id: string): User | undefined {
-  const row = db().prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRow | undefined;
+export async function findUserById(id: string): Promise<User | undefined> {
+  const [row] = await (await db()).query<UserRow>("SELECT * FROM users WHERE id = $1", [id]);
   return row ? toUser(row) : undefined;
 }
 
-export function createUser(input: {
+export async function createUser(input: {
   name: string;
   identifier: string;
   passwordHash: string;
   role: Role;
   status: Status;
   pointName?: string | null;
-}): User {
+}): Promise<User> {
   const id = randomUUID();
-  db()
-    .prepare(
-      "INSERT INTO users (id, name, identifier, password_hash, role, status, point_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-    )
-    .run(id, input.name, input.identifier, input.passwordHash, input.role, input.status, input.pointName ?? null, Date.now());
-  return findUserById(id)!;
+  await (
+    await db()
+  ).query(
+    `INSERT INTO users (id, name, identifier, password_hash, role, status, point_name, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [id, input.name, input.identifier, input.passwordHash, input.role, input.status, input.pointName ?? null, Date.now()],
+  );
+  return (await findUserById(id))!;
 }
 
-export function listPendingUsers(): User[] {
-  const rows = db().prepare("SELECT * FROM users WHERE status = 'pending' ORDER BY created_at").all() as UserRow[];
+export async function listPendingUsers(): Promise<User[]> {
+  const rows = await (await db()).query<UserRow>("SELECT * FROM users WHERE status = 'pending' ORDER BY created_at");
   return rows.map(toUser);
 }
 
-export function setUserStatus(id: string, status: Status) {
-  db().prepare("UPDATE users SET status = ? WHERE id = ?").run(status, id);
+export async function setUserStatus(id: string, status: Status): Promise<void> {
+  await (await db()).query("UPDATE users SET status = $1 WHERE id = $2", [status, id]);
 }
 
 // Sign-in throttling: five wrong tries in fifteen minutes locks that identifier until the window passes.
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILS = 5;
 
-export function tooManyFailures(identifier: string): boolean {
-  const row = db()
-    .prepare("SELECT COUNT(*) AS n FROM login_attempts WHERE identifier = ? AND at > ?")
-    .get(identifier, Date.now() - WINDOW_MS) as { n: number };
+export async function tooManyFailures(identifier: string): Promise<boolean> {
+  const [row] = await (
+    await db()
+  ).query<{ n: number }>("SELECT COUNT(*)::int AS n FROM login_attempts WHERE identifier = $1 AND at > $2", [
+    identifier,
+    Date.now() - WINDOW_MS,
+  ]);
   return row.n >= MAX_FAILS;
 }
 
-export function recordFailure(identifier: string) {
-  db().prepare("INSERT INTO login_attempts (identifier, at) VALUES (?, ?)").run(identifier, Date.now());
+export async function recordFailure(identifier: string): Promise<void> {
+  await (await db()).query("INSERT INTO login_attempts (identifier, at) VALUES ($1, $2)", [identifier, Date.now()]);
 }
 
-export function clearFailures(identifier: string) {
-  db().prepare("DELETE FROM login_attempts WHERE identifier = ?").run(identifier);
+export async function clearFailures(identifier: string): Promise<void> {
+  await (await db()).query("DELETE FROM login_attempts WHERE identifier = $1", [identifier]);
 }

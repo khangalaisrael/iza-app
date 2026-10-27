@@ -28,11 +28,13 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     timeout: 240_000,
     reuseExistingServer: false,
-    // A throwaway database and throwaway demo accounts, only for these tests.
+    // A throwaway Postgres (PGlite) and throwaway demo accounts, only for these tests.
     env: {
-      IZA_DB_FILE: "data/e2e.db",
+      IZA_DB_DIR: "data/e2e-pg",
       IZA_SEED_DEMO: "1",
       IZA_SEED_PASSWORD: "e2e-only-password",
+      // Set E2E_DATABASE_URL to run the same tests through the real `pg` driver (see scripts/pg-smoke.mjs).
+      ...(process.env.E2E_DATABASE_URL ? { DATABASE_URL: process.env.E2E_DATABASE_URL, PG_POOL_MAX: "1" } : {}),
     },
   },
 });

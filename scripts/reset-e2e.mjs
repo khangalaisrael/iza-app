@@ -1,6 +1,4 @@
 // Starts every test run from an empty database.
 import { rmSync } from "node:fs";
 
-for (const suffix of ["", "-wal", "-shm"]) {
-  rmSync(`data/e2e.db${suffix}`, { force: true });
-}
+rmSync("data/e2e-pg", { recursive: true, force: true });

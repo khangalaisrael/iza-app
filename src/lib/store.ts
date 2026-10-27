@@ -38,41 +38,41 @@ function fromRow(r: Row): Parcel {
   };
 }
 
-// Calls stay async so the database can move to a networked one (Postgres) without touching callers.
 export async function getParcel(code: string): Promise<Parcel | undefined> {
-  const row = db().prepare("SELECT * FROM parcels WHERE code = ?").get(code.trim().toUpperCase()) as Row | undefined;
+  const [row] = await (await db()).query<Row>("SELECT * FROM parcels WHERE code = $1", [code.trim().toUpperCase()]);
   return row ? fromRow(row) : undefined;
 }
 
 export async function saveParcel(p: Parcel): Promise<void> {
   const now = Date.now();
-  db()
-    .prepare(
-      `INSERT INTO parcels (code, owner_id, runner_id, to_name, pickup, landmark, runner, stage, point, lat, lng, plus_code, runner_lat, runner_lng, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(code) DO UPDATE SET
-         owner_id = excluded.owner_id, runner_id = excluded.runner_id, to_name = excluded.to_name,
-         pickup = excluded.pickup, landmark = excluded.landmark, runner = excluded.runner,
-         stage = excluded.stage, point = excluded.point, lat = excluded.lat, lng = excluded.lng,
-         plus_code = excluded.plus_code, runner_lat = excluded.runner_lat, runner_lng = excluded.runner_lng,
-         updated_at = excluded.updated_at`,
-    )
-    .run(
+  await (
+    await db()
+  ).query(
+    `INSERT INTO parcels (code, owner_id, runner_id, to_name, pickup, landmark, runner, stage, point, lat, lng, plus_code, runner_lat, runner_lng, created_at, updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15)
+     ON CONFLICT (code) DO UPDATE SET
+       owner_id = EXCLUDED.owner_id, runner_id = EXCLUDED.runner_id, to_name = EXCLUDED.to_name,
+       pickup = EXCLUDED.pickup, landmark = EXCLUDED.landmark, runner = EXCLUDED.runner,
+       stage = EXCLUDED.stage, point = EXCLUDED.point, lat = EXCLUDED.lat, lng = EXCLUDED.lng,
+       plus_code = EXCLUDED.plus_code, runner_lat = EXCLUDED.runner_lat, runner_lng = EXCLUDED.runner_lng,
+       updated_at = EXCLUDED.updated_at`,
+    [
       p.code, p.ownerId ?? null, p.runnerId ?? null, p.to, p.pickup, p.landmark, p.runner, p.stage, p.point,
-      p.lat ?? null, p.lng ?? null, p.plusCode ?? null, p.runnerLat ?? null, p.runnerLng ?? null, now, now,
-    );
+      p.lat ?? null, p.lng ?? null, p.plusCode ?? null, p.runnerLat ?? null, p.runnerLng ?? null, now,
+    ],
+  );
 }
 
 // Most recently changed first.
 export async function listParcels(): Promise<Parcel[]> {
-  const rows = db().prepare("SELECT * FROM parcels ORDER BY updated_at DESC").all() as Row[];
+  const rows = await (await db()).query<Row>("SELECT * FROM parcels ORDER BY updated_at DESC");
   return rows.map(fromRow);
 }
 
 export async function listParcelsFor(ownerId: string): Promise<Parcel[]> {
-  const rows = db()
-    .prepare("SELECT * FROM parcels WHERE owner_id = ? ORDER BY created_at DESC")
-    .all(ownerId) as Row[];
+  const rows = await (
+    await db()
+  ).query<Row>("SELECT * FROM parcels WHERE owner_id = $1 ORDER BY created_at DESC", [ownerId]);
   return rows.map(fromRow);
 }
 

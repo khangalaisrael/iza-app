@@ -31,7 +31,7 @@ export default function OpsPage() {
 
 async function Board() {
   const all = await listParcels();
-  const pending = listPendingUsers();
+  const pending = await listPendingUsers();
   const delivered = all.filter((p) => p.stage === LAST_STAGE).length;
   const live = all.filter((p) => p.stage < LAST_STAGE);
   const waiting = all.filter((p) => p.stage === 2).length;

@@ -12,7 +12,7 @@ const deny = (error: string, status: number) => Response.json({ error }, { statu
 export async function PATCH(request: Request, ctx: RouteContext<"/api/parcels/[code]">) {
   if (!sameOrigin(request)) return deny("Not allowed.", 403);
 
-  const user = userFromRequest(request);
+  const user = await userFromRequest(request);
   if (!user) return deny("Please sign in.", 401);
   if (user.status !== "active") return deny("Your account is waiting for approval.", 403);
 

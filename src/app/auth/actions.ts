@@ -33,18 +33,24 @@ export async function signUpAction(_prev: AuthState, form: FormData): Promise<Au
   if (role === "point" && (pointName.length < 2 || pointName.length > 60)) {
     return { error: "Tell us the name of your shop or point." };
   }
-  if (findUserByIdentifier(identifier)) return { error: "That phone number or email already has an account. Try signing in." };
+  if (await findUserByIdentifier(identifier)) return { error: "That phone number or email already has an account. Try signing in." };
 
   // Customers start straight away. Runners and shops wait until the team approves them.
   const approved = role === "customer";
-  const user = createUser({
-    name,
-    identifier,
-    passwordHash: await hashPassword(password),
-    role,
-    status: approved ? "active" : "pending",
-    pointName: role === "point" ? pointName : null,
-  });
+  let user;
+  try {
+    user = await createUser({
+      name,
+      identifier,
+      passwordHash: await hashPassword(password),
+      role,
+      status: approved ? "active" : "pending",
+      pointName: role === "point" ? pointName : null,
+    });
+  } catch {
+    // Two people signing up with the same details at the same moment: the database lets only one through.
+    return { error: "That phone number or email already has an account. Try signing in." };
+  }
   await startSession(user.id);
   redirect(approved ? safeNext(form.get("next")) : "/pending");
 }
@@ -54,19 +60,19 @@ export async function signInAction(_prev: AuthState, form: FormData): Promise<Au
   const password = String(form.get("password") ?? "");
   if (!identifier || !password) return { error: WRONG };
 
-  if (tooManyFailures(identifier)) {
+  if (await tooManyFailures(identifier)) {
     return { error: "Too many tries. Wait 15 minutes and try again." };
   }
 
-  const user = findUserByIdentifier(identifier);
+  const user = await findUserByIdentifier(identifier);
   // Always check a hash, so the answer takes the same time whether or not the account exists.
   const ok = await verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
   if (!user || !ok || user.status === "disabled") {
-    recordFailure(identifier);
+    await recordFailure(identifier);
     return { error: WRONG };
   }
 
-  clearFailures(identifier);
+  await clearFailures(identifier);
   await startSession(user.id);
   redirect(user.status === "active" ? safeNext(form.get("next")) : "/pending");
 }
@@ -81,7 +87,7 @@ export async function approveUserAction(form: FormData): Promise<void> {
   const id = String(form.get("id") ?? "");
   const decision = String(form.get("decision") ?? "");
   if (id && (decision === "approve" || decision === "reject")) {
-    setUserStatus(id, decision === "approve" ? "active" : "disabled");
+    await setUserStatus(id, decision === "approve" ? "active" : "disabled");
   }
   redirect("/ops");
 }
