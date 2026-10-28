@@ -11,7 +11,7 @@ import ResetRequestRow from "@/components/ResetRequestRow";
 import { listResetRequests } from "@/lib/reset";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
-import { FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, needsCollection, statusOf, type Parcel } from "@/lib/parcels";
+import { FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, awaitingAddress, doorReady, needsCollection, statusOf, type Parcel } from "@/lib/parcels";
 import { listPendingPoints } from "@/lib/pointStore";
 import { RULES, ageText } from "@/lib/rules";
 import { listParcels, recentEvents, runnerEarnings } from "@/lib/store";
@@ -51,7 +51,7 @@ async function Board() {
   ]);
 
   const live = all.filter((p) => p.stage < LAST_STAGE);
-  const waitingForRunner = live.filter((p) => !p.runnerId && (needsCollection(p) || (p.stage === 2 && p.choice === "door")));
+  const waitingForRunner = live.filter((p) => !p.runnerId && (needsCollection(p) || doorReady(p)));
   const atPoints = live.filter((p) => p.stage === 2);
   const out = live.filter((p) => p.stage === 3);
   const deliveredToday = all.filter((p) => p.stage === LAST_STAGE && now - (p.updatedAt ?? 0) < DAY).length;
@@ -79,6 +79,9 @@ async function Board() {
     }
     if (p.stage === 2 && p.choice !== "door" && age > RULES.remindAtPointMs && to) {
       alerts.push({ code: p.code, level: age > RULES.overdueAtPointMs ? "high" : "info", rule: age > RULES.overdueAtPointMs ? "Overdue at the point" : "Remind the customer", detail: `Waiting at ${p.point}`, age, action: "remind", parcel: p });
+    }
+    if (p.stage === 2 && awaitingAddress(p) && age > RULES.remindAtPointMs && to) {
+      alerts.push({ code: p.code, level: "info", rule: "Waiting for their address", detail: `${p.to} has not pinned where to bring it`, age, action: "remind", parcel: p });
     }
     if (p.stage === 3 && age > RULES.stalledTripMs) {
       alerts.push({ code: p.code, level: "high", rule: "Trip looks stalled", detail: `${p.runner} has been on the way a long time`, age, parcel: p });
@@ -154,7 +157,12 @@ async function Board() {
               {a.action === "remind" && a.parcel.recipientPhone && (
                 <a
                   className="btn btn-soft"
-                  href={whatsappLink(a.parcel.recipientPhone, `Hi ${a.parcel.to}, your Izza parcel ${a.code} is waiting at ${a.parcel.point}. Please collect it with your code.`)}
+                  href={whatsappLink(
+                    a.parcel.recipientPhone,
+                    awaitingAddress(a.parcel)
+                      ? `Hi ${a.parcel.to}, your Izza parcel ${a.code} is ready to be brought to your door. Please open this link and pin where you are: ${process.env.NEXT_PUBLIC_SITE_URL ?? "https://izza-app.vercel.app"}/track/${a.code}`
+                      : `Hi ${a.parcel.to}, your Izza parcel ${a.code} is waiting at ${a.parcel.point}. Please collect it with your code.`,
+                  )}
                   target="_blank"
                   rel="noopener noreferrer"
                 >

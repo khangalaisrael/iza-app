@@ -5,7 +5,7 @@ import AutoRefresh from "@/components/AutoRefresh";
 import FindMeMap from "@/components/FindMeMap";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
-import { LAST_STAGE, needsCollection, type Parcel } from "@/lib/parcels";
+import { LAST_STAGE, doorReady, needsCollection, type Parcel } from "@/lib/parcels";
 import { listApprovedPoints, type IzaPoint } from "@/lib/pointStore";
 import { listParcels, runnerEarnings } from "@/lib/store";
 import type { User } from "@/lib/users";
@@ -29,7 +29,7 @@ type Job = { parcel: Parcel; kind: "collect" | "deliver"; from: string; to: stri
 // A job is bringing a door delivery from the Izza point to the customer, or, when a sender asked for a runner, collecting from them first.
 function jobFor(p: Parcel): Job | null {
   if (needsCollection(p) || p.stage === 1) return { parcel: p, kind: "collect", from: p.pickup, to: p.point };
-  if ((p.stage === 2 && p.choice === "door") || p.stage === 3) {
+  if (doorReady(p) || p.stage === 3) {
     return { parcel: p, kind: "deliver", from: p.point, to: p.landmark || "The customer's door" };
   }
   return null;

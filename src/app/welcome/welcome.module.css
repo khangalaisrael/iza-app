@@ -146,7 +146,7 @@
 }
 .trackBlock {
   background: var(--honey);
-  color: var(--ink);
+  color: #fff;
 }
 .signBlock {
   background: var(--panel);
@@ -165,7 +165,7 @@
     background: var(--tint);
   }
   .trackBlock:hover {
-    background: #f7c85a;
+    background: #e85a14;
   }
   .signBlock:hover {
     background: var(--primary);
@@ -320,7 +320,7 @@
 .code {
   font-family: var(--font-mono);
   font-size: clamp(1.4rem, 3vw, 2.2rem);
-  color: var(--honey);
+  color: var(--accent-on-dark);
   word-break: break-all;
 }
 .contrast {
@@ -341,7 +341,7 @@
 }
 .contrastNew {
   background: var(--honey);
-  color: var(--ink);
+  color: #fff;
   font-weight: 700;
 }
 
@@ -384,6 +384,10 @@
 }
 .cellBusiness {
   background: var(--honey);
+  color: #fff;
+}
+.cellBusiness a {
+  color: #fff;
 }
 .cell svg {
   margin-bottom: auto;
@@ -434,7 +438,7 @@
   font-weight: 800;
   font-size: clamp(2.6rem, 5vw, 4rem);
   line-height: 1;
-  color: var(--honey);
+  color: var(--accent-on-dark);
 }
 .statNumber span {
   font-size: 0.5em;
@@ -534,7 +538,7 @@
 .footerGrid h3 {
   font-size: 1.05rem;
   margin-bottom: 14px;
-  color: var(--honey);
+  color: var(--accent-on-dark);
 }
 .footerGrid ul {
   list-style: none;
@@ -713,7 +717,7 @@
   color: var(--primary);
 }
 .dark .checks svg {
-  color: var(--honey);
+  color: var(--accent-on-dark);
 }
 .needs {
   margin: 0;
@@ -874,7 +878,7 @@
   background: var(--panel);
   color: var(--white);
   background-image:
-    radial-gradient(circle at 90% 10%, rgb(242 182 49 / 0.16), transparent 42%),
+    radial-gradient(circle at 90% 10%, rgb(205 70 0 / 0.2), transparent 42%),
     radial-gradient(circle at 0% 100%, rgb(31 122 85 / 0.5), transparent 50%);
 }
 .heroBand .hero {
@@ -919,7 +923,7 @@
   font-weight: 800;
   font-size: clamp(1.9rem, 3.4vw, 2.8rem);
   line-height: 1.05;
-  color: var(--honey);
+  color: var(--accent-on-dark);
 }
 .fact span {
   font-size: 0.95rem;
@@ -947,7 +951,7 @@
   height: 52px;
   border-radius: 50%;
   background: var(--honey);
-  color: var(--panel);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1000,7 +1004,7 @@
   line-height: 1;
 }
 .wayDoor .wayPrice {
-  color: var(--honey);
+  color: var(--accent-on-dark);
 }
 .way h3 {
   font-size: 1.6rem;
@@ -1009,7 +1013,7 @@
   margin-top: 4px;
 }
 .wayDoor .checks svg {
-  color: var(--honey);
+  color: var(--accent-on-dark);
 }
 
 .whoGrid {
@@ -1073,6 +1077,11 @@
 
 .ctaBand {
   background: var(--honey);
+  color: #fff;
+}
+.ctaBand :global(.btn) {
+  background: #fff;
+  color: var(--ink);
 }
 .ctaInner {
   display: flex;
@@ -1088,7 +1097,9 @@
   max-width: 22ch;
 }
 .ctaInner .secondary {
-  box-shadow: inset 0 0 0 2px var(--ink);
+  box-shadow: inset 0 0 0 2px #fff;
+  color: #fff;
+  background: transparent;
 }
 
 /* Why Izza page */

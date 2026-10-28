@@ -5,14 +5,15 @@
   --primary: #1f7a55;
   --accent: #3f7a63;
   --tint: #dcebe2;
-  --honey: #f2b631;
+  --honey: #cd4600; /* the orange of the logo */
+  --accent-on-dark: #ff8a4c; /* a lighter orange for text on the dark green panels */
   --bg: #f6f4ee;
   --line: #e2e8e3;
   --white: #ffffff;
   --danger-bg: #f9dcd5;
   --danger: #7a2414;
-  --honey-bg: #fbebc2;
-  --honey-ink: #5c4508;
+  --honey-bg: #fde3d2;
+  --honey-ink: #7a2900;
 
   --font-heading: var(--font-rubik), system-ui, sans-serif;
   --font-body: var(--font-nunito), system-ui, sans-serif;
@@ -163,7 +164,7 @@ select {
 }
 
 .hero .greeting {
-  color: var(--honey);
+  color: var(--accent-on-dark);
   font-weight: 600;
   font-size: 15px;
 }
@@ -214,7 +215,7 @@ select {
   border: 0;
   border-radius: 24px;
   background: var(--honey);
-  color: var(--ink);
+  color: #fff;
   font-weight: 700;
   font-size: 16px;
   cursor: pointer;
@@ -341,7 +342,7 @@ select {
 }
 
 .fee strong {
-  color: var(--honey);
+  color: var(--accent-on-dark);
   font-family: var(--font-heading);
   font-size: 30px;
 }
@@ -411,7 +412,7 @@ select {
 
 .timeline .now .dot {
   background: var(--honey);
-  border-color: var(--honey);
+  border-color: var(--accent-on-dark);
   box-shadow: 0 0 0 4px var(--honey-bg);
 }
 
@@ -738,7 +739,7 @@ body {
 .total strong {
   font-family: var(--font-heading);
   font-size: 32px;
-  color: var(--honey);
+  color: var(--accent-on-dark);
 }
 
 /* After booking */
@@ -775,7 +776,7 @@ body {
   height: 52px;
   border-radius: 16px;
   background: var(--honey);
-  color: var(--ink) !important;
+  color: #fff !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -793,7 +794,7 @@ body {
   gap: 12px;
   min-height: 72px;
   background: var(--honey);
-  color: var(--ink);
+  color: #fff;
   border-radius: 20px;
   padding: 14px 18px;
   font-size: 22px;
@@ -1203,10 +1204,10 @@ select.input {
 
 .btn-honey {
   background: var(--honey);
-  color: var(--ink);
+  color: #fff;
 }
 .btn-honey:not(:disabled):hover {
-  background: #f7c85a;
+  background: #e85a14;
 }
 
 /* Pages inside the website frame: a readable column under the top bar */
@@ -1268,7 +1269,7 @@ select.input {
   color: #dcebe2;
 }
 .kpiHot strong {
-  color: var(--honey);
+  color: var(--accent-on-dark);
 }
 .attnItem {
   display: flex;
@@ -1281,7 +1282,7 @@ select.input {
   border-left: 4px solid var(--tint);
 }
 .attnHigh {
-  border-left-color: var(--honey);
+  border-left-color: var(--accent-on-dark);
 }
 .attnMain {
   display: flex;

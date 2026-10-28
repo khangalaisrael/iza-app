@@ -1,5 +1,5 @@
 import { sameOrigin, userFromRequest } from "@/lib/auth";
-import { FEE_DOOR, FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, NO_RUNNER, needsCollection, type Parcel } from "@/lib/parcels";
+import { FEE_DOOR, FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, NO_RUNNER, doorReady, needsCollection, type Parcel } from "@/lib/parcels";
 import { encodePlusCode } from "@/lib/pluscode";
 import { getPointById } from "@/lib/pointStore";
 import { addEvent, getParcel, listEvents, saveParcel } from "@/lib/store";
@@ -114,7 +114,7 @@ async function assign(parcel: Parcel, user: User, body: Body | null) {
   if (user.role !== "admin") return deny("Only the team can assign a runner.", 403);
   const runner = typeof body?.runnerId === "string" ? await findUserById(body.runnerId) : undefined;
   if (!runner || runner.role !== "runner" || runner.status !== "active") return deny("Choose an approved runner.", 400);
-  const open = needsCollection(parcel) || (parcel.stage === 2 && parcel.choice === "door");
+  const open = needsCollection(parcel) || doorReady(parcel);
   if (!open) return deny("That parcel isn't waiting for a runner.", 409);
   await saveParcel({ ...parcel, runner: runner.name, runnerId: runner.id });
   await addEvent(parcel.code, "assigned", `${runner.name.split(" ")[0]} will take it.`, user.name);
@@ -141,7 +141,7 @@ async function runnerAction(parcel: Parcel, user: User, action: string | undefin
 
   // 1. Take a job. Two kinds are open: collecting from a business, and bringing a door delivery from the point.
   if (action === "accept") {
-    const open = !parcel.runnerId && (needsCollection(parcel) || (parcel.stage === 2 && parcel.choice === "door"));
+    const open = !parcel.runnerId && (needsCollection(parcel) || doorReady(parcel));
     if (!open) return deny("That job isn't open any more. Someone else may have taken it.", 409);
     await saveParcel({ ...parcel, runner: user.name, runnerId: user.id });
     await addEvent(code, "accepted", parcel.stage === 0 ? `${who} will collect it.` : `${who} will bring it to your door.`, user.name);

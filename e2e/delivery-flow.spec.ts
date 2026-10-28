@@ -4,8 +4,9 @@ import { expect, test } from "./fixtures";
 const CODE = /^IZA-[2-9A-HJ-NP-Z]{6}$/;
 
 // A business books a parcel to Corner Shop for someone, and gets the code back.
-async function book(page: Page, opts: { from: string; to: string; phone: string; point?: string }) {
+async function book(page: Page, opts: { from: string; to: string; phone: string; point?: string; toDoor?: boolean }) {
   await page.goto("/send");
+  if (opts.toDoor) await page.getByText("Bring it to their door").click();
   await page.getByLabel("Pick up from").fill(opts.from);
   await page.getByLabel("Their name").fill(opts.to);
   await page.getByLabel("Their WhatsApp number").fill(opts.phone);
@@ -375,4 +376,34 @@ test("a customer can read their parcel in isiXhosa, and switch back", async ({ a
 
   await customer.getByRole("button", { name: "English" }).click();
   await expect(customer.getByRole("heading", { name: "Where's my parcel?" })).toBeVisible();
+});
+
+test("the sender does not know where they are: the receiver pins their address, and only then can a runner take it", async ({ as, browser, baseURL }) => {
+  const business = await (await as("business")).newPage();
+  const code = await book(business, { from: "Thembi's Kitchen", to: "Nokuthula", phone: "087 222 3333", toDoor: true });
+  await expect(business.getByRole("link", { name: "Send them the link on WhatsApp" })).toHaveAttribute("href", /wa\.me\/27872223333\?text=.*pin/);
+
+  // The receiver opens the link. Door delivery is already chosen, and they are asked where they are.
+  const receiver = await browser.newPage({ baseURL });
+  await receiver.goto(`/track/${code}`);
+  await expect(receiver.getByText("Tell us exactly where you are.")).toBeVisible();
+  await expect(receiver.getByLabel("Where should we bring it?")).toBeVisible();
+
+  // It reaches the Izza point, but a runner cannot take a delivery nobody has an address for.
+  const runner = await (await as("runner")).newPage();
+  await collectAndDrop(runner, code);
+  await runner.goto("/runner");
+  await expect(runner.locator("article", { hasText: code })).toHaveCount(0);
+  const refused = await runner.request.patch(`/api/parcels/${code}`, { data: { action: "accept" }, headers: { origin: baseURL! } });
+  expect(refused.status()).toBe(409);
+
+  // They pin where they are, and now the delivery is open.
+  await receiver.reload();
+  await receiver.getByLabel("Where should we bring it?").fill("House with the red door, 12 Mxolisi St");
+  await receiver.getByRole("button", { name: "Save my choice" }).click();
+  await expect(receiver.getByText("Saved. Thank you!")).toBeVisible();
+  await runner.goto("/runner");
+  const card = runner.locator("article", { hasText: code });
+  await expect(card.getByText("Deliver to a door")).toBeVisible();
+  await expect(card.getByText("House with the red door")).toBeVisible();
 });

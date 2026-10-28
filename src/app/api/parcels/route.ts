@@ -1,5 +1,5 @@
 import { sameOrigin, userFromRequest } from "@/lib/auth";
-import { FEE_POINT, NO_RUNNER, type Parcel } from "@/lib/parcels";
+import { FEE_DOOR, FEE_POINT, NO_RUNNER, type Parcel } from "@/lib/parcels";
 import { getPointById } from "@/lib/pointStore";
 import { encodePlusCode } from "@/lib/pluscode";
 import { addEvent, newDeliveryPin, newParcelCode, saveParcel } from "@/lib/store";
@@ -14,6 +14,7 @@ type Body = {
   pointId?: string; // the Izza point it goes to
   size?: string;
   note?: string;
+  delivery?: string; // "door": the sender does not know where the receiver is, so the receiver pins it. Otherwise the receiver chooses.
   dropoff?: string; // "self": the sender brings it to the hub. "runner": a runner collects it from them.
 };
 
@@ -51,6 +52,9 @@ export async function POST(request: Request) {
   const phone = normalizeIdentifier(text(body?.toPhone, 30));
   if (!phone || phone.includes("@")) return bad("Enter their WhatsApp number, for example 082 345 6789.");
 
+  // "To their door": the receiver is asked to pin their own address, so the sender never needs to know it.
+  const toDoor = body?.delivery === "door";
+
   const point = body?.pointId ? await getPointById(text(body.pointId, 80)) : undefined;
   if (!point || point.status !== "approved") return bad("Choose which Izza point it should go to.");
 
@@ -64,7 +68,8 @@ export async function POST(request: Request) {
     stage: 0,
     point: point.name,
     pointId: point.id,
-    fee: FEE_POINT,
+    fee: toDoor ? FEE_DOOR : FEE_POINT,
+    ...(toDoor && { choice: "door" as const }),
     size: ["Small", "Medium", "Large"].includes(text(body?.size, 10)) ? text(body?.size, 10) : "Small",
     ...(text(body?.note, 200) && { note: text(body?.note, 200) }),
     ownerId: user.id,
@@ -83,13 +88,13 @@ export async function POST(request: Request) {
     parcel.code,
     "booked",
     dropoff === "self"
-      ? `Booked. Waiting for it to be brought to ${point.name}.`
-      : `Booked. A runner will collect it and take it to ${point.name}.`,
+      ? `Booked. Waiting for it to be brought to ${point.name}.${toDoor ? " It will be taken to the receiver's door once they pin their address." : ""}`
+      : `Booked. A runner will collect it and take it to ${point.name}.${toDoor ? " It will be taken to the receiver's door once they pin their address." : ""}`,
     user.name,
   );
   // The team is told about every parcel a customer sends to the hub. It shows at the top of their dashboard.
   if (fromCustomer) {
     await addEvent(parcel.code, "sent_by_customer", `A customer sent a parcel to ${point.name}. The team has been told.`, user.name);
   }
-  return Response.json({ code: parcel.code, point: point.name, phone, dropoff }, { status: 201 });
+  return Response.json({ code: parcel.code, point: point.name, phone, dropoff, delivery: toDoor ? "door" : "shop" }, { status: 201 });
 }

@@ -71,8 +71,15 @@ export const needsCollection = (p: Parcel) => p.stage === 0 && p.dropoff !== "se
 
 export const NO_RUNNER = "Not assigned yet";
 
+// The sender did not know where the receiver is, so they chose "to their door" and the receiver pins the place themselves.
+export const awaitingAddress = (p: Parcel) => p.choice === "door" && !p.landmark && p.lat === undefined;
+
+// A door delivery a runner can take: it is waiting at the Izza point and the receiver has said where to bring it.
+export const doorReady = (p: Parcel) => p.stage === 2 && p.choice === "door" && !awaitingAddress(p);
+
 // These three take the language the person reads, and default to English (the team's screens stay in English).
 export function statusOf(p: Parcel, lang: Lang = "en"): string {
+  if (p.stage === 2 && awaitingAddress(p)) return t(lang, "Waiting for their address");
   if (p.stage === 2 && p.choice === "door") return t(lang, "Waiting for a runner");
   return t(lang, STAGES[p.stage]);
 }
@@ -84,6 +91,7 @@ export function etaOf(p: Parcel, lang: Lang = "en"): string {
     case 1:
       return t(lang, "On its way to {point}", { point: p.point });
     case 2:
+      if (awaitingAddress(p)) return t(lang, "Tell us where to bring it");
       if (p.choice === "door") return t(lang, "A runner will bring it to your door");
       if (p.choice === "point") return t(lang, "Ready to collect at {point}", { point: p.point });
       return t(lang, "It's at {point}. Choose how you want it.", { point: p.point });

@@ -10,7 +10,7 @@ import { currentUser } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang";
 import { etaMinutes } from "@/lib/geo";
-import { FEE_DOOR_EXTRA, FEE_POINT, destinationOf, etaOf, runnerPositionOf, stepsOf, type Parcel } from "@/lib/parcels";
+import { FEE_DOOR_EXTRA, FEE_POINT, awaitingAddress, destinationOf, etaOf, runnerPositionOf, stepsOf, type Parcel } from "@/lib/parcels";
 import { getPointById, type IzaPoint } from "@/lib/pointStore";
 import { getParcel, hasPhoto, listEvents } from "@/lib/store";
 import type { User } from "@/lib/users";
@@ -85,6 +85,12 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
           <span className="mono">{parcel.code}</span>
         </p>
       </section>
+
+      {canChoose && awaitingAddress(parcel) && (
+        <p className="lead" style={{ margin: 0 }}>
+          {t(lang, "This parcel is being brought to your door. Tell us exactly where you are.")}
+        </p>
+      )}
 
       {canChoose && (
         <section className="card">

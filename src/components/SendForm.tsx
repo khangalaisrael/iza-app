@@ -24,6 +24,8 @@ export default function SendForm({
   fromCustomer?: boolean;
 }) {
   const [dropoff, setDropoff] = useState<"runner" | "self">("runner");
+  // "shop": they choose to collect or have it brought. "door": the sender does not know where they are, so they pin it.
+  const [delivery, setDelivery] = useState<"shop" | "door">("shop");
   const [from, setFrom] = useState("");
   const [pickup, setPickup] = useState<Coords | null>(null);
   const [toName, setToName] = useState("");
@@ -33,7 +35,7 @@ export default function SendForm({
   );
   const [size, setSize] = useState("Small");
   const [note, setNote] = useState("");
-  const [sent, setSent] = useState<{ code: string; point: string; dropoff: string } | null>(null);
+  const [sent, setSent] = useState<{ code: string; point: string; dropoff: string; delivery: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -63,6 +65,7 @@ export default function SendForm({
           size,
           note,
           dropoff,
+          delivery,
         }),
       });
       const data = await res.json();
@@ -77,7 +80,10 @@ export default function SendForm({
 
   if (sent) {
     const link = `${siteUrl}/track/${sent.code}`;
-    const message = `Molo ${toName}! A parcel is waiting for you at ${sent.point}. Your Izza code is ${sent.code}. Choose to collect it or have it brought to your door: ${link}`;
+    const message =
+      sent.delivery === "door"
+        ? `Molo ${toName}! A parcel is coming to your door. Your Izza code is ${sent.code}. Please open this link and pin exactly where you are, so we can bring it: ${link}`
+        : `Molo ${toName}! A parcel is waiting for you at ${sent.point}. Your Izza code is ${sent.code}. Choose to collect it or have it brought to your door: ${link}`;
     return (
       <div className="card pop done">
         <h1>Enkosi! It&apos;s booked.</h1>
@@ -85,12 +91,12 @@ export default function SendForm({
           {sent.dropoff === "self"
             ? `Bring it to ${sent.point} and show this code. The shop will confirm it.`
             : "A runner will collect it from you."}{" "}
-          Now tell {toName} their code.
+          {sent.delivery === "door" ? `Now send ${toName} the link so they can pin where to bring it.` : `Now tell ${toName} their code.`}
         </p>
         {fromCustomer && <p className="muted">The Izza team has been told about your parcel.</p>}
         <div className="bigCode mono">{sent.code}</div>
         <a className="btn btn-primary" href={whatsappLink(toPhone, message)} target="_blank" rel="noopener noreferrer">
-          Send the code on WhatsApp
+          {sent.delivery === "door" ? "Send them the link on WhatsApp" : "Send the code on WhatsApp"}
         </a>
         <Link className="btn btn-soft" href={`/track/${sent.code}`}>
           See where it is
@@ -173,7 +179,25 @@ export default function SendForm({
       </section>
 
       <fieldset className="field bigChoices">
-        <legend>Which Izza point should it go to?</legend>
+        <legend>Do you know where they are?</legend>
+        <label className="bigChoice">
+          <input type="radio" name="delivery" value="shop" checked={delivery === "shop"} onChange={() => setDelivery("shop")} />
+          <span>
+            <strong>They choose</strong>
+            <small>It waits at an Izza point. They collect it there, or pay R{FEE_DOOR_EXTRA} extra to have it brought to them.</small>
+          </span>
+        </label>
+        <label className="bigChoice">
+          <input type="radio" name="delivery" value="door" checked={delivery === "door"} onChange={() => setDelivery("door")} />
+          <span>
+            <strong>Bring it to their door</strong>
+            <small>I do not know exactly where they are. They pin their own address, and they pay R{FEE_DOOR_EXTRA} extra to the runner.</small>
+          </span>
+        </label>
+      </fieldset>
+
+      <fieldset className="field bigChoices">
+        <legend>{delivery === "door" ? "Which Izza point should it pass through?" : "Which Izza point should it go to?"}</legend>
         {points.length === 0 && <p className="muted">No Izza points yet. The team is adding them.</p>}
         {ordered.map(({ p, minutes }, i) => (
           <label key={p.id} className="bigChoice">
