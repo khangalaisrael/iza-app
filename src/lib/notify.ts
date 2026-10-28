@@ -5,7 +5,7 @@ import { whatsappNumber } from "./whatsapp";
 // The updates the customer gets on WhatsApp by themselves. Everything else stays on the tracking page.
 const NOTIFY_KINDS = new Set(["received", "dropped", "heading_customer", "arrived_customer", "delivered", "returned"]);
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://iza-app-israels-projects-71356823.vercel.app";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://izza-app.vercel.app";
 
 // Sends through the WhatsApp Business Cloud API (Meta). It needs WHATSAPP_TOKEN and WHATSAPP_PHONE_ID.
 // A business can only start a chat with an approved message template, so set WHATSAPP_TEMPLATE to a template whose
@@ -42,7 +42,7 @@ async function run(code: string, text: string): Promise<void> {
     if (!process.env.WHATSAPP_TOKEN) return;
     const [row] = await (await db()).query<{ recipient_phone: string | null }>("SELECT recipient_phone FROM parcels WHERE code = $1", [code]);
     if (!row?.recipient_phone) return;
-    await send(whatsappNumber(row.recipient_phone), `Iza: ${text} ${SITE}/track/${code}`);
+    await send(whatsappNumber(row.recipient_phone), `Izza: ${text} ${SITE}/track/${code}`);
   } catch (err) {
     console.error("WhatsApp update failed", err); // a failed message must never fail the job
   }

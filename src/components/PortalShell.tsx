@@ -1,6 +1,6 @@
 import { SiteHeader } from "./SiteChrome";
 
-// The frame for the working screens (runner, Iza point, business, team): the website's top bar, then wide on a computer and one column on a phone.
+// The frame for the working screens (runner, Izza point, business, team): the website's top bar, then wide on a computer and one column on a phone.
 export default function PortalShell({
   title,
   subtitle,

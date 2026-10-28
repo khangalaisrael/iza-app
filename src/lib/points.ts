@@ -1,5 +1,5 @@
 export type IzaPoint = {
-  code: string; // the Iza code people share, e.g. LANGA-BLUEGATE-27
+  code: string; // the Izza code people share, e.g. LANGA-BLUEGATE-27
   name: string;
   kind: "hub" | "shop";
   area: string;
@@ -11,7 +11,7 @@ export type IzaPoint = {
 
 export const DEFAULT_CENTER = { lat: -33.9437, lng: 18.5305 };
 
-// Example pins around Langa. Replace with real, hand-placed Iza points.
+// Example pins around Langa. Replace with real, hand-placed Izza points.
 export const points: IzaPoint[] = [
   {
     code: "LANGA-HUB-01",

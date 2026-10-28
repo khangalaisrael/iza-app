@@ -6,7 +6,7 @@ export const WORKSPACE: Record<Role, { href: string; label: string }> = {
   customer: { href: "/", label: "Home" },
   business: { href: "/parcels", label: "My parcels" },
   runner: { href: "/runner", label: "My jobs" },
-  point: { href: "/point", label: "My Iza point" },
+  point: { href: "/point", label: "My Izza point" },
   admin: { href: "/ops", label: "Team dashboard" },
 };
 

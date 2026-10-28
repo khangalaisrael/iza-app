@@ -20,7 +20,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Iza: bringing it closer",
+  title: "Izza: bringing it closer",
   description:
     "Neighbourhood delivery for Cape Town. No street address needed, a landmark is enough.",
 };

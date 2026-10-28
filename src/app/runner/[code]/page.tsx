@@ -14,7 +14,7 @@ import { getParcel, hasPhoto, listEvents } from "@/lib/store";
 import { findUserById, type User } from "@/lib/users";
 import { whatsappLink } from "@/lib/whatsapp";
 
-export const metadata = { title: "Job · Iza" };
+export const metadata = { title: "Job · Izza" };
 
 export default function JobPage({ params }: PageProps<"/runner/[code]">) {
   return (
@@ -60,11 +60,11 @@ async function Job({ user, params }: { user: User; params: PageProps<"/runner/[c
     // The business's number is shared with the runner who is collecting from them, and the customer's only once the parcel is on its way to them.
     businessWhatsapp:
       owner && isPhone(owner.identifier) && parcel.stage <= 1
-        ? whatsappLink(owner.identifier, `Hi, it's ${me} from Iza. I'm coming to collect parcel ${parcel.code}.`)
+        ? whatsappLink(owner.identifier, `Hi, it's ${me} from Izza. I'm coming to collect parcel ${parcel.code}.`)
         : undefined,
     customerWhatsapp:
       parcel.recipientPhone && parcel.stage === 3
-        ? whatsappLink(parcel.recipientPhone, `Hi ${parcel.to}, it's ${me} from Iza with your parcel ${parcel.code}. I'm nearly there. Please have your 4-digit code ready.`)
+        ? whatsappLink(parcel.recipientPhone, `Hi ${parcel.to}, it's ${me} from Izza with your parcel ${parcel.code}. I'm nearly there. Please have your 4-digit code ready.`)
         : undefined,
   };
 

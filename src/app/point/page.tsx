@@ -14,11 +14,11 @@ import { getPointByOwner } from "@/lib/pointStore";
 import { listParcels } from "@/lib/store";
 import type { User } from "@/lib/users";
 
-export const metadata = { title: "My Iza point · Iza" };
+export const metadata = { title: "My Izza point · Izza" };
 
 export default function PointPage() {
   return (
-    <PortalShell title="My Iza point" subtitle="Parcels in and out">
+    <PortalShell title="My Izza point" subtitle="Parcels in and out">
       <Suspense fallback={<p className="muted">Loading parcels…</p>}>
         <RequireRole roles={["point"]} next="/point">
           {(user) => <Board user={user} />}
@@ -47,7 +47,7 @@ async function Board({ user }: { user: User }) {
     <>
       <AutoRefresh />
       <div>
-        <h1>{point?.name ?? "All Iza points"}</h1>
+        <h1>{point?.name ?? "All Izza points"}</h1>
         {point && (
           <p className="lead">
             {point.kind}, open {point.hours}
@@ -132,7 +132,7 @@ function ParcelList({
             {remind && p.recipientPhone && waited > RULES.remindAtPointMs && (
               <a
                 className="btn btn-soft"
-                href={whatsappLink(p.recipientPhone, `Hi ${p.to}, your Iza parcel ${p.code} is waiting at ${p.point}. Please collect it with your code.`)}
+                href={whatsappLink(p.recipientPhone, `Hi ${p.to}, your Izza parcel ${p.code} is waiting at ${p.point}. Please collect it with your code.`)}
                 target="_blank"
                 rel="noopener noreferrer"
               >

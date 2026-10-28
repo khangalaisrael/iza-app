@@ -11,7 +11,7 @@ type Body = {
   pickupLng?: number;
   toName?: string; // who it is for
   toPhone?: string; // their WhatsApp number
-  pointId?: string; // the Iza point it goes to
+  pointId?: string; // the Izza point it goes to
   size?: string;
   note?: string;
   dropoff?: string; // "self": the sender brings it to the hub. "runner": a runner collects it from them.
@@ -22,7 +22,7 @@ const inRange = (v: unknown, limit: number): v is number =>
   typeof v === "number" && Number.isFinite(v) && Math.abs(v) <= limit;
 const bad = (error: string, status = 400) => Response.json({ error }, { status });
 
-// A business or a customer sends a parcel to an Iza point. The person it is for chooses collect or door later.
+// A business or a customer sends a parcel to an Izza point. The person it is for chooses collect or door later.
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return bad("Not allowed.", 403);
 
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   if (!phone || phone.includes("@")) return bad("Enter their WhatsApp number, for example 082 345 6789.");
 
   const point = body?.pointId ? await getPointById(text(body.pointId, 80)) : undefined;
-  if (!point || point.status !== "approved") return bad("Choose which Iza point it should go to.");
+  if (!point || point.status !== "approved") return bad("Choose which Izza point it should go to.");
 
   const parcel: Parcel = {
     code: await newParcelCode(),

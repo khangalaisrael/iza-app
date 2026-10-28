@@ -8,7 +8,7 @@ import { directionsUrl, openNow, walkMinutes } from "@/lib/geo";
 
 export type ExplorerPoint = { id: string; name: string; kind: string; address: string; hours: string; lat: number; lng: number };
 
-// Find an Iza point: search a place or use your location, filter by kind, see the closest first on a list and a map.
+// Find an Izza point: search a place or use your location, filter by kind, see the closest first on a list and a map.
 export default function PointsExplorer({
   points,
   initialMode = "pick",
@@ -118,7 +118,7 @@ export default function PointsExplorer({
         </ul>
       </div>
 
-      <div className="explorerMap" role="region" aria-label="Map of Iza points">
+      <div className="explorerMap" role="region" aria-label="Map of Izza points">
         <MapView
           points={rows.map((r) => ({ id: r.p.id, name: r.p.name, lat: r.p.lat, lng: r.p.lng }))}
           me={spot}

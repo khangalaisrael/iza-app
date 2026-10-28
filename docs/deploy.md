@@ -1,4 +1,4 @@
-# Deploying Iza to Vercel
+# Deploying Izza to Vercel
 
 The app is ready to deploy. It needs a Postgres database and a few environment variables.
 Nothing below has been done yet.

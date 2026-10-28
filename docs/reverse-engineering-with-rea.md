@@ -32,7 +32,7 @@ binaries and .NET assemblies. Analysis runs locally.
 ## Example prompt
 
 > Understand how live tracking works in <app>, show me the evidence, and build a
-> similar feature for Iza.
+> similar feature for Izza.
 
 ## Rules we agreed to follow
 

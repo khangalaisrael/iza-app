@@ -1,4 +1,4 @@
-# Iza operating playbook
+# Izza operating playbook
 
 Rules a logistics manager would expect, and where the app enforces them. The numbers live in `src/lib/rules.ts` so the team can change them in one place.
 
@@ -26,7 +26,7 @@ Rules a logistics manager would expect, and where the app enforces them. The num
 | Customer | Track, choose collect or door, send a parcel to the hub | See other people's parcels |
 | Business | Send, see own parcels | Take jobs, see others' parcels |
 | Runner | See open jobs, accept, update, deliver with the code | Send parcels, see all parcels |
-| Iza point | Receive, hand over, see own parcels | Hand over a door-delivery parcel |
+| Izza point | Receive, hand over, see own parcels | Hand over a door-delivery parcel |
 | Team | Approve, assign runners, see everything | Nothing is hidden from the team |
 
 ## KPIs on the team dashboard

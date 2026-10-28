@@ -11,7 +11,7 @@ export type PointChoice = { id: string; name: string; kind: string; hours: strin
 
 const sizes = ["Small", "Medium", "Large"];
 
-// A business books a parcel to an Iza point. The customer then chooses to collect it or have it brought to their door.
+// A business books a parcel to an Izza point. The customer then chooses to collect it or have it brought to their door.
 export default function SendForm({
   points,
   siteUrl,
@@ -77,7 +77,7 @@ export default function SendForm({
 
   if (sent) {
     const link = `${siteUrl}/track/${sent.code}`;
-    const message = `Molo ${toName}! A parcel is waiting for you at ${sent.point}. Your Iza code is ${sent.code}. Choose to collect it or have it brought to your door: ${link}`;
+    const message = `Molo ${toName}! A parcel is waiting for you at ${sent.point}. Your Izza code is ${sent.code}. Choose to collect it or have it brought to your door: ${link}`;
     return (
       <div className="card pop done">
         <h1>Enkosi! It&apos;s booked.</h1>
@@ -87,7 +87,7 @@ export default function SendForm({
             : "A runner will collect it from you."}{" "}
           Now tell {toName} their code.
         </p>
-        {fromCustomer && <p className="muted">The Iza team has been told about your parcel.</p>}
+        {fromCustomer && <p className="muted">The Izza team has been told about your parcel.</p>}
         <div className="bigCode mono">{sent.code}</div>
         <a className="btn btn-primary" href={whatsappLink(toPhone, message)} target="_blank" rel="noopener noreferrer">
           Send the code on WhatsApp
@@ -108,13 +108,13 @@ export default function SendForm({
         <h1>{fromCustomer ? "Send a parcel from home" : "Send a parcel"}</h1>
         <p className="lead">
           {fromCustomer
-            ? "It goes to an Iza point. The person it is for chooses to collect it or have it brought to their door."
-            : "It goes to an Iza point near your customer. They choose how they want it."}
+            ? "It goes to an Izza point. The person it is for chooses to collect it or have it brought to their door."
+            : "It goes to an Izza point near your customer. They choose how they want it."}
         </p>
       </div>
 
       <fieldset className="field bigChoices">
-        <legend>How will it get to the Iza point?</legend>
+        <legend>How will it get to the Izza point?</legend>
         <label className="bigChoice">
           <input type="radio" name="dropoff" value="runner" checked={dropoff === "runner"} onChange={() => setDropoff("runner")} />
           <span>
@@ -173,8 +173,8 @@ export default function SendForm({
       </section>
 
       <fieldset className="field bigChoices">
-        <legend>Which Iza point should it go to?</legend>
-        {points.length === 0 && <p className="muted">No Iza points yet. The team is adding them.</p>}
+        <legend>Which Izza point should it go to?</legend>
+        {points.length === 0 && <p className="muted">No Izza points yet. The team is adding them.</p>}
         {ordered.map(({ p, minutes }, i) => (
           <label key={p.id} className="bigChoice">
             <input type="radio" name="point" value={p.id} checked={pointId === p.id} onChange={() => setPointId(p.id)} />

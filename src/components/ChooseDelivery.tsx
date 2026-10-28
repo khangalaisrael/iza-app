@@ -6,7 +6,7 @@ import LocationPicker, { type Coords } from "./LocationPicker";
 import { t, type Lang } from "@/lib/i18n";
 import { FEE_DOOR, FEE_DOOR_EXTRA, FEE_POINT } from "@/lib/parcels";
 
-// The customer decides: collect it at the Iza point, or have a runner bring it to the door for a little extra.
+// The customer decides: collect it at the Izza point, or have a runner bring it to the door for a little extra.
 export default function ChooseDelivery({
   code,
   pointName,

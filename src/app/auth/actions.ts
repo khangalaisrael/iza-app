@@ -58,7 +58,7 @@ export async function signUpAction(_prev: AuthState, form: FormData): Promise<Au
   if (name.length < 2 || name.length > 60) return fail("Tell us your name (2 to 60 letters).");
   if (!identifier) return fail("Enter a phone number or an email address.");
   if (password.length < 8 || password.length > 200) return fail("Use a password of at least 8 characters.");
-  if (!SIGNUP_ROLES.includes(role)) return fail("Choose how you will use Iza.");
+  if (!SIGNUP_ROLES.includes(role)) return fail("Choose how you will use Izza.");
   if (role === "point") {
     if (pointName.length < 2 || pointName.length > 60) return fail("Tell us the name of your shop or place.");
     if (!(POINT_KINDS as readonly string[]).includes(pointKind)) return fail("Choose what kind of place it is.");
@@ -67,7 +67,7 @@ export async function signUpAction(_prev: AuthState, form: FormData): Promise<Au
   }
   if (await findUserByIdentifier(identifier)) return fail("That phone number or email already has an account. Try signing in.");
 
-  // Customers start straight away. Businesses, runners and Iza points wait until the team approves them.
+  // Customers start straight away. Businesses, runners and Izza points wait until the team approves them.
   const approved = role === "customer";
   let user;
   try {
@@ -126,7 +126,7 @@ export async function signOutAction(): Promise<void> {
   redirect("/");
 }
 
-// The team adds an Iza point themselves (for example the hub), and it is live straight away.
+// The team adds an Izza point themselves (for example the hub), and it is live straight away.
 export async function addPointAction(_prev: AuthState, form: FormData): Promise<AuthState> {
   await requireUser(["admin"], "/ops");
   const name = String(form.get("pointName") ?? "").trim();
@@ -158,7 +158,7 @@ export async function issueResetAction(_prev: AuthState, form: FormData): Promis
   const user = await findUserByIdentifier(identifier);
   if (!user || user.status === "disabled") return { error: "No active account with that phone number or email.", values };
   const token = await createReset(user.id);
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://iza-app-israels-projects-71356823.vercel.app";
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://izza-app.vercel.app";
   return { link: `${site}/reset/${token}`, phone: identifier.includes("@") ? undefined : identifier, values };
 }
 
@@ -170,7 +170,7 @@ export async function resetPasswordAction(_prev: AuthState, form: FormData): Pro
   if (password !== String(form.get("again") ?? "")) return { error: "The two passwords don't match." };
 
   const userId = await consumeReset(token);
-  if (!userId) return { error: "This link has expired or was already used. Ask the Iza team for a new one." };
+  if (!userId) return { error: "This link has expired or was already used. Ask the Izza team for a new one." };
   await setPassword(userId, await hashPassword(password));
   await clearFailures((await findUserById(userId))!.identifier);
   await startSession(userId);
@@ -184,7 +184,7 @@ export async function approveUserAction(form: FormData): Promise<void> {
   const decision = String(form.get("decision") ?? "");
   if (id && (decision === "approve" || decision === "reject")) {
     await setUserStatus(id, decision === "approve" ? "active" : "disabled");
-    // An Iza point appears on the public map only once its owner is approved.
+    // An Izza point appears on the public map only once its owner is approved.
     await setPointStatusForOwner(id, decision === "approve" ? "approved" : "rejected");
   }
   redirect("/ops");

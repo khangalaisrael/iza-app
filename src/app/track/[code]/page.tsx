@@ -94,7 +94,7 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
 
       <a
         className="btn btn-soft"
-        href={`https://wa.me/?text=${encodeURIComponent(`Follow my Iza parcel ${parcel.code}: ${process.env.NEXT_PUBLIC_SITE_URL ?? "https://iza-app-israels-projects-71356823.vercel.app"}/track/${parcel.code}`)}`}
+        href={`https://wa.me/?text=${encodeURIComponent(`Follow my Izza parcel ${parcel.code}: ${process.env.NEXT_PUBLIC_SITE_URL ?? "https://izza-app.vercel.app"}/track/${parcel.code}`)}`}
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -115,7 +115,7 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
         <section className="card stack" aria-label="Payment" style={{ gap: 8 }}>
           <h2>{t(lang, "Payment")}</h2>
           <div className="payRow">
-            <span>{t(lang, "Sender's fee to the Iza point (R{fee})", { fee: FEE_POINT })}</span>
+            <span>{t(lang, "Sender's fee to the Izza point (R{fee})", { fee: FEE_POINT })}</span>
             <strong>{t(lang, parcel.paidAt ? "Paid" : "Not paid yet")}</strong>
           </div>
           {parcel.choice === "door" && (
@@ -126,7 +126,7 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
           )}
           {parcel.choice === "point" && (
             <p className="muted" style={{ margin: 0 }}>
-              {t(lang, "Collecting at the Iza point costs nothing extra.")}
+              {t(lang, "Collecting at the Izza point costs nothing extra.")}
             </p>
           )}
         </section>

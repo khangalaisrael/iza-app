@@ -3,7 +3,7 @@ import AuthForm from "@/components/AuthForm";
 import Shell from "@/components/Shell";
 import { safeNext } from "@/lib/auth";
 
-export const metadata = { title: "Sign in · Iza" };
+export const metadata = { title: "Sign in · Izza" };
 
 export default function SignInPage({ searchParams }: PageProps<"/signin">) {
   return (

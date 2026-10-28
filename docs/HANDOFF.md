@@ -1,22 +1,22 @@
-# Iza handoff
+# Izza handoff
 
 Paste this file into a new session to continue. Last updated 2026-10-28.
 
-## What Iza is
-A neighbourhood parcel network for Cape Town townships. Parcels go to an **Iza point** (the hub, a spaza, salon or hall). The person it is for collects it with a code, or asks for door delivery and a runner brings it.
+## What Izza is
+A neighbourhood parcel network for Cape Town townships. Parcels go to an **Izza point** (the hub, a spaza, salon or hall). The person it is for collects it with a code, or asks for door delivery and a runner brings it.
 
 ## The three journeys
 1. Sent to the hub, **collected by the customer**: no runner.
 2. Sent to the hub, **door delivery** (R20, R8 extra): a runner collects from the hub and delivers with the customer's 4-digit code.
 3. **Sent from home**: a customer or business brings it to the hub, or asks a runner to collect it. A parcel sent by a customer shows to the team as "New from a customer".
 
-Stages: 0 Booked, 1 Picked up, 2 At the Iza point, 3 On the way, 4 Delivered. Fees: R12 collect, R20 door.
+Stages: 0 Booked, 1 Picked up, 2 At the Izza point, 3 On the way, 4 Delivered. Fees: R12 collect, R20 door.
 
 ## Roles
 customer, business, runner, point, admin. Business, runner and point sign-ups wait for admin approval. Customers need no account to track a parcel. A runner has no Send. Workers land in their own workspace after sign-in (`src/lib/roles.ts`, menu in `src/lib/nav.ts`).
 
 ## Where things are
-- Live site: https://iza-app-israels-projects-71356823.vercel.app (auto-deploys from `main`)
+- Live site: https://izza-app.vercel.app (auto-deploys from `main`)
 - GitHub: khangalaisrael/iza-app (private)
 - Vercel project `iza-app`, id `prj_5zERIB7n3VrRjJRXXsSlOuHTcjwK`, team `team_vnVgTr4nySuvdeftjl35slDx`
 - Database: Neon Postgres `iza-db`. Locally the same SQL runs on PGlite in `data/pglite`.
@@ -53,7 +53,7 @@ Next.js here is v16 with breaking changes. Read `node_modules/next/dist/docs/` b
 
 ## Not built yet
 Payments, automatic WhatsApp messages (links only; needs Meta WhatsApp Business API), proof-of-delivery photo, runner pay, batching, point capacity and zones, isiXhosa and Afrikaans, offline mode, password reset, privacy notice, a paid routing service.
-Still to do by the owner: add the first Iza point in `/ops` on the live site if none exists; restrict the Google Maps key to the site's address in Google Cloud.
+Still to do by the owner: add the first Izza point in `/ops` on the live site if none exists; restrict the Google Maps key to the site's address in Google Cloud.
 
 ## Next three things, in order
 1. Payments for the sender.

@@ -8,13 +8,13 @@ import { directionsUrl } from "@/lib/geo";
 import { getPointById, listApprovedPoints } from "@/lib/pointStore";
 import { listParcelsToPhone } from "@/lib/store";
 
-export const metadata = { title: "Collect nearby · Iza" };
+export const metadata = { title: "Collect nearby · Izza" };
 
 export default function CollectPage() {
   return (
     <Shell title="Collect" subtitle="Find a shop near you">
       <h1>Collect nearby</h1>
-      <p className="lead">An Iza point is a shop near you where your parcel waits for you.</p>
+      <p className="lead">An Izza point is a shop near you where your parcel waits for you.</p>
       <Suspense fallback={null}>
         <ReadyForYou />
       </Suspense>

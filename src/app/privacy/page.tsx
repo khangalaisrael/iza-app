@@ -1,8 +1,8 @@
 import Shell from "@/components/Shell";
 
 export const metadata = {
-  title: "Privacy notice · Iza",
-  description: "What Iza collects, why, who sees it, and how to ask us to change or delete it.",
+  title: "Privacy notice · Izza",
+  description: "What Izza collects, why, who sees it, and how to ask us to change or delete it.",
 };
 
 // Written to match what the app actually does. If a feature changes what is collected, change this page too.
@@ -11,7 +11,7 @@ export default function PrivacyPage() {
     <Shell title="Privacy notice" subtitle="How we look after your details">
       <article className="stack" style={{ gap: 14 }}>
         <p className="lead">
-          Iza is run by The Iza Collective (UCT MakersForge), Rondebosch, Cape Town. This is what we keep about you and why. We follow South
+          Izza is run by The Izza Collective (UCT MakersForge), Rondebosch, Cape Town. This is what we keep about you and why. We follow South
           Africa&apos;s Protection of Personal Information Act (POPIA).
         </p>
 
@@ -23,7 +23,7 @@ export default function PrivacyPage() {
               cannot read it.
             </li>
             <li>
-              <strong>A parcel:</strong> who it is for, their WhatsApp number, where it is collected from, the Iza point it goes to, and any note.
+              <strong>A parcel:</strong> who it is for, their WhatsApp number, where it is collected from, the Izza point it goes to, and any note.
               If the customer chooses door delivery, also the address, landmark or map pin they give us.
             </li>
             <li>
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
         <section className="card stack" style={{ gap: 6 }}>
           <h2>Why we keep it</h2>
           <p style={{ margin: 0 }}>
-            To get parcels from a sender to the Iza point and, if the customer wants, to their door; to let you follow your parcel; to pay
+            To get parcels from a sender to the Izza point and, if the customer wants, to their door; to let you follow your parcel; to pay
             runners fairly; and to sort out problems. We do not sell your details.
           </p>
         </section>
@@ -52,7 +52,7 @@ export default function PrivacyPage() {
           <ul>
             <li>Anyone with a parcel code can see where the parcel is. They cannot see the name, number, address or photo.</li>
             <li>
-              The sender, the Iza point, the runner on the job and the Iza team can see the details they need. A runner sees the customer&apos;s
+              The sender, the Izza point, the runner on the job and the Izza team can see the details they need. A runner sees the customer&apos;s
               address and number only for the delivery they are doing.
             </li>
             <li>The delivery code is shown only to the customer. We never send it in a WhatsApp message.</li>

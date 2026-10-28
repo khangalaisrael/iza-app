@@ -208,7 +208,7 @@ test("the team pays a runner what they are owed, and only the team can", async (
   await expect(runner.locator(".stat", { hasText: "Earned" })).toContainText("still owed R0");
 });
 
-test("a failed delivery goes back to the Iza point and the customer is told to collect it", async ({ as, browser, baseURL }) => {
+test("a failed delivery goes back to the Izza point and the customer is told to collect it", async ({ as, browser, baseURL }) => {
   const business = await (await as("business")).newPage();
   const code = await book(business, { from: "Failed Bakery", to: "Not Home", phone: "084 444 5555" });
   const customer = await browser.newPage({ baseURL });
@@ -308,7 +308,7 @@ test("a customer sends from home: bringing it in needs no runner, the shop confi
   await customer.getByText("Corner Shop", { exact: true }).click();
   await customer.getByRole("button", { name: "Book it" }).click();
   await expect(customer.getByText("Enkosi! It's booked.")).toBeVisible();
-  await expect(customer.getByText(/The Iza team has been told/)).toBeVisible();
+  await expect(customer.getByText(/The Izza team has been told/)).toBeVisible();
   const code = (await customer.locator(".bigCode").innerText()).trim();
 
   // No runner job exists for it.

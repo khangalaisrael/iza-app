@@ -5,14 +5,14 @@ import { FALLBACK_DESTINATION, type LatLng } from "./geo";
 export const STAGES = [
   "Booked",
   "Picked up",
-  "At the Iza point",
+  "At the Izza point",
   "On the way",
   "Delivered",
 ] as const;
 
 export const LAST_STAGE = STAGES.length - 1;
 
-// What the sender pays to get a parcel to the Iza point, and what the customer pays in all if they
+// What the sender pays to get a parcel to the Izza point, and what the customer pays in all if they
 // want it brought to their door instead of collecting it.
 export const FEE_POINT = 12;
 export const FEE_DOOR = 20;
@@ -38,7 +38,7 @@ export type Parcel = {
   landmark: string; // where it goes if the customer chooses door delivery
   runner: string;
   stage: number; // index into STAGES
-  point: string; // the Iza point the parcel waits at (its name)
+  point: string; // the Izza point the parcel waits at (its name)
   pointId?: string;
   choice?: Choice; // set by the customer once the parcel is at the point
   fee?: number;
@@ -167,7 +167,7 @@ export const exampleParcels: Record<string, Parcel> = {
   },
 };
 
-// The customer's door if they chose it, otherwise the Iza point (pass its position in).
+// The customer's door if they chose it, otherwise the Izza point (pass its position in).
 export function destinationOf(p: Parcel, point?: LatLng): LatLng {
   if (p.choice === "door" && p.lat !== undefined && p.lng !== undefined) return { lat: p.lat, lng: p.lng };
   return point ?? FALLBACK_DESTINATION;

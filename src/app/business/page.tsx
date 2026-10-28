@@ -4,12 +4,12 @@ import styles from "@/app/welcome/welcome.module.css";
 import { FEE_DOOR, FEE_DOOR_EXTRA, FEE_POINT } from "@/lib/parcels";
 
 export const metadata = {
-  title: "Iza for business",
-  description: "Your customers, reached. Send parcels to an Iza point near them.",
+  title: "Izza for business",
+  description: "Your customers, reached. Send parcels to an Izza point near them.",
 };
 
 const steps = [
-  { title: "You book it", text: "Tell us who it is for and which Iza point is closest to them. They get a code on WhatsApp." },
+  { title: "You book it", text: "Tell us who it is for and which Izza point is closest to them. They get a code on WhatsApp." },
   { title: "We collect", text: "A local runner picks it up from you at the time that suits you. Nothing to drop off." },
   { title: "It waits at the point", text: "A trusted shop in their neighbourhood holds it safely." },
   { title: "They choose", text: `They collect it with their code (R${FEE_POINT}), or have it brought to their door (R${FEE_DOOR}).` },
@@ -54,11 +54,11 @@ export default function BusinessPage() {
           <div className={styles.priceRow}>
             <div className={styles.priceBox}>
               <strong>Township sellers</strong>
-              <p>R{FEE_POINT} to an Iza point. If your customer wants it at their door, they pay R{FEE_DOOR_EXTRA} extra. No monthly fee.</p>
+              <p>R{FEE_POINT} to an Izza point. If your customer wants it at their door, they pay R{FEE_DOOR_EXTRA} extra. No monthly fee.</p>
             </div>
             <div className={styles.priceBox}>
               <strong>Online shops</strong>
-              <p>Offer Iza points at checkout. [Pricing to confirm]</p>
+              <p>Offer Izza points at checkout. [Pricing to confirm]</p>
             </div>
             <div className={styles.priceBox}>
               <strong>Couriers and retailers</strong>

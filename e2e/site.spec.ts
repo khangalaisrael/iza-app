@@ -47,7 +47,7 @@ test("the website has the same menu on every page, like the design", async ({ br
   for (const path of ["/", "/join", "/business", "/why"]) {
     await page.goto(path);
     const nav = page.getByRole("navigation", { name: "Main" });
-    for (const name of ["Send", "Collect", "For my business", "Why Iza"]) {
+    for (const name of ["Send", "Collect", "For my business", "Why Izza"]) {
       await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
     }
     await expect(page.getByRole("link", { name: "Track", exact: true })).toBeVisible();
@@ -63,7 +63,7 @@ test("the website has the same menu on every page, like the design", async ({ br
 test("on a phone the website menu opens from a Menu button", async ({ page }) => {
   await page.goto("/join");
   const menu = await topMenu(page);
-  for (const name of ["Send", "Collect", "For my business", "Why Iza"]) {
+  for (const name of ["Send", "Collect", "For my business", "Why Izza"]) {
     await expect(menu.getByRole("link", { name, exact: true })).toBeVisible();
   }
 });
@@ -80,10 +80,10 @@ test("the website opens with a heading and a way to send and track", async ({ pa
 test("the website questions open and close", async ({ page }) => {
   await page.goto("/");
   await page.getByText("How much does it cost?").click();
-  await expect(page.getByText("R12 if you collect at an Iza point")).toBeVisible();
+  await expect(page.getByText("R12 if you collect at an Izza point")).toBeVisible();
 });
 
-test("join us offers runners, Iza points and businesses their own way in", async ({ page }) => {
+test("join us offers runners, Izza points and businesses their own way in", async ({ page }) => {
   await page.goto("/join");
   await page.getByRole("link", { name: "Apply to be a runner" }).click();
   await expect(page).toHaveURL(/\/signup\?as=runner/);
@@ -91,7 +91,7 @@ test("join us offers runners, Iza points and businesses their own way in", async
 
   await page.goto("/join");
   await page.getByRole("link", { name: "Register your place" }).click();
-  await expect(page.getByRole("radio", { name: /host an Iza point/ })).toBeChecked();
+  await expect(page.getByRole("radio", { name: /host an Izza point/ })).toBeChecked();
   await expect(page.getByLabel("When are you open?")).toBeVisible();
 
   await page.goto("/join");
@@ -102,7 +102,7 @@ test("join us offers runners, Iza points and businesses their own way in", async
 test("the business page explains what the customer pays", async ({ page }) => {
   await page.goto("/business");
   await expect(page.getByRole("heading", { name: "Your customers, reached. Wherever they live." })).toBeVisible();
-  await expect(page.getByText(/R12 to an Iza point/)).toBeVisible();
+  await expect(page.getByText(/R12 to an Izza point/)).toBeVisible();
   await expect(page.getByText(/they pay R8 extra/)).toBeVisible();
 });
 

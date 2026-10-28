@@ -5,7 +5,7 @@ import ResetPasswordForm from "@/components/ResetPasswordForm";
 import Shell from "@/components/Shell";
 import { resetIsValid } from "@/lib/reset";
 
-export const metadata = { title: "New password · Iza", robots: { index: false } };
+export const metadata = { title: "New password · Izza", robots: { index: false } };
 
 export default function ResetPage({ params }: PageProps<"/reset/[token]">) {
   return (
@@ -24,7 +24,7 @@ async function Form({ params }: { params: PageProps<"/reset/[token]">["params"] 
     return (
       <section className="card stack">
         <h1>This link doesn&apos;t work any more</h1>
-        <p className="lead">It may have expired, or it was already used. Ask the Iza team for a new one.</p>
+        <p className="lead">It may have expired, or it was already used. Ask the Izza team for a new one.</p>
         <Link className="btn" href="/signin">
           Back to sign in
         </Link>

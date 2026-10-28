@@ -3,8 +3,8 @@ import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import styles from "@/app/welcome/welcome.module.css";
 
 export const metadata = {
-  title: "Why Iza",
-  description: "Why we started Iza, how the neighbourhood network works, and who does what.",
+  title: "Why Izza",
+  description: "Why we started Izza, how the neighbourhood network works, and who does what.",
 };
 
 const stats = [
@@ -41,16 +41,16 @@ const stats = [
 const roles = [
   {
     title: "Businesses",
-    does: "Book a parcel for a customer, pick the Iza point closest to them, and follow it on a dashboard.",
+    does: "Book a parcel for a customer, pick the Izza point closest to them, and follow it on a dashboard.",
     cannot: "Cannot see other businesses' parcels, or take runner jobs.",
   },
   {
     title: "Runners",
-    does: "See open jobs, accept one, collect from the business, drop at the Iza point, or deliver to a door with the customer's code.",
+    does: "See open jobs, accept one, collect from the business, drop at the Izza point, or deliver to a door with the customer's code.",
     cannot: "Cannot send parcels, and only see what a job needs.",
   },
   {
-    title: "Iza points",
+    title: "Izza points",
     does: "Hold parcels for their neighbours and hand them over when the right code is shown.",
     cannot: "Cannot hand over a parcel the customer asked to have delivered.",
   },
@@ -62,9 +62,9 @@ const roles = [
 ];
 
 const safe = [
-  "Every runner, Iza point and business is approved by the Iza team before they start.",
+  "Every runner, Izza point and business is approved by the Izza team before they start.",
   "A door delivery is finished only with the customer's 4-digit code.",
-  "If nobody is home, the parcel goes back to the Iza point and the customer is told.",
+  "If nobody is home, the parcel goes back to the Izza point and the customer is told.",
   "Strangers can see where a parcel is, but not who it is for or where it is going.",
 ];
 
@@ -75,12 +75,12 @@ export default function WhyPage() {
       <main>
         <div className={`${styles.wrap} ${styles.pageHead}`}>
           <h1>Delivery that stays in the neighbourhood</h1>
-          <p>Iza moves parcels the last few streets, using people and places that are already there.</p>
+          <p>Izza moves parcels the last few streets, using people and places that are already there.</p>
         </div>
 
         <section className={`${styles.wrap} ${styles.anchor}`} id="story" style={{ paddingTop: 40 }}>
           <div className={styles.sectionHead}>
-            <h2>Why we started Iza</h2>
+            <h2>Why we started Izza</h2>
           </div>
           <div className={styles.storyGrid}>
             <div>
@@ -90,7 +90,7 @@ export default function WhyPage() {
                 neighbourhoods being served.
               </p>
               <p>
-                Iza does it differently. A parcel goes to a trusted shop on your street. You collect it, or a runner
+                Izza does it differently. A parcel goes to a trusted shop on your street. You collect it, or a runner
                 from your own area brings it to your gate. The work and the money stay local.
               </p>
             </div>
@@ -163,7 +163,7 @@ export default function WhyPage() {
                 Send a parcel
               </Link>
               <Link href="/join" className={`btn ${styles.secondary}`}>
-                Earn with Iza
+                Earn with Izza
               </Link>
             </div>
           </div>

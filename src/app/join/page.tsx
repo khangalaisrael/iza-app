@@ -4,13 +4,13 @@ import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import styles from "@/app/welcome/welcome.module.css";
 
 export const metadata = {
-  title: "Join Iza",
-  description: "Become a runner, host an Iza point, or send parcels as a business.",
+  title: "Join Izza",
+  description: "Become a runner, host an Izza point, or send parcels as a business.",
 };
 
 const steps = [
   { title: "Apply", text: "Fill in a short form. It takes about five minutes." },
-  { title: "We check", text: "The Iza team looks at every runner, point and business before they start." },
+  { title: "We check", text: "The Izza team looks at every runner, point and business before they start." },
   { title: "You hear from us", text: "We message you on WhatsApp when you are approved." },
   { title: "Start", text: "Open your own screen and begin. No training course needed." },
 ];
@@ -22,7 +22,7 @@ export default function JoinPage() {
       <main>
         <div className={`${styles.wrap} ${styles.pageHead}`}>
           <h1>Grow with your neighbourhood</h1>
-          <p>Iza runs on local people and local places. Pick how you would like to be part of it.</p>
+          <p>Izza runs on local people and local places. Pick how you would like to be part of it.</p>
         </div>
 
         <div className={`${styles.wrap} ${styles.joinGrid}`}>
@@ -43,7 +43,7 @@ export default function JoinPage() {
           </section>
 
           <section className={`${styles.joinCard} ${styles.dark}`}>
-            <h2>Host an Iza point</h2>
+            <h2>Host an Izza point</h2>
             <ul className={styles.checks}>
               {["Earn for every parcel you hold", "More people walking into your shop", "A simple screen to check parcels in and out"].map((t) => (
                 <li key={t}>

@@ -59,7 +59,7 @@ const SCHEMA = [
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS pickup_lng DOUBLE PRECISION`,
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS pickup_plus_code TEXT`,
 
-  // A business sends, the customer chooses how to receive it, runners and Iza points do the work.
+  // A business sends, the customer chooses how to receive it, runners and Izza points do the work.
   `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`,
   `ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('customer','business','runner','point','admin'))`,
   `CREATE TABLE IF NOT EXISTS points (
@@ -197,14 +197,14 @@ async function seedDemo(d: Db) {
        VALUES ($1,$2,$3,$4,$5,'active',$6,$7) ON CONFLICT (identifier) DO NOTHING`,
       [id, name, identifier, hash, role, pointName, now],
     );
-  await add(ids.admin, "Iza team", "admin@iza.test", "admin", null);
+  await add(ids.admin, "Izza team", "admin@iza.test", "admin", null);
   await add(ids.runner, "Sipho", "sipho@iza.test", "runner", null);
   await add(ids.point, "Corner Shop", "cornershop@iza.test", "point", "Corner Shop");
   await add(ids.customer, "Lindiwe", "0823456789", "customer", null);
   await add(ids.business, "Thembi's Kitchen", "thembi@iza.test", "business", null);
 
-  // The three example Iza points, all approved. Corner Shop belongs to its demo owner.
-  const kinds: Record<string, string> = { hub: "Iza hub", shop: "Spaza shop" };
+  // The three example Izza points, all approved. Corner Shop belongs to its demo owner.
+  const kinds: Record<string, string> = { hub: "Izza hub", shop: "Spaza shop" };
   for (const p of seedPoints) {
     await d.query(
       `INSERT INTO points (id, name, kind, address, lat, lng, hours, owner_id, status, created_at)

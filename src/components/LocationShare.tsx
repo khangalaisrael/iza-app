@@ -16,7 +16,7 @@ async function report(code: string, pos: LatLng) {
 /**
  * Lets a runner send their position for every parcel on the way.
  * "Share live location" uses the phone's GPS; "Demo ride" walks the runner from the
- * Iza point to the customer so the tracking map can be shown without leaving the desk.
+ * Izza point to the customer so the tracking map can be shown without leaving the desk.
  */
 export default function LocationShare({ jobs, demo = false }: { jobs: Job[]; demo?: boolean }) {
   const [sharing, setSharing] = useState(false);

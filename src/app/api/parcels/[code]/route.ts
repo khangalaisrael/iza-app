@@ -41,9 +41,9 @@ const PROBLEMS: Record<string, string> = {
   other: "Something went wrong.",
 };
 
-// choose:    the customer decides to collect at the Iza point or to have it brought to their door.
+// choose:    the customer decides to collect at the Izza point or to have it brought to their door.
 //            Whoever holds the delivery code can do this, until a runner is carrying it.
-// collect:   the Iza point hands a waiting parcel to the person with the code.
+// collect:   the Izza point hands a waiting parcel to the person with the code.
 // location:  a runner's phone reports where it is while the parcel is on the way.
 // accept, release, update, collected, dropped, pickup_from_point, deliver, return_to_point, problem:
 //            the runner's job. A runner can only touch a job they accepted.
@@ -71,11 +71,11 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/parcels/[c
   return runnerAction(parcel, user, action, body);
 }
 
-// The Iza point confirms that the sender brought the parcel in.
+// The Izza point confirms that the sender brought the parcel in.
 async function receive(parcel: Parcel, user: User) {
   const point = parcel.pointId ? await getPointById(parcel.pointId) : undefined;
   const isItsPoint = user.role === "point" && !!point && point.ownerId === user.id;
-  if (!isItsPoint && user.role !== "admin") return deny("Only the Iza point this parcel was sent to can confirm it.", 403);
+  if (!isItsPoint && user.role !== "admin") return deny("Only the Izza point this parcel was sent to can confirm it.", 403);
   if (parcel.stage !== 0 || parcel.dropoff !== "self") return deny("That parcel isn't waiting to be brought in.", 409);
   await saveParcel({ ...parcel, stage: 2 });
   await addEvent(parcel.code, "received", `Received at ${parcel.point}. Ready for you.`, point?.name ?? user.name);
@@ -102,7 +102,7 @@ async function markPaid(parcel: Parcel, user: User, body: Body | null) {
     return ok();
   }
 
-  if (!isItsPoint && !isItsRunner && !isTeam) return deny("Only the Iza point, the runner on this job or the team can record the sender's payment.", 403);
+  if (!isItsPoint && !isItsRunner && !isTeam) return deny("Only the Izza point, the runner on this job or the team can record the sender's payment.", 403);
   if (parcel.paidAt) return deny("The sender's fee is already marked as paid.", 409);
   await saveParcel({ ...parcel, paidAt: Date.now(), paidBy: user.name });
   await addEvent(parcel.code, "paid", `Sender's fee received (R${FEE_POINT}).`, user.name);
@@ -124,11 +124,11 @@ async function assign(parcel: Parcel, user: User, body: Body | null) {
 async function collect(parcel: Parcel, user: User) {
   const point = parcel.pointId ? await getPointById(parcel.pointId) : undefined;
   const isItsPoint = user.role === "point" && !!point && point.ownerId === user.id;
-  if (!isItsPoint && user.role !== "admin") return deny("Only the Iza point holding this parcel can hand it over.", 403);
-  if (parcel.stage !== 2) return deny("That parcel isn't waiting at the Iza point.", 409);
+  if (!isItsPoint && user.role !== "admin") return deny("Only the Izza point holding this parcel can hand it over.", 403);
+  if (parcel.stage !== 2) return deny("That parcel isn't waiting at the Izza point.", 409);
   if (parcel.choice === "door") return deny("This customer asked for door delivery. A runner will take it.", 409);
   await saveParcel({ ...parcel, choice: "point", fee: FEE_POINT, stage: LAST_STAGE });
-  await addEvent(parcel.code, "collected_by_customer", "Collected at the Iza point. Enkosi!", point?.name ?? null);
+  await addEvent(parcel.code, "collected_by_customer", "Collected at the Izza point. Enkosi!", point?.name ?? null);
   return ok();
 }
 
@@ -152,7 +152,7 @@ async function runnerAction(parcel: Parcel, user: User, action: string | undefin
   if (!mine) return deny("That isn't your job. Accept it first.", 403);
 
   if (action === "release") {
-    if (!(parcel.stage === 0 || parcel.stage === 2)) return deny("You are carrying it. Take it back to the Iza point instead.", 409);
+    if (!(parcel.stage === 0 || parcel.stage === 2)) return deny("You are carrying it. Take it back to the Izza point instead.", 409);
     await saveParcel({ ...parcel, runner: NO_RUNNER, runnerId: undefined });
     await addEvent(code, "released", "The runner can't do it, so we are finding another one.", user.name);
     return ok();
@@ -179,7 +179,7 @@ async function runnerAction(parcel: Parcel, user: User, action: string | undefin
     return ok();
   }
 
-  // Collection: the parcel is in the runner's hands, then at the Iza point.
+  // Collection: the parcel is in the runner's hands, then at the Izza point.
   if (action === "collected") {
     if (parcel.stage !== 0) return deny("That step is already done.", 409);
     await saveParcel({ ...parcel, stage: 1 });
@@ -216,7 +216,7 @@ async function runnerAction(parcel: Parcel, user: User, action: string | undefin
   }
   if (action === "return_to_point") {
     if (parcel.stage !== 3) return deny("You are not carrying it.", 409);
-    // Nobody to give it to: it goes back to the Iza point and the customer collects it there.
+    // Nobody to give it to: it goes back to the Izza point and the customer collects it there.
     await saveParcel({
       ...parcel,
       stage: 2,

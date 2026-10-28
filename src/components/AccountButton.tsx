@@ -8,8 +8,8 @@ const roleLabel = {
   customer: "Customer",
   business: "Business",
   runner: "Runner",
-  point: "Iza point",
-  admin: "Iza team",
+  point: "Izza point",
+  admin: "Izza team",
 } as const;
 
 export default async function AccountButton() {

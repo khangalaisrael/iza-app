@@ -9,7 +9,7 @@ const roles = [
   { id: "customer", label: "I'm getting a parcel", note: "Start right away" },
   { id: "business", label: "I send parcels", note: "For shops and sellers. We approve you first" },
   { id: "runner", label: "I want to deliver", note: "Become a runner. We approve you first" },
-  { id: "point", label: "I'll host an Iza point", note: "A shop, salon or hall. We approve you first" },
+  { id: "point", label: "I'll host an Izza point", note: "A shop, salon or hall. We approve you first" },
 ];
 
 const kinds = [
@@ -41,7 +41,7 @@ export default function AuthForm({
 
   return (
     <form action={formAction} className="stack" noValidate>
-      <h1>{signup ? "Join Iza" : "Welcome back"}</h1>
+      <h1>{signup ? "Join Izza" : "Welcome back"}</h1>
       <input type="hidden" name="next" value={next} />
       {/* The role is sent on its own, so a browser form reset can never change who is being signed up. */}
       <input type="hidden" name="role" value={role} />
@@ -49,7 +49,7 @@ export default function AuthForm({
       {signup && (
         <>
           <fieldset className="field bigChoices" key={`roles-${state.error ?? "start"}`}>
-            <legend>How will you use Iza?</legend>
+            <legend>How will you use Izza?</legend>
             {roles.map((r) => (
               <label key={r.id} className="bigChoice">
                 <input type="radio" name="roleChoice" value={r.id} checked={role === r.id} onChange={() => setRole(r.id)} />
@@ -142,7 +142,7 @@ export default function AuthForm({
 
       {!signup && (
         <p className="muted center" style={{ margin: 0 }}>
-          Forgot your password? Message the Iza team on WhatsApp and we will send you a link to choose a new one.
+          Forgot your password? Message the Izza team on WhatsApp and we will send you a link to choose a new one.
         </p>
       )}
       {signup && (
@@ -156,7 +156,7 @@ export default function AuthForm({
       )}
 
       <p className="muted center">
-        {signup ? "Already have an account? " : "New to Iza? "}
+        {signup ? "Already have an account? " : "New to Izza? "}
         <Link
           href={`${signup ? "/signin" : "/signup"}?next=${encodeURIComponent(next)}`}
           style={{ color: "var(--primary)", fontWeight: 700 }}

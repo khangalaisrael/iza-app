@@ -26,9 +26,9 @@ import { landingFor } from "@/lib/roles";
 import styles from "./welcome/welcome.module.css";
 
 export const metadata = {
-  title: "Iza: bringing it closer",
+  title: "Izza: bringing it closer",
   description:
-    "Iza is a neighbourhood parcel network for Cape Town. Businesses send to a shop on your street, and you collect it or have it brought to your door.",
+    "Izza is a neighbourhood parcel network for Cape Town. Businesses send to a shop on your street, and you collect it or have it brought to your door.",
 };
 
 const facts = [
@@ -39,8 +39,8 @@ const facts = [
 ];
 
 const steps = [
-  { title: "A business sends it", text: "A seller books a parcel and picks the Iza point closest to the customer. The customer gets a code on WhatsApp." },
-  { title: "A runner collects it", text: "A local runner we have approved picks it up from the business and brings it to the Iza point." },
+  { title: "A business sends it", text: "A seller books a parcel and picks the Izza point closest to the customer. The customer gets a code on WhatsApp." },
+  { title: "A runner collects it", text: "A local runner we have approved picks it up from the business and brings it to the Izza point." },
   { title: "It waits at the point", text: "A shop, salon or hall on your street keeps it safe until you decide what happens next." },
   { title: "You choose", text: `Collect it yourself, or ask for it at your door. A runner brings it, and you give them your 4-digit code.` },
 ];
@@ -48,12 +48,12 @@ const steps = [
 const who = [
   { icon: Storefront, title: "I run a business", text: "Reach customers who live where couriers struggle to find a door. See every parcel on your dashboard.", href: "/business", cta: "For my business" },
   { icon: MapPin, title: "I am waiting for a parcel", text: "Type your code, see where it is, and choose to collect or have it brought to you.", href: "/track", cta: "Track a parcel" },
-  { icon: Handshake, title: "I have a shop or hall", text: "Become an Iza point. Hold parcels for your neighbours and earn for each one.", href: "/signup?as=point", cta: "Host an Iza point" },
+  { icon: Handshake, title: "I have a shop or hall", text: "Become an Izza point. Hold parcels for your neighbours and earn for each one.", href: "/signup?as=point", cta: "Host an Izza point" },
   { icon: Motorcycle, title: "I want to earn", text: "Become a runner in your own area. Accept a job, follow the steps, get paid.", href: "/signup?as=runner", cta: "Become a runner" },
 ];
 
 const safe = [
-  { icon: UserCheck, title: "Every partner is approved", text: "Runners, Iza points and businesses are checked by our team before they start." },
+  { icon: UserCheck, title: "Every partner is approved", text: "Runners, Izza points and businesses are checked by our team before they start." },
   { icon: Key, title: "A code to hand over", text: "A parcel only changes hands when the right code is given. No code, no parcel." },
   { icon: Eye, title: "You can see every step", text: "From picked up to delivered, each update appears on your tracking page." },
   { icon: ShieldCheck, title: "Your details stay private", text: "A runner sees only what the job needs. Strangers see where a parcel is, not who it is for." },
@@ -69,14 +69,14 @@ const ways = [
 const faqs = [
   {
     q: "How much does it cost?",
-    a: `R${FEE_POINT} if you collect at an Iza point. R${FEE_DOOR} if you want it brought to your door, which is R${FEE_DOOR_EXTRA} extra.`,
+    a: `R${FEE_POINT} if you collect at an Izza point. R${FEE_DOOR} if you want it brought to your door, which is R${FEE_DOOR_EXTRA} extra.`,
   },
   {
-    q: "I run a business. How can Iza help?",
-    a: "You book a parcel and a local runner collects it from you. We hold it at an Iza point near your customer, and they choose to collect it or have it brought to their door. You see every step on your dashboard.",
+    q: "I run a business. How can Izza help?",
+    a: "You book a parcel and a local runner collects it from you. We hold it at an Izza point near your customer, and they choose to collect it or have it brought to their door. You see every step on your dashboard.",
   },
   {
-    q: "Can my shop or salon become an Iza point?",
+    q: "Can my shop or salon become an Izza point?",
     a: "Yes. Shops, salons, pharmacies and community halls can hold parcels for their neighbours. Apply on the site and our team will approve you.",
   },
   {
@@ -103,7 +103,7 @@ export default function Home() {
             <div className={styles.heroText}>
               <h1>Order anywhere. Collect around the corner.</h1>
               <p>
-                Iza is a neighbourhood parcel network for Cape Town. Businesses send to a shop on your street. You
+                Izza is a neighbourhood parcel network for Cape Town. Businesses send to a shop on your street. You
                 collect it, or a local runner brings it to your door.
               </p>
               <div className={styles.ctas}>
@@ -111,7 +111,7 @@ export default function Home() {
                   Send a parcel
                 </Link>
                 <Link href="/points" className={`btn ${styles.secondary}`}>
-                  Find an Iza point
+                  Find an Izza point
                 </Link>
               </div>
             </div>
@@ -119,7 +119,7 @@ export default function Home() {
               <Suspense fallback={null}>
                 <PointsPreview height={400} list={false} />
               </Suspense>
-              <p className={styles.mapCaption}>Iza points around Langa, where parcels wait for you.</p>
+              <p className={styles.mapCaption}>Izza points around Langa, where parcels wait for you.</p>
             </div>
           </div>
           <div className={styles.factBar}>
@@ -145,7 +145,7 @@ export default function Home() {
 
         <section className={`${styles.wrap} ${styles.section} ${styles.anchor}`} id="how">
           <div className={styles.sectionHead}>
-            <h2>How Iza works</h2>
+            <h2>How Izza works</h2>
             <p>Four steps from the seller to you. Nobody has to find a street address.</p>
           </div>
           <div className={styles.howRow}>
@@ -162,7 +162,7 @@ export default function Home() {
         <section className={`${styles.wrap} ${styles.reveal}`} style={{ paddingBottom: "clamp(64px, 9vw, 120px)" }}>
           <div className={styles.sectionHead}>
             <h2>Then you choose</h2>
-            <p>When your parcel reaches the Iza point, it is your call.</p>
+            <p>When your parcel reaches the Izza point, it is your call.</p>
           </div>
           <div className={styles.wayRow}>
             <div className={`${styles.way} ${styles.wayPoint}`}>
@@ -177,7 +177,7 @@ export default function Home() {
                 ))}
               </ul>
               <Link href="/points" className={styles.cellLink}>
-                Find an Iza point <ArrowRight size={20} weight="bold" aria-hidden="true" />
+                Find an Izza point <ArrowRight size={20} weight="bold" aria-hidden="true" />
               </Link>
             </div>
             <div className={`${styles.way} ${styles.wayDoor}`}>
@@ -218,7 +218,7 @@ export default function Home() {
 
         <section className={`${styles.wrap} ${styles.section}`} id="who">
           <div className={styles.sectionHead}>
-            <h2>Iza is for everyone on the street</h2>
+            <h2>Izza is for everyone on the street</h2>
             <p>Pick the one that sounds like you.</p>
           </div>
           <div className={styles.whoGrid}>
@@ -262,7 +262,7 @@ export default function Home() {
                 <div className={styles.contrastOld}>
                   The usual way: street address, postal code, then the parcel is delayed or sent back.
                 </div>
-                <div className={styles.contrastNew}>The Iza way: &quot;Next to the blue container, behind the church&quot;</div>
+                <div className={styles.contrastNew}>The Izza way: &quot;Next to the blue container, behind the church&quot;</div>
               </div>
             </div>
           </div>
@@ -271,10 +271,10 @@ export default function Home() {
         <section className={styles.why}>
           <div className={`${styles.wrap} ${styles.section}`}>
             <div className={styles.sectionHead}>
-              <h2>Why we started Iza</h2>
+              <h2>Why we started Izza</h2>
               <p>
                 Delivery is growing fast, but the jobs it creates mostly aren&apos;t reaching young people from our
-                neighbourhoods. Iza keeps the work, and the money, local.
+                neighbourhoods. Izza keeps the work, and the money, local.
               </p>
             </div>
             <Link href="/why" className={`btn btn-honey`}>
@@ -285,7 +285,7 @@ export default function Home() {
 
         <section className={`${styles.wrap} ${styles.section}`} id="points">
           <div className={styles.sectionHead}>
-            <h2>Iza points near you</h2>
+            <h2>Izza points near you</h2>
             <p>Corner shops, salons, pharmacies and community halls. Most are a few minutes&apos; walk away.</p>
           </div>
           <Suspense fallback={null}>
@@ -313,14 +313,14 @@ export default function Home() {
         <section className={styles.ctaBand}>
           <div className={`${styles.wrap} ${styles.ctaInner}`}>
             <h2>
-              <Link href="/join">Earn with Iza</Link>
+              <Link href="/join">Earn with Izza</Link>
             </h2>
             <div className={styles.ctas}>
               <Link href="/signup?as=runner" className="btn">
                 Become a runner
               </Link>
               <Link href="/signup?as=point" className={`btn ${styles.secondary}`}>
-                Host an Iza point
+                Host an Izza point
               </Link>
             </div>
           </div>

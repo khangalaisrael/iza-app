@@ -31,7 +31,7 @@ export default function ResetLinkForm() {
           {state.phone && (
             <a
               className="btn btn-soft"
-              href={whatsappLink(state.phone, `Hi, here is your Iza password reset link: ${state.link}`)}
+              href={whatsappLink(state.phone, `Hi, here is your Izza password reset link: ${state.link}`)}
               target="_blank"
               rel="noopener noreferrer"
             >

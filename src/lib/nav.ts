@@ -17,7 +17,7 @@ const collect: NavItem = {
   label: "Collect",
   href: "/points",
   children: [
-    { label: "Find an Iza point", href: "/points" },
+    { label: "Find an Izza point", href: "/points" },
     { label: "Collect with my code", href: "/collect" },
     { label: "Where's my parcel?", href: "/track" },
   ],
@@ -27,16 +27,16 @@ const business: NavItem = {
   label: "For my business",
   href: "/business",
   children: [
-    { label: "Why businesses use Iza", href: "/business" },
+    { label: "Why businesses use Izza", href: "/business" },
     { label: "Open a business account", href: "/signup?as=business" },
     { label: "Your dashboard", href: "/signin?next=%2Fparcels" },
-    { label: "Host an Iza point", href: "/signup?as=point" },
+    { label: "Host an Izza point", href: "/signup?as=point" },
     { label: "Become a runner", href: "/signup?as=runner" },
   ],
 };
 
 const why: NavItem = {
-  label: "Why Iza",
+  label: "Why Izza",
   href: "/why",
   children: [
     { label: "Our story", href: "/why#story" },
@@ -51,7 +51,7 @@ export function navFor(role: Role | null): NavItem[] {
     case "runner":
       return [{ label: "My jobs", href: "/runner" }];
     case "point":
-      return [{ label: "My Iza point", href: "/point" }];
+      return [{ label: "My Izza point", href: "/point" }];
     case "business":
       return [{ label: "My parcels", href: "/parcels" }, send, why];
     case "admin":

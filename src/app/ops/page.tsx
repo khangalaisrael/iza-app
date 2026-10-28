@@ -16,7 +16,7 @@ import { listParcels, recentEvents, runnerEarnings } from "@/lib/store";
 import { listActiveRunners, listPendingUsers } from "@/lib/users";
 import { whatsappLink } from "@/lib/whatsapp";
 
-export const metadata = { title: "Team dashboard · Iza" };
+export const metadata = { title: "Team dashboard · Izza" };
 
 export default function OpsPage() {
   return (
@@ -100,7 +100,7 @@ async function Board() {
     carrying: live.filter((p) => p.runnerId === r.id).length,
     done: all.filter((p) => p.stage === LAST_STAGE && p.runner === r.name).length,
   }));
-  const roleLabel = { business: "Business", runner: "Runner", point: "Iza point", customer: "Customer", admin: "Team" } as const;
+  const roleLabel = { business: "Business", runner: "Runner", point: "Izza point", customer: "Customer", admin: "Team" } as const;
   const placeOf = new Map(pendingPoints.map((p) => [p.ownerId, p]));
   const forAssign = runners.map((r) => ({ id: r.id, name: r.name }));
 
@@ -151,7 +151,7 @@ async function Board() {
               {a.action === "remind" && a.parcel.recipientPhone && (
                 <a
                   className="btn btn-soft"
-                  href={whatsappLink(a.parcel.recipientPhone, `Hi ${a.parcel.to}, your Iza parcel ${a.code} is waiting at ${a.parcel.point}. Please collect it with your code.`)}
+                  href={whatsappLink(a.parcel.recipientPhone, `Hi ${a.parcel.to}, your Izza parcel ${a.code} is waiting at ${a.parcel.point}. Please collect it with your code.`)}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -275,7 +275,7 @@ async function Board() {
           </section>
 
           <section className="card stack" style={{ gap: 10 }} aria-labelledby="add-point">
-            <h2 id="add-point">Add an Iza point</h2>
+            <h2 id="add-point">Add an Izza point</h2>
             <p className="muted" style={{ margin: 0 }}>For places the team sets up itself, like the hub. They appear on the map straight away.</p>
             <AddPointForm />
           </section>

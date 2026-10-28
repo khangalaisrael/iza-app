@@ -98,12 +98,12 @@ test("a new business waits for approval, then can book parcels", async ({ page, 
   await expect(page.getByRole("heading", { name: "Send a parcel" })).toBeVisible();
 });
 
-test("someone applies to host an Iza point, and it only shows on the map once the team approves", async ({ browser, baseURL, as }) => {
+test("someone applies to host an Izza point, and it only shows on the map once the team approves", async ({ browser, baseURL, as }) => {
   // The shop owner is standing in the shop, so they use their location.
   const ctx = await browser.newContext({ baseURL, geolocation: { latitude: -33.9441, longitude: 18.5311 }, permissions: ["geolocation"] });
   const page = await ctx.newPage();
   const id = `shop-${Date.now()}@iza.test`;
-  await signUp(page, { role: "I'll host an Iza point", name: "Mama Joy", id });
+  await signUp(page, { role: "I'll host an Izza point", name: "Mama Joy", id });
   await page.getByLabel("Name of your shop or place").fill("Joy's Tuckshop");
   await page.getByRole("button", { name: "Use my location" }).click();
   await expect(page.getByText("Location saved.")).toBeVisible();
@@ -114,7 +114,7 @@ test("someone applies to host an Iza point, and it only shows on the map once th
   // Not on the public list yet.
   const visitor = await browser.newPage({ baseURL });
   await visitor.goto("/points");
-  await expect(visitor.getByRole("heading", { name: "Iza points near you" })).toBeVisible();
+  await expect(visitor.getByRole("heading", { name: "Izza points near you" })).toBeVisible();
   await expect(visitor.getByText("Joy's Tuckshop")).toHaveCount(0);
 
   // The team sees what was applied for, and approves.
@@ -129,7 +129,7 @@ test("someone applies to host an Iza point, and it only shows on the map once th
 });
 
 test("a point application needs the place's name, a location and its hours", async ({ page }) => {
-  await signUp(page, { role: "I'll host an Iza point", name: "Half Done", id: `half-${Date.now()}@iza.test` });
+  await signUp(page, { role: "I'll host an Izza point", name: "Half Done", id: `half-${Date.now()}@iza.test` });
   await page.getByRole("button", { name: "Send my application" }).click();
   await expect(page.locator("form [role=alert]")).toContainText("name of your shop");
   // What was typed is still there after an error. Only the password has to be typed again.
@@ -228,7 +228,7 @@ test("signing out ends the session", async ({ page }) => {
   await expect(page).toHaveURL(/\/signin\?next=%2Fsend/);
 });
 
-test("the team can add an Iza point themselves, and it is live straight away", async ({ browser, baseURL, as }) => {
+test("the team can add an Izza point themselves, and it is live straight away", async ({ browser, baseURL, as }) => {
   const ctx = await browser.newContext({
     baseURL,
     storageState: "e2e/.auth/admin.json",
@@ -237,15 +237,15 @@ test("the team can add an Iza point themselves, and it is live straight away", a
   });
   const page = await ctx.newPage();
   await page.goto("/ops");
-  const form = page.getByRole("region", { name: "Add an Iza point" });
-  await form.getByRole("button", { name: "Add this Iza point" }).click();
+  const form = page.getByRole("region", { name: "Add an Izza point" });
+  await form.getByRole("button", { name: "Add this Izza point" }).click();
   await expect(form.getByRole("alert")).toContainText("Give the place a name");
 
   await form.getByLabel("Name of the place").fill("Hub Test Corner");
   await form.getByRole("button", { name: "Use my location" }).click();
   await expect(form.getByText("Location saved.")).toBeVisible();
   await form.getByLabel("When is it open?").fill("08:00 to 17:00");
-  await form.getByRole("button", { name: "Add this Iza point" }).click();
+  await form.getByRole("button", { name: "Add this Izza point" }).click();
   await expect(page).toHaveURL(/\/ops\?added=1/);
 
   const visitor = await browser.newPage({ baseURL });

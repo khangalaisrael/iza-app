@@ -8,7 +8,7 @@ import { getLang } from "@/lib/lang";
 import { statusOf, type Parcel } from "@/lib/parcels";
 import { listParcels, listParcelsFor, listParcelsToPhone } from "@/lib/store";
 
-export const metadata = { title: "Track a parcel · Iza" };
+export const metadata = { title: "Track a parcel · Izza" };
 
 export default function TrackPage() {
   return (

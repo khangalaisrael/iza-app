@@ -3,11 +3,11 @@ import AuthForm from "@/components/AuthForm";
 import Shell from "@/components/Shell";
 import { safeNext } from "@/lib/auth";
 
-export const metadata = { title: "Join Iza" };
+export const metadata = { title: "Join Izza" };
 
 export default function SignUpPage({ searchParams }: PageProps<"/signup">) {
   return (
-    <Shell title="Join Iza" subtitle="Create an account">
+    <Shell title="Join Izza" subtitle="Create an account">
       <Suspense fallback={null}>
         <Form searchParams={searchParams} />
       </Suspense>

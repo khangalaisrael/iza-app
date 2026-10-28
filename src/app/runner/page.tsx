@@ -10,7 +10,7 @@ import { listApprovedPoints, type IzaPoint } from "@/lib/pointStore";
 import { listParcels, runnerEarnings } from "@/lib/store";
 import type { User } from "@/lib/users";
 
-export const metadata = { title: "My jobs · Iza" };
+export const metadata = { title: "My jobs · Izza" };
 
 export default function RunnerPage() {
   return (
@@ -26,7 +26,7 @@ export default function RunnerPage() {
 
 type Job = { parcel: Parcel; kind: "collect" | "deliver"; from: string; to: string };
 
-// A job is bringing a door delivery from the Iza point to the customer, or, when a sender asked for a runner, collecting from them first.
+// A job is bringing a door delivery from the Izza point to the customer, or, when a sender asked for a runner, collecting from them first.
 function jobFor(p: Parcel): Job | null {
   if (needsCollection(p) || p.stage === 1) return { parcel: p, kind: "collect", from: p.pickup, to: p.point };
   if ((p.stage === 2 && p.choice === "door") || p.stage === 3) {

@@ -1,4 +1,4 @@
-/* Iza website. Light page, indigo panels, honey as the single accent. */
+/* Izza website. Light page, indigo panels, honey as the single accent. */
 .site {
   --pad: clamp(20px, 5vw, 72px);
   --radius: 20px;
@@ -33,19 +33,19 @@
 .logo {
   align-self: center;
   flex-shrink: 0;
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  background: var(--honey);
-  color: var(--panel);
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 24px;
-  letter-spacing: -0.04em;
   transition: transform 160ms var(--ease-out);
+}
+.logo img {
+  display: block;
+  height: 50px;
+  width: auto;
+}
+.footerLogo {
+  display: block;
+  height: 96px;
+  width: auto;
 }
 .logo:active {
   transform: scale(0.96);
@@ -274,7 +274,7 @@
   max-width: 62ch;
 }
 
-/* Address section: text on the left, the Iza address card on the right */
+/* Address section: text on the left, the Izza address card on the right */
 .addressGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -860,10 +860,8 @@
     height: 68px;
     padding-left: 10px;
   }
-  .logo {
-    width: 48px;
-    height: 48px;
-    font-size: 20px;
+  .logo img {
+    height: 38px;
   }
   .trackBlock,
   .signBlock {
@@ -1096,7 +1094,7 @@
   box-shadow: inset 0 0 0 2px var(--ink);
 }
 
-/* Why Iza page */
+/* Why Izza page */
 .roleTable {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1199,4 +1197,11 @@
   .account {
     padding: 0 10px;
   }
+}
+
+/* The logo's dark lettering needs a light panel on the dark green footer. */
+.footerLogo {
+  background: #fff;
+  padding: 10px 14px;
+  border-radius: 14px;
 }

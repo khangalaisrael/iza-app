@@ -890,7 +890,7 @@ body {
 }
 
 /* ---------------------------------------------------------------
-   Working screens (runner, Iza point, points finder): wide on a
+   Working screens (runner, Izza point, points finder): wide on a
    computer, one column on a phone.
    --------------------------------------------------------------- */
 .portal {
@@ -984,7 +984,7 @@ body {
   gap: 10px;
 }
 
-/* Finding an Iza point */
+/* Finding an Izza point */
 .explorerWrap {
   container-type: inline-size;
 }

@@ -8,7 +8,7 @@ export const POINT_KINDS = [
   "Salon and barber",
   "Community hall",
   "Res reception",
-  "Iza hub",
+  "Izza hub",
 ] as const;
 
 export type PointStatus = "pending" | "approved" | "rejected";

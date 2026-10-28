@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-// The Iza point confirms a sender has brought a parcel in.
+// The Izza point confirms a sender has brought a parcel in.
 export default function ReceiveButton({ code }: { code: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);

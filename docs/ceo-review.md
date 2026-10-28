@@ -1,4 +1,4 @@
-# CEO review of Iza
+# CEO review of Izza
 
 A review of the app as it stood before this round, then what changed. Written to be blunt.
 

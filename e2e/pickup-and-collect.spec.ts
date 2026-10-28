@@ -1,6 +1,6 @@
 import { authFile, expect, test, topMenu } from "./fixtures";
 
-// Somewhere in Langa, close to the Fresh Cuts Barber Iza point.
+// Somewhere in Langa, close to the Fresh Cuts Barber Izza point.
 const NEAR_BARBER = { latitude: -33.9426, longitude: 18.5319 };
 
 test("a business shares its location, and the runner gets directions inside the page", async ({ browser, baseURL, as }) => {
@@ -68,7 +68,7 @@ test("the points finder lists approved points and puts the closest one first", a
   const ctx = await browser.newContext({ baseURL, geolocation: NEAR_BARBER, permissions: ["geolocation"] });
   const page = await ctx.newPage();
   await page.goto("/points");
-  await expect(page.getByRole("heading", { name: "Iza points near you" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Izza points near you" })).toBeVisible();
   // The three seeded points are there, and others may have been added by other tests.
   await expect.poll(() => page.locator("ul.plainList > li").count()).toBeGreaterThanOrEqual(3);
 
@@ -128,7 +128,7 @@ test("the runner has a map with a find-my-location button that works on a comput
 test("the home screen is for customers, and everyone who works is taken to their own place", async ({ as }) => {
   const customer = await (await as("customer")).newPage();
   await customer.goto("/");
-  await expect(customer.getByRole("link", { name: /Earn with Iza/ })).toBeVisible();
+  await expect(customer.getByRole("link", { name: /Earn with Izza/ })).toBeVisible();
   await expect((await topMenu(customer)).getByRole("link", { name: "For my business" })).toHaveCount(0);
 
   const lands: [Parameters<typeof as>[0], RegExp][] = [
@@ -144,9 +144,9 @@ test("the home screen is for customers, and everyone who works is taken to their
   }
 });
 
-test("the home page explains Iza, with a code box and big buttons", async ({ page }) => {
+test("the home page explains Izza, with a code box and big buttons", async ({ page }) => {
   await page.goto("/");
-  for (const name of ["How Iza works", "Then you choose", "Safe, because it is local", "Iza is for everyone on the street"]) {
+  for (const name of ["How Izza works", "Then you choose", "Safe, because it is local", "Izza is for everyone on the street"]) {
     await expect(page.getByRole("heading", { name })).toBeVisible();
   }
   await expect(page.getByLabel("Parcel code")).toBeVisible();

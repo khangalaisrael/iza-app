@@ -7,7 +7,7 @@ import { statusOf } from "@/lib/parcels";
 import { listParcelsFor } from "@/lib/store";
 import type { User } from "@/lib/users";
 
-export const metadata = { title: "My parcels · Iza" };
+export const metadata = { title: "My parcels · Izza" };
 
 export default function ParcelsPage() {
   return (

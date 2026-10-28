@@ -38,8 +38,9 @@ function Bar({ user, lang = "en" }: { user: User | null; lang?: Lang }) {
 
   return (
     <div className={styles.navBar}>
-      <Link href="/" className={styles.logo} aria-label="Iza home">
-        iza
+      <Link href="/" className={styles.logo} aria-label="Izza home">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/izza-mark.png" alt="izza" width={326} height={188} />
       </Link>
 
       <details className={styles.mobileMenu}>
@@ -55,7 +56,7 @@ function Bar({ user, lang = "en" }: { user: User | null; lang?: Lang }) {
               ))}
             </div>
           ))}
-          {find && <Link href="/points">{t(lang, "Find an Iza point")}</Link>}
+          {find && <Link href="/points">{t(lang, "Find an Izza point")}</Link>}
           {track && <Link href="/track">{t(lang, "Track a parcel")}</Link>}
           {!user && <Link href="/signin">{t(lang, "Sign in")}</Link>}
         </nav>
@@ -83,7 +84,7 @@ function Bar({ user, lang = "en" }: { user: User | null; lang?: Lang }) {
       <div className={styles.navActions}>
         {find && (
           <Link href="/points" className={styles.findLink}>
-            {t(lang, "Find an Iza point")}
+            {t(lang, "Find an Izza point")}
           </Link>
         )}
         <form action={setLangAction} className="langSwitch">
@@ -103,7 +104,7 @@ function Bar({ user, lang = "en" }: { user: User | null; lang?: Lang }) {
           </Link>
         )}
         {isWorker && (
-          <Link href={WORKSPACE[user.role].href} className={styles.signBlock}>
+          <Link href={WORKSPACE[user.role].href} className={`${styles.signBlock} ${styles.hideSmall}`}>
             {t(lang, "Dashboard")}
           </Link>
         )}
@@ -123,9 +124,8 @@ export function SiteFooter() {
       <div className={styles.wrap}>
         <div className={styles.footerGrid}>
           <div className={styles.footerBrand}>
-            <span className={styles.logo} aria-hidden="true">
-              iza
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className={styles.footerLogo} src="/izza-logo.png" alt="izza, bringing it closer" width={326} height={231} />
             <p>Delivered by your neighbours.</p>
           </div>
           <div>
@@ -138,7 +138,7 @@ export function SiteFooter() {
                 <Link href="/track">Where&apos;s my parcel?</Link>
               </li>
               <li>
-                <Link href="/points">Find an Iza point</Link>
+                <Link href="/points">Find an Izza point</Link>
               </li>
             </ul>
           </div>
@@ -149,7 +149,7 @@ export function SiteFooter() {
                 <Link href="/signup?as=runner">Become a runner</Link>
               </li>
               <li>
-                <Link href="/signup?as=point">Host an Iza point</Link>
+                <Link href="/signup?as=point">Host an Izza point</Link>
               </li>
               <li>
                 <Link href="/signup?as=business">Open a business account</Link>
@@ -160,7 +160,7 @@ export function SiteFooter() {
             <h3>About</h3>
             <ul>
               <li>
-                <Link href="/why">Why Iza</Link>
+                <Link href="/why">Why Izza</Link>
               </li>
               <li>
                 <Link href="/why#operate">How we operate</Link>
@@ -172,7 +172,7 @@ export function SiteFooter() {
             </ul>
           </div>
         </div>
-        <p className={styles.legal}>&copy; 2026 The Iza Collective, UCT MakersForge</p>
+        <p className={styles.legal}>&copy; 2026 The Izza Collective, UCT MakersForge</p>
       </div>
     </footer>
   );
