@@ -1471,3 +1471,13 @@ html {
     padding: 0 14px;
   }
 }
+
+.payRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+}
+.payRow strong {
+  white-space: nowrap;
+}

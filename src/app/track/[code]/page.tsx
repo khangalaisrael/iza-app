@@ -8,7 +8,7 @@ import MapView from "@/components/MapView";
 import Shell from "@/components/Shell";
 import { currentUser } from "@/lib/auth";
 import { etaMinutes } from "@/lib/geo";
-import { destinationOf, etaOf, runnerPositionOf, stepsOf, type Parcel } from "@/lib/parcels";
+import { FEE_DOOR_EXTRA, FEE_POINT, destinationOf, etaOf, runnerPositionOf, stepsOf, type Parcel } from "@/lib/parcels";
 import { getPointById, type IzaPoint } from "@/lib/pointStore";
 import { getParcel, hasPhoto, listEvents } from "@/lib/store";
 import type { User } from "@/lib/users";
@@ -106,6 +106,23 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
           <p className="muted" style={{ margin: 0 }}>
             Tell the runner this code at your door. Don&apos;t share it before they arrive.
           </p>
+        </section>
+      )}
+
+      {full && (
+        <section className="card stack" aria-label="Payment" style={{ gap: 8 }}>
+          <h2>Payment</h2>
+          <div className="payRow">
+            <span>Sender&apos;s fee to the Iza point (R{FEE_POINT})</span>
+            <strong>{parcel.paidAt ? "Paid" : "Not paid yet"}</strong>
+          </div>
+          {parcel.choice === "door" && (
+            <div className="payRow">
+              <span>Door delivery extra (R{FEE_DOOR_EXTRA}), paid in cash to the runner</span>
+              <strong>{parcel.doorPaidAt ? "Paid" : "Pay at your door"}</strong>
+            </div>
+          )}
+          {parcel.choice === "point" && <p className="muted" style={{ margin: 0 }}>Collecting at the Iza point costs nothing extra.</p>}
         </section>
       )}
 

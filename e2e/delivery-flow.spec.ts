@@ -156,6 +156,13 @@ test("the sender's R12 is recorded at the hub, and the customer's R8 only when t
   await card.getByRole("button", { name: "Cash received" }).click();
   await expect(card.getByText("Sender paid R12")).toBeVisible();
 
+  // The sender sees it as paid on the tracking page; a stranger sees no payment details at all.
+  await business.goto(`/track/${code}`);
+  await expect(business.locator(".payRow", { hasText: "Sender's fee" })).toContainText("Paid");
+  await expect(business.locator(".payRow", { hasText: "Door delivery extra" })).toContainText("Pay at your door");
+  await customer.goto(`/track/${code}`);
+  await expect(customer.getByRole("heading", { name: "Payment" })).toHaveCount(0);
+
   // The door customer pays the R8 extra to the runner on the trip.
   await runner.goto("/runner");
   await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this delivery" }).click();
@@ -163,6 +170,8 @@ test("the sender's R12 is recorded at the hub, and the customer's R8 only when t
   await runner.getByRole("button", { name: "I'm on my way to the customer" }).click();
   await runner.getByRole("button", { name: "Customer paid R8 cash" }).click();
   await expect(runner.getByText("Door fee R8 received.")).toBeVisible();
+  await business.reload();
+  await expect(business.locator(".payRow", { hasText: "Door delivery extra" })).toContainText("Paid");
 
   // The runner photographs the parcel at the door. Only people on the parcel can see the photo.
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
