@@ -26,6 +26,7 @@ export default function NavStrip({ items }: { items: NavItem[] }) {
 
   return (
     <nav ref={root} className={styles.navStrip} aria-label="Menu">
+      <div className={styles.navScroll}>
       {items.map((item) =>
         item.children ? (
           <details key={item.label} name="strip" className={styles.stripGroup}>
@@ -49,6 +50,7 @@ export default function NavStrip({ items }: { items: NavItem[] }) {
           </Link>
         ),
       )}
+      </div>
     </nav>
   );
 }

@@ -1206,13 +1206,21 @@
 /* The header's second row on phones and tablets: tabs along the bar, each with a dropdown. */
 .navStrip {
   display: none;
+  position: relative;
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+}
+.navScroll {
+  display: flex;
+  box-sizing: border-box;
+  height: 54px;
   align-items: stretch;
   gap: 6px;
   padding: 0 10px 10px;
   overflow-x: auto;
   scrollbar-width: none;
 }
-.navStrip::-webkit-scrollbar {
+.navScroll::-webkit-scrollbar {
   display: none;
 }
 .stripGroup {
@@ -1300,6 +1308,17 @@
 
 @media (max-width: 1080px) {
   .navStrip {
-    display: flex;
+    display: block;
+  }
+  /* Only the logo bar stays pinned while you scroll. The tab row is part of the page and scrolls away. */
+  .nav {
+    display: contents;
+  }
+  .navBar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: var(--white);
+    border-bottom: 1px solid var(--line);
   }
 }

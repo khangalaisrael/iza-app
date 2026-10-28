@@ -123,3 +123,13 @@ test("a customer sees the parcels addressed to their number, and nobody else's",
   await expect(customer.getByText("IZA-4821")).toBeVisible();
   await expect(customer.getByText("IZA-4830")).toHaveCount(0); // for someone else
 });
+
+test("on a phone only the logo bar stays pinned when you scroll, the tab row scrolls away", async ({ page }) => {
+  await page.goto("/");
+  const tabs = page.getByRole("navigation", { name: "Menu" });
+  await expect(tabs).toBeInViewport();
+  await page.evaluate(() => window.scrollTo(0, 900));
+  await page.waitForTimeout(300);
+  await expect(tabs).not.toBeInViewport();
+  await expect(page.getByRole("link", { name: "Izza home" })).toBeInViewport();
+});
