@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import CodeForm from "@/components/CodeForm";
 import PointsExplorer from "@/components/PointsExplorer";
 import Shell from "@/components/Shell";
 import { currentUser } from "@/lib/auth";
@@ -13,8 +14,11 @@ export const metadata = { title: "Collect nearby · Izza" };
 export default function CollectPage() {
   return (
     <Shell title="Collect" subtitle="Find a shop near you">
-      <h1>Collect nearby</h1>
-      <p className="lead">An Izza point is a shop near you where your parcel waits for you.</p>
+      <h1>Collect your parcel</h1>
+      <p className="lead">Type your code to see where your parcel is and how to collect it.</p>
+      <CodeForm cta="Find my parcel" />
+      <h2 className="section-title">Or find an Izza point near you</h2>
+      <p className="muted" style={{ margin: 0 }}>An Izza point is a shop near you where your parcel waits for you.</p>
       <Suspense fallback={null}>
         <ReadyForYou />
       </Suspense>

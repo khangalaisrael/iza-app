@@ -306,3 +306,50 @@ test("the privacy notice is linked from the footer and the sign-up form", async 
   await page.goto("/");
   await expect(page.getByRole("contentinfo").getByRole("link", { name: "Privacy notice" })).toBeVisible();
 });
+
+test("someone who forgot their password asks on the sign-in page, the team sends the link, and it works", async ({ page, as, browser, baseURL }) => {
+  const id = `lost-${Date.now()}@iza.test`;
+  await signUp(page, { role: "I'm getting a parcel", name: "Lost Pass", id, password: "the-old-password" });
+  await page.getByRole("button", { name: "Create my account" }).click();
+  await expect(page).toHaveURL(/\/$/);
+
+  const person = await browser.newPage({ baseURL });
+  await person.goto("/signin");
+  await person.getByRole("link", { name: "Forgot your password?" }).click();
+  await expect(person).toHaveURL(/\/forgot$/);
+
+  // The answer is the same for a number that has no account, so it cannot be used to find who has one.
+  await person.getByLabel("Phone number or email").fill("nobody-here@iza.test");
+  await person.getByRole("button", { name: "Ask for a reset link" }).click();
+  await expect(person.getByRole("heading", { name: "Request sent" })).toBeVisible();
+
+  await person.goto("/forgot");
+  await person.getByLabel("Phone number or email").fill(id);
+  await person.getByRole("button", { name: "Ask for a reset link" }).click();
+  await expect(person.getByRole("heading", { name: "Request sent" })).toBeVisible();
+
+  // The team sees only the real account on their list, and makes the link in one tap.
+  const team = await (await as("admin")).newPage();
+  await team.goto("/ops");
+  const row = team.locator("div.stack", { hasText: id }).last();
+  await expect(team.getByText("nobody-here@iza.test")).toHaveCount(0);
+  await row.getByRole("button", { name: "Make reset link" }).click();
+  const link = await team.getByLabel("Reset link for Lost Pass").inputValue();
+
+  await person.goto(new URL(link).pathname);
+  await person.getByLabel("New password").fill("the-new-password");
+  await person.getByLabel("Type it again").fill("the-new-password");
+  await person.getByRole("button", { name: "Save my new password" }).click();
+  await expect(person.getByLabel(/Account menu/)).toBeVisible();
+
+  // Making the link took the person off the waiting list.
+  await team.reload();
+  await expect(team.getByText(id)).toHaveCount(0);
+});
+
+test("Collect has a place to type your code", async ({ page }) => {
+  await page.goto("/collect");
+  await page.getByLabel("Parcel code").fill("iza-4821");
+  await page.getByRole("button", { name: "Find my parcel" }).click();
+  await expect(page).toHaveURL(/\/track\/IZA-4821$/);
+});

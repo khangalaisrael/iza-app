@@ -43,3 +43,27 @@ export async function setPassword(userId: string, passwordHash: string): Promise
   await d.query("UPDATE users SET password_hash = $1 WHERE id = $2", [passwordHash, userId]);
   await d.query("DELETE FROM sessions WHERE user_id = $1", [userId]);
 }
+
+// Someone says they forgot their password. One open request per person, and the newest time wins.
+export async function addResetRequest(userId: string): Promise<void> {
+  await (
+    await db()
+  ).query(
+    'INSERT INTO reset_requests (user_id, at) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET at = EXCLUDED.at',
+    [userId, Date.now()],
+  );
+}
+
+export type ResetRequest = { userId: string; name: string; identifier: string; role: string; at: number };
+
+export async function listResetRequests(): Promise<ResetRequest[]> {
+  return (
+    await db()
+  ).query<ResetRequest>(
+    'SELECT u.id AS "userId", u.name, u.identifier, u.role, r.at FROM reset_requests r JOIN users u ON u.id = r.user_id ORDER BY r.at DESC',
+  );
+}
+
+export async function clearResetRequest(userId: string): Promise<void> {
+  await (await db()).query('DELETE FROM reset_requests WHERE user_id = $1', [userId]);
+}

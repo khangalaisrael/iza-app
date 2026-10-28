@@ -119,6 +119,11 @@ const SCHEMA = [
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     expires_at BIGINT NOT NULL
   )`,
+  // Someone who asked for a new password. The team sees the list and sends each one a link.
+  `CREATE TABLE IF NOT EXISTS reset_requests (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    at BIGINT NOT NULL
+  )`,
   // A photo of the parcel at the door, taken by the runner as proof of delivery.
   `CREATE TABLE IF NOT EXISTS parcel_photos (
     code TEXT PRIMARY KEY REFERENCES parcels(code) ON DELETE CASCADE,

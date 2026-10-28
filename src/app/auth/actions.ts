@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { endSession, requireUser, safeNext, startSession } from "@/lib/auth";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "@/lib/password";
 import { landingFor } from "@/lib/roles";
-import { consumeReset, createReset, setPassword } from "@/lib/reset";
+import { addResetRequest, clearResetRequest, consumeReset, createReset, setPassword } from "@/lib/reset";
 import { POINT_KINDS, createPoint, setPointStatusForOwner } from "@/lib/pointStore";
 import {
   clearFailures,
@@ -158,8 +158,23 @@ export async function issueResetAction(_prev: AuthState, form: FormData): Promis
   const user = await findUserByIdentifier(identifier);
   if (!user || user.status === "disabled") return { error: "No active account with that phone number or email.", values };
   const token = await createReset(user.id);
+  await clearResetRequest(user.id);
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://izza-app.vercel.app";
   return { link: `${site}/reset/${token}`, phone: identifier.includes("@") ? undefined : identifier, values };
+}
+
+// Anyone can say they forgot their password. The answer is always the same, so this cannot be used to find out who has an
+// account. Only a real, active account gets a request on the team's list, and the team sends the link themselves.
+export async function requestResetAction(_prev: AuthState, form: FormData): Promise<AuthState> {
+  const raw = String(form.get("identifier") ?? "");
+  const identifier = normalizeIdentifier(raw);
+  if (!identifier) return { error: "Enter the phone number or email you signed up with.", values: { identifier: raw } };
+  if (!(await tooManyFailures("reset:" + identifier))) {
+    await recordFailure("reset:" + identifier); // reuses the sign-in counter so one number cannot be asked about again and again
+    const user = await findUserByIdentifier(identifier);
+    if (user && user.status !== "disabled") await addResetRequest(user.id);
+  }
+  return { link: "sent", phone: identifier, values: { identifier: raw } };
 }
 
 // Someone opens the link they were given and chooses a new password. The link works once.

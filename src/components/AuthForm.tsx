@@ -142,7 +142,9 @@ export default function AuthForm({
 
       {!signup && (
         <p className="muted center" style={{ margin: 0 }}>
-          Forgot your password? Message the Izza team on WhatsApp and we will send you a link to choose a new one.
+          <Link href="/forgot" style={{ color: "var(--primary)", fontWeight: 700 }}>
+            Forgot your password?
+          </Link>
         </p>
       )}
       {signup && (

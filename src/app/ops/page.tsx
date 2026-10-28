@@ -7,6 +7,8 @@ import AssignRunner from "@/components/AssignRunner";
 import AutoRefresh from "@/components/AutoRefresh";
 import PayoutButton from "@/components/PayoutButton";
 import ResetLinkForm from "@/components/ResetLinkForm";
+import ResetRequestRow from "@/components/ResetRequestRow";
+import { listResetRequests } from "@/lib/reset";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
 import { FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, needsCollection, statusOf, type Parcel } from "@/lib/parcels";
@@ -37,7 +39,7 @@ const DAY = 24 * 60 * 60 * 1000;
 async function Board() {
   await connection();
   const now = Date.now();
-  const [all, runners, pending, pendingPoints, problems, trips, feed] = await Promise.all([
+  const [all, runners, pending, pendingPoints, problems, trips, feed, resetRequests] = await Promise.all([
     listParcels(),
     listActiveRunners(),
     listPendingUsers(),
@@ -45,6 +47,7 @@ async function Board() {
     recentEvents(50, ["problem", "returned"], now - RULES.recentProblemMs),
     recentEvents(500, ["picked_from_point", "delivered"], now - 7 * DAY),
     recentEvents(12),
+    listResetRequests(),
   ]);
 
   const live = all.filter((p) => p.stage < LAST_STAGE);
@@ -269,8 +272,12 @@ async function Board() {
           </section>
 
           <section className="card stack" style={{ gap: 10 }} aria-labelledby="reset">
-            <h2 id="reset">Forgot a password?</h2>
-            <p className="muted" style={{ margin: 0 }}>Make a one-time link and send it to the person yourself. Check it really is them first.</p>
+            <h2 id="reset">Forgot a password? {resetRequests.length > 0 && <span className="chip chip-honey">{resetRequests.length}</span>}</h2>
+            {resetRequests.map((q) => (
+              <ResetRequestRow key={q.userId} name={q.name} identifier={q.identifier} role={roleLabel[q.role as keyof typeof roleLabel] ?? q.role} ago={ageText(now - q.at)} />
+            ))}
+            {resetRequests.length === 0 && <p className="muted" style={{ margin: 0 }}>Nobody has asked yet.</p>}
+            <p className="muted" style={{ margin: 0 }}>Or make a link yourself for someone who messaged you. Check it really is them first.</p>
             <ResetLinkForm />
           </section>
 
