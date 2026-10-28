@@ -160,12 +160,12 @@ test("a runner's screens have no Send tab, and a business has one", async ({ as 
   await runner.goto("/track/IZA-4821");
   const bar = await topMenu(runner);
   await expect(bar.getByRole("link", { name: "My jobs" })).toBeVisible();
-  await expect(bar.getByRole("link", { name: "Send" })).toHaveCount(0);
-  await expect(bar.getByRole("link", { name: "Collect" })).toHaveCount(0);
+  await expect(bar.getByText("Send", { exact: true })).toHaveCount(0);
+  await expect(bar.getByText("Collect", { exact: true })).toHaveCount(0);
 
   const business = await (await as("business")).newPage();
   await business.goto("/track/IZA-4821");
-  await expect((await topMenu(business)).getByRole("link", { name: "Send", exact: true })).toBeVisible();
+  await expect((await topMenu(business)).getByText("Send", { exact: true })).toBeVisible();
 });
 
 test("people can only open the screens for their own role", async ({ as }) => {

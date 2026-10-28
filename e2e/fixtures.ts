@@ -40,12 +40,10 @@ export const test = base.extend<Fixtures>({
 
 export { expect };
 
-// The top menu: a row of links on a computer, behind a Menu button on a phone. Returns whichever one is showing.
+// The top menu: a row of links on a computer, a row of tabs under the logo on a phone. Returns whichever one is showing.
+// Tabs that open a dropdown are buttons, not links, so tests should look items up by their text.
 export async function topMenu(page: import("@playwright/test").Page) {
-  const button = page.locator("summary", { hasText: /^Menu$/ });
-  if (await button.isVisible()) {
-    await button.click();
-    return page.getByRole("navigation", { name: "Menu" });
-  }
+  const strip = page.getByRole("navigation", { name: "Menu" });
+  if (await strip.isVisible()) return strip;
   return page.getByRole("navigation", { name: "Main" });
 }

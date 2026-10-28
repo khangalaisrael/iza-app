@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { AccountMenu } from "./AccountButton";
+import NavStrip from "./NavStrip";
 import WhatsAppButton from "./WhatsAppButton";
 import { setLangAction } from "@/app/lang/actions";
 import { currentUser } from "@/lib/auth";
@@ -37,30 +38,13 @@ function Bar({ user, lang = "en" }: { user: User | null; lang?: Lang }) {
   const isWorker = user && user.role !== "customer" && user.status === "active";
 
   return (
+    <>
     <div className={styles.navBar}>
       <Link href="/" className={styles.logo} aria-label="Izza home">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/izza-mark.png" alt="izza" width={326} height={188} />
       </Link>
 
-      <details className={styles.mobileMenu}>
-        <summary>{t(lang, "Menu")}</summary>
-        <nav className={styles.mobileLinks} aria-label="Menu">
-          {items.map((item) => (
-            <div key={item.label} className={styles.mobileGroup}>
-              <Link href={item.href}>{item.label}</Link>
-              {item.children?.map((c) => (
-                <Link key={c.href + c.label} href={c.href} className={styles.mobileChild}>
-                  {c.label}
-                </Link>
-              ))}
-            </div>
-          ))}
-          {find && <Link href="/points">{t(lang, "Find an Izza point")}</Link>}
-          {track && <Link href="/track">{t(lang, "Track a parcel")}</Link>}
-          {!user && <Link href="/signin">{t(lang, "Sign in")}</Link>}
-        </nav>
-      </details>
 
       <nav className={styles.links} aria-label="Main">
         {items.map((item) => (
@@ -115,6 +99,8 @@ function Bar({ user, lang = "en" }: { user: User | null; lang?: Lang }) {
         )}
       </div>
     </div>
+    <NavStrip items={items} />
+    </>
   );
 }
 

@@ -129,7 +129,7 @@ test("the home screen is for customers, and everyone who works is taken to their
   const customer = await (await as("customer")).newPage();
   await customer.goto("/");
   await expect(customer.getByRole("link", { name: /Earn with Izza/ })).toBeVisible();
-  await expect((await topMenu(customer)).getByRole("link", { name: "For my business" })).toHaveCount(0);
+  await expect((await topMenu(customer)).getByText("For my business", { exact: true })).toHaveCount(0);
 
   const lands: [Parameters<typeof as>[0], RegExp][] = [
     ["runner", /\/runner$/],

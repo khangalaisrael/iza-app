@@ -60,12 +60,20 @@ test("the website has the same menu on every page, like the design", async ({ br
   await ctx.close();
 });
 
-test("on a phone the website menu opens from a Menu button", async ({ page }) => {
+test("on a phone the header has tabs, and each one opens a dropdown", async ({ page }) => {
   await page.goto("/join");
   const menu = await topMenu(page);
   for (const name of ["Send", "Collect", "For my business", "Why Izza"]) {
-    await expect(menu.getByRole("link", { name, exact: true })).toBeVisible();
+    await expect(menu.getByText(name, { exact: true })).toBeVisible();
   }
+  // Opening one shows its links; opening another closes the first; tapping elsewhere closes it.
+  await menu.getByText("Send", { exact: true }).click();
+  await expect(page.getByRole("link", { name: "How sending works" })).toBeVisible();
+  await menu.getByText("Collect", { exact: true }).click();
+  await expect(page.getByRole("link", { name: "Find an Izza point" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "How sending works" })).toBeHidden();
+  await page.mouse.click(8, 880);
+  await expect(page.getByRole("link", { name: "Collect with my code" })).toBeHidden();
 });
 
 test("the website opens with a heading and a way to send and track", async ({ page }) => {
