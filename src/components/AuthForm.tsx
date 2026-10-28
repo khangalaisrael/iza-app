@@ -142,7 +142,7 @@ export default function AuthForm({
 
       {!signup && (
         <p className="muted center" style={{ margin: 0 }}>
-          <Link href="/forgot" style={{ color: "var(--primary)", fontWeight: 700 }}>
+          <Link href="/forgot" className="tapLink" style={{ color: "var(--primary)", fontWeight: 700 }}>
             Forgot your password?
           </Link>
         </p>
@@ -150,7 +150,7 @@ export default function AuthForm({
       {signup && (
         <p className="muted center" style={{ margin: 0 }}>
           By joining you agree to how we use your details in our{" "}
-          <Link href="/privacy" style={{ color: "var(--primary)", fontWeight: 700 }}>
+          <Link href="/privacy" className="tapLink" style={{ color: "var(--primary)", fontWeight: 700 }}>
             privacy notice
           </Link>
           .
@@ -161,6 +161,7 @@ export default function AuthForm({
         {signup ? "Already have an account? " : "New to Izza? "}
         <Link
           href={`${signup ? "/signin" : "/signup"}?next=${encodeURIComponent(next)}`}
+          className="tapLink"
           style={{ color: "var(--primary)", fontWeight: 700 }}
         >
           {signup ? "Sign in" : "Create an account"}

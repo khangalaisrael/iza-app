@@ -42,7 +42,7 @@ export function AccountMenu({ user }: { user: User }) {
           </Link>
         )}
         <form action={signOutAction}>
-          <button className="btn btn-block" type="submit" style={{ minHeight: 40 }}>
+          <button className="btn btn-block" type="submit" style={{ minHeight: 44 }}>
             Sign out
           </button>
         </form>

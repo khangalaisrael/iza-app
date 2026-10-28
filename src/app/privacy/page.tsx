@@ -8,8 +8,9 @@ export const metadata = {
 // Written to match what the app actually does. If a feature changes what is collected, change this page too.
 export default function PrivacyPage() {
   return (
-    <Shell title="Privacy notice" subtitle="How we look after your details">
+    <Shell title="Privacy" subtitle="How we look after your details">
       <article className="stack" style={{ gap: 14 }}>
+        <h1>Privacy notice</h1>
         <p className="lead">
           Izza is run by The Izza Collective (UCT MakersForge), Rondebosch, Cape Town. This is what we keep about you and why. We follow South
           Africa&apos;s Protection of Personal Information Act (POPIA).

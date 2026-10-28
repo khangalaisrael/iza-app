@@ -1506,3 +1506,30 @@ html {
   text-decoration: none;
   white-space: nowrap;
 }
+
+/* English / isiXhosa buttons, at the foot of the site and of a parcel page. */
+.langLinks {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.langLinks form {
+  margin: 0;
+}
+.langBtn {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--tint);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* A small inline link with a full-size place to tap. The negative margin keeps the text where it was. */
+.tapLink {
+  display: inline-block;
+  padding: 12px 6px;
+  margin: -12px -6px;
+}

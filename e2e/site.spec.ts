@@ -139,3 +139,30 @@ test("the header is one row: the logo, the tabs and Sign in share a single bar, 
   await expect(tabs).toBeInViewport();
   await expect(logo).toBeInViewport();
 });
+
+test("a page that does not exist has a proper 404 with a way back", async ({ page }) => {
+  const res = await page.goto("/this-page-is-not-here");
+  expect(res!.status()).toBe(404);
+  await expect(page.getByRole("heading", { name: "We couldn't find that page" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Track a parcel" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Izza home" })).toBeVisible();
+});
+
+test("English and isiXhosa can be switched at the foot of the track page", async ({ page }) => {
+  await page.goto("/track");
+  await page.getByRole("button", { name: "isiXhosa" }).click();
+  await expect(page.getByRole("heading", { name: "Ikuphi iparcel yam?" })).toBeVisible();
+  await page.getByRole("button", { name: "English" }).click();
+  await expect(page.getByRole("heading", { name: "Where's my parcel?" })).toBeVisible();
+});
+
+test("the privacy page and the staff pages each have one main heading", async ({ page, as }) => {
+  await page.goto("/privacy");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+  const runner = await (await as("runner")).newPage();
+  await runner.goto("/runner");
+  await expect(runner.getByRole("heading", { level: 1 })).toHaveCount(1);
+  const team = await (await as("admin")).newPage();
+  await team.goto("/ops");
+  await expect(team.getByRole("heading", { level: 1 })).toHaveCount(1);
+});

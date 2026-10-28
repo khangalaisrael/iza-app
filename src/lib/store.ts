@@ -120,6 +120,18 @@ export async function listParcels(): Promise<Parcel[]> {
   return rows.map(fromRow);
 }
 
+// When a runner is switched off, the jobs they had not started go back to the open list so someone else can take them.
+// A parcel they are already carrying stays theirs, for the team to sort out.
+export async function releaseRunnerJobs(runnerId: string): Promise<number> {
+  const d = await db();
+  const rows = await d.query<{ code: string }>(
+    "UPDATE parcels SET runner_id = NULL, runner = 'Not assigned yet', updated_at = $2 WHERE runner_id = $1 AND stage IN (0, 2) AND cancelled_at IS NULL RETURNING code",
+    [runnerId, Date.now()],
+  );
+  for (const r of rows) await addEvent(r.code, "released", "The runner can't do it, so we are finding another one.", null);
+  return rows.length;
+}
+
 // A business sees what it sent.
 export async function listParcelsFor(ownerId: string): Promise<Parcel[]> {
   const rows = await (

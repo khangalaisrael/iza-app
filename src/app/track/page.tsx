@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import CodeForm from "@/components/CodeForm";
+import LanguageLinks from "@/components/LanguageLinks";
 import Shell from "@/components/Shell";
 import { currentUser } from "@/lib/auth";
 import { t, type Lang } from "@/lib/i18n";
@@ -32,6 +33,7 @@ async function Content() {
 
       <h2 className="section-title">{t(lang, "Your parcels")}</h2>
       <ParcelList lang={lang} />
+      <LanguageLinks />
     </>
   );
 }

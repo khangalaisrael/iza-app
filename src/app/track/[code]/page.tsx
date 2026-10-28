@@ -5,6 +5,7 @@ import AutoRefresh from "@/components/AutoRefresh";
 import CancelButton from "@/components/CancelButton";
 import ChooseDelivery from "@/components/ChooseDelivery";
 import EventFeed from "@/components/EventFeed";
+import LanguageLinks from "@/components/LanguageLinks";
 import MapView from "@/components/MapView";
 import Shell from "@/components/Shell";
 import { currentUser } from "@/lib/auth";
@@ -218,6 +219,7 @@ async function ParcelDetails({
       </section>
       {isSender && !cancelled && found.stage === 0 && <CancelButton code={parcel.code} />}
       <EventFeed events={events} title={t(lang, "Updates")} />
+      <LanguageLinks />
     </>
   );
 }

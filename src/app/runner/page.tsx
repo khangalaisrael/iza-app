@@ -74,6 +74,7 @@ async function Board({ user }: { user: User }) {
   return (
     <>
       <AutoRefresh />
+      <h1 className="visually-hidden">My jobs</h1>
       <div className="portalGrid">
         <div className="stack">
           <div className="statRow">

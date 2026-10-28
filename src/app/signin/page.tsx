@@ -7,7 +7,7 @@ export const metadata = { title: "Sign in · Izza" };
 
 export default function SignInPage({ searchParams }: PageProps<"/signin">) {
   return (
-    <Shell title="Sign in" subtitle="Welcome back">
+    <Shell title="Sign in" subtitle="Use your phone number or email">
       <Suspense fallback={null}>
         <Form searchParams={searchParams} />
       </Suspense>

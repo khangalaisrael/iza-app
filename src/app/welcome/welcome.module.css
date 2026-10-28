@@ -551,7 +551,7 @@
 .footerGrid a,
 .footerGrid li {
   display: inline-block;
-  padding: 6px 0;
+  padding: 10px 0;
   color: #dcebe2;
 }
 .footerBrand p {

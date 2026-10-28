@@ -85,6 +85,12 @@ export async function listActiveRunners(): Promise<User[]> {
   return rows.map(toUser);
 }
 
+// Everyone except the team, for the team's People list.
+export async function listAllUsers(): Promise<User[]> {
+  const rows = await (await db()).query<UserRow>("SELECT * FROM users WHERE role <> 'admin' ORDER BY role, status, name LIMIT 300");
+  return rows.map(toUser);
+}
+
 export async function setUserStatus(id: string, status: Status): Promise<void> {
   await (await db()).query("UPDATE users SET status = $1 WHERE id = $2", [status, id]);
 }

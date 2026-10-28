@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { AccountMenu } from "./AccountButton";
+import LanguageLinks from "./LanguageLinks";
 import NavStrip from "./NavStrip";
 import WhatsAppButton from "./WhatsAppButton";
 import { currentUser } from "@/lib/auth";
@@ -108,6 +109,7 @@ export function SiteFooter() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className={styles.footerLogo} src="/izza-logo.png" alt="izza, bringing it closer" width={326} height={231} />
             <p>Delivered by your neighbours.</p>
+            <LanguageLinks />
           </div>
           <div>
             <h3>Parcels</h3>

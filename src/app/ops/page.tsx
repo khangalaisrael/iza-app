@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { approveUserAction } from "@/app/auth/actions";
+import { approveUserAction, setUserActiveAction } from "@/app/auth/actions";
 import AddPointForm from "@/components/AddPointForm";
 import AssignRunner from "@/components/AssignRunner";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -17,7 +17,7 @@ import { FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, awaitingAddress, doorReady, need
 import { listPendingPoints } from "@/lib/pointStore";
 import { RULES, ageText } from "@/lib/rules";
 import { listParcels, recentEvents, runnerEarnings } from "@/lib/store";
-import { listActiveRunners, listPendingUsers } from "@/lib/users";
+import { listActiveRunners, listAllUsers, listPendingUsers } from "@/lib/users";
 import { whatsappLink } from "@/lib/whatsapp";
 
 export const metadata = { title: "Team dashboard · Izza" };
@@ -41,7 +41,7 @@ const DAY = 24 * 60 * 60 * 1000;
 async function Board() {
   await connection();
   const now = Date.now();
-  const [all, runners, pending, pendingPoints, problems, trips, feed, resetRequests, alertTopic] = await Promise.all([
+  const [all, runners, pending, pendingPoints, problems, trips, feed, resetRequests, alertTopic, people] = await Promise.all([
     listParcels(),
     listActiveRunners(),
     listPendingUsers(),
@@ -51,8 +51,11 @@ async function Board() {
     recentEvents(12),
     listResetRequests(),
     teamTopic(),
+    listAllUsers(),
   ]);
 
+  // People waiting for approval already have their own list above, so they are left out here.
+  const everyone = people.filter((u) => u.status !== "pending");
   const live = all.filter((p) => p.stage < LAST_STAGE && !p.cancelledAt);
   const waitingForRunner = live.filter((p) => !p.runnerId && (needsCollection(p) || doorReady(p)));
   const atPoints = live.filter((p) => p.stage === 2);
@@ -132,6 +135,7 @@ async function Board() {
   return (
     <>
       <AutoRefresh seconds={5} />
+      <h1 className="visually-hidden">Team dashboard</h1>
       <div className="kpiGrid">
         {stats.map((s) => (
           <div key={s.label} className={s.hot ? "card kpi kpiHot" : "card kpi"}>
@@ -296,6 +300,35 @@ async function Board() {
             {resetRequests.length === 0 && <p className="muted" style={{ margin: 0 }}>Nobody has asked yet.</p>}
             <p className="muted" style={{ margin: 0 }}>Or make a link yourself for someone who messaged you. Check it really is them first.</p>
             <ResetLinkForm />
+          </section>
+
+          <section className="card stack" style={{ gap: 10 }} aria-labelledby="people">
+            <h2 id="people">People</h2>
+            <p className="muted" style={{ margin: 0 }}>Everyone with an account. Switching someone off signs them out and stops them signing in.</p>
+            <details>
+              <summary style={{ minHeight: 44, display: "flex", alignItems: "center", cursor: "pointer", fontWeight: 700 }}>Show all {everyone.length}</summary>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 10 }}>
+                {everyone.map((u) => (
+                  <li key={u.id} className="approveRow">
+                    <div>
+                      <strong>{u.name}</strong>
+                      <div className="muted">
+                        {roleLabel[u.role as keyof typeof roleLabel] ?? u.role} · {u.identifier} · {u.status === "disabled" ? "switched off" : "active"}
+                      </div>
+                    </div>
+                    {(
+                      <form action={setUserActiveAction}>
+                        <input type="hidden" name="id" value={u.id} />
+                        <button className="btn btn-soft" name="decision" value={u.status === "disabled" ? "enable" : "disable"} type="submit" style={{ minHeight: 44 }}>
+                          {u.status === "disabled" ? "Switch on" : "Switch off"}
+                        </button>
+                      </form>
+                    )}
+                  </li>
+                ))}
+                {everyone.length === 0 && <li className="muted">Nobody has signed up yet.</li>}
+              </ul>
+            </details>
           </section>
 
           <section className="card stack" style={{ gap: 10 }} aria-labelledby="add-point">

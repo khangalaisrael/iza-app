@@ -344,7 +344,7 @@ test("someone who forgot their password asks on the sign-in page, the team sends
 
   // Making the link took the person off the waiting list.
   await team.reload();
-  await expect(team.getByText(id)).toHaveCount(0);
+  await expect(team.locator("section", { hasText: "Forgot a password" }).getByText(id)).toHaveCount(0);
 });
 
 test("Collect has a place to type your code", async ({ page }) => {
@@ -396,4 +396,37 @@ test("the team page shows how to get alerts on a phone, with a private channel t
   const business = await (await as("business")).newPage();
   await business.goto("/ops");
   await expect(business.getByLabel("Alert channel name")).toHaveCount(0);
+});
+
+test("the team can switch a person off and on again", async ({ page, as, browser, baseURL }) => {
+  const id = `switch-${Date.now()}@iza.test`;
+  await signUp(page, { role: "I'm getting a parcel", name: "Switch Sam", id, password: "a-good-long-password" });
+  await page.getByRole("button", { name: "Create my account" }).click();
+  await expect(page).toHaveURL(/\/$/);
+
+  const team = await (await as("admin")).newPage();
+  await team.goto("/ops");
+  const openPeople = () => team.locator("details", { hasText: "Show all" }).evaluate((d) => ((d as HTMLDetailsElement).open = true));
+  await openPeople();
+  await team.locator("li", { hasText: id }).getByRole("button", { name: "Switch off" }).click();
+  await openPeople();
+  await expect(team.locator("li", { hasText: id })).toContainText("switched off");
+
+  // Their open session ends, and they cannot sign in.
+  await page.goto("/send");
+  await expect(page).toHaveURL(/\/signin/);
+  const person = await browser.newPage({ baseURL });
+  await signIn(person, id, "a-good-long-password");
+  await expect(person.locator("form [role=alert]")).toContainText("isn't right");
+
+  // Switched back on, they can.
+  await openPeople();
+  await team.locator("li", { hasText: id }).getByRole("button", { name: "Switch on" }).click();
+  await signIn(person, id, "a-good-long-password");
+  await expect(person.getByLabel(/Account menu/)).toBeVisible();
+
+  // The team cannot switch off the team.
+  const other = await (await as("business")).newPage();
+  await other.goto("/ops");
+  await expect(other.getByText(/^Show all/)).toHaveCount(0);
 });

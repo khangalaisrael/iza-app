@@ -5,6 +5,7 @@ import { endSession, requireUser, safeNext, startSession } from "@/lib/auth";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "@/lib/password";
 import { landingFor } from "@/lib/roles";
 import { notifyTeam, sendTeamPush } from "@/lib/notify";
+import { releaseRunnerJobs } from "@/lib/store";
 import { addResetRequest, clearResetRequest, consumeReset, createReset, setPassword } from "@/lib/reset";
 import { POINT_KINDS, createPoint, setPointStatusForOwner } from "@/lib/pointStore";
 import {
@@ -204,6 +205,21 @@ export async function resetPasswordAction(_prev: AuthState, form: FormData): Pro
   await startSession(userId);
   const user = (await findUserById(userId))!;
   redirect(user.status === "active" ? landingFor(user.role) : "/pending");
+}
+
+// The team switches a person off or back on. Someone switched off is signed out and cannot sign in, a runner's waiting jobs
+// go back to the open list, and an Izza point leaves the map until it is switched back on.
+export async function setUserActiveAction(form: FormData): Promise<void> {
+  const admin = await requireUser(["admin"], "/ops");
+  const id = String(form.get("id") ?? "");
+  const decision = String(form.get("decision") ?? "");
+  const target = id ? await findUserById(id) : undefined;
+  if (target && target.id !== admin.id && target.role !== "admin" && (decision === "disable" || decision === "enable")) {
+    await setUserStatus(id, decision === "disable" ? "disabled" : "active");
+    await setPointStatusForOwner(id, decision === "disable" ? "rejected" : "approved");
+    if (decision === "disable" && target.role === "runner") await releaseRunnerJobs(id);
+  }
+  redirect("/ops");
 }
 
 export async function approveUserAction(form: FormData): Promise<void> {

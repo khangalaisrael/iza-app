@@ -74,7 +74,7 @@ async function Board({ user }: { user: User }) {
 
       <div className="portalGrid">
         <div className="stack">
-          <h2>Someone at the counter?</h2>
+          <h2>Hand over a parcel</h2>
           <CollectForm />
           <ParcelList title="Ready to collect" parcels={ready} empty="Nothing waiting for collection." now={now} remind />
         </div>
