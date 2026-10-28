@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import { AccountMenu } from "./AccountButton";
 import NavStrip from "./NavStrip";
 import WhatsAppButton from "./WhatsAppButton";
-import { setLangAction } from "@/app/lang/actions";
 import { currentUser } from "@/lib/auth";
 import { t, type Lang } from "@/lib/i18n";
 import { getLang } from "@/lib/lang";
@@ -38,13 +37,13 @@ function Bar({ user, lang = "en" }: { user: User | null; lang?: Lang }) {
   const isWorker = user && user.role !== "customer" && user.status === "active";
 
   return (
-    <>
     <div className={styles.navBar}>
       <Link href="/" className={styles.logo} aria-label="Izza home">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/izza-mark.png" alt="izza" width={326} height={188} />
       </Link>
 
+      <NavStrip items={items} />
 
       <nav className={styles.links} aria-label="Main">
         {items.map((item) => (
@@ -71,14 +70,8 @@ function Bar({ user, lang = "en" }: { user: User | null; lang?: Lang }) {
             {t(lang, "Find an Izza point")}
           </Link>
         )}
-        <form action={setLangAction} className="langSwitch">
-          <input type="hidden" name="lang" value={lang === "xh" ? "en" : "xh"} />
-          <button type="submit" className="linkBtn" lang={lang === "xh" ? "en" : "xh"}>
-            {lang === "xh" ? "English" : "isiXhosa"}
-          </button>
-        </form>
         {track && (
-          <Link href="/track" className={`${styles.trackBlock} ${isWorker ? styles.hideSmall : ""}`}>
+          <Link href="/track" className={`${styles.trackBlock} ${styles.hideSmall}`}>
             {t(lang, "Track")}
           </Link>
         )}
@@ -99,8 +92,6 @@ function Bar({ user, lang = "en" }: { user: User | null; lang?: Lang }) {
         )}
       </div>
     </div>
-    <NavStrip items={items} />
-    </>
   );
 }
 

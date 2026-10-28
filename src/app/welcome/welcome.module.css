@@ -862,7 +862,7 @@
     padding-left: 10px;
   }
   .logo img {
-    height: 38px;
+    height: 44px;
   }
   .trackBlock,
   .signBlock {
@@ -1217,17 +1217,15 @@
 /* The header's second row on phones and tablets: tabs along the bar, each with a dropdown. */
 .navStrip {
   display: none;
-  position: relative;
-  background: var(--white);
-  border-bottom: 1px solid var(--line);
+  flex: 1;
+  min-width: 0;
+  align-self: center;
 }
 .navScroll {
   display: flex;
-  box-sizing: border-box;
-  height: 54px;
-  align-items: stretch;
+  align-items: center;
   gap: 6px;
-  padding: 0 10px 10px;
+  padding: 4px 2px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -1317,19 +1315,26 @@
   }
 }
 
+/* One bar at every width: on phones and tablets the tabs sit between the logo and Sign in, and scroll sideways if they do not fit. */
 @media (max-width: 1080px) {
   .navStrip {
     display: block;
   }
-  /* Only the logo bar stays pinned while you scroll. The tab row is part of the page and scrolls away. */
-  .nav {
-    display: contents;
+  /* The language button lives inside the tabs here, not beside Track. */
+  .navActions :global(.langSwitch) {
+    display: none;
   }
-  .navBar {
-    position: sticky;
-    top: 0;
-    z-index: 40;
-    background: var(--white);
-    border-bottom: 1px solid var(--line);
+}
+
+/* On a phone the tabs do not all fit, so the right edge fades to show there are more to scroll to. */
+@media (max-width: 560px) {
+  .navScroll {
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent);
+    mask-image: linear-gradient(to right, #000 85%, transparent);
+    padding-right: 24px;
+  }
+  .stripTab {
+    padding: 0 13px;
+    font-size: 12px;
   }
 }

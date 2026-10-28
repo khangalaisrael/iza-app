@@ -124,12 +124,18 @@ test("a customer sees the parcels addressed to their number, and nobody else's",
   await expect(customer.getByText("IZA-4830")).toHaveCount(0); // for someone else
 });
 
-test("on a phone only the logo bar stays pinned when you scroll, the tab row scrolls away", async ({ page }) => {
+test("the header is one row: the logo, the tabs and Sign in share a single bar, and it stays pinned", async ({ page }) => {
   await page.goto("/");
-  const tabs = page.getByRole("navigation", { name: "Menu" });
-  await expect(tabs).toBeInViewport();
+  const logo = page.getByRole("link", { name: "Izza home" });
+  const tabs = page.getByRole("navigation", { name: "Menu" }).getByText("Send", { exact: true });
+  const signIn = page.getByRole("link", { name: "Sign in" }).first();
+  const [a, b, c] = await Promise.all([logo.boundingBox(), tabs.boundingBox(), signIn.boundingBox()]);
+  // All three sit on the same line, inside a bar no taller than a normal header.
+  for (const box of [a, b, c]) expect(box!.y + box!.height).toBeLessThan(90);
+  expect(Math.abs((a!.y + a!.height / 2) - (b!.y + b!.height / 2))).toBeLessThan(30);
+
   await page.evaluate(() => window.scrollTo(0, 900));
   await page.waitForTimeout(300);
-  await expect(tabs).not.toBeInViewport();
-  await expect(page.getByRole("link", { name: "Izza home" })).toBeInViewport();
+  await expect(tabs).toBeInViewport();
+  await expect(logo).toBeInViewport();
 });
