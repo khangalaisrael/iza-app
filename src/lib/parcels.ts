@@ -17,6 +17,10 @@ export const FEE_POINT = 12;
 export const FEE_DOOR = 20;
 export const FEE_DOOR_EXTRA = FEE_DOOR - FEE_POINT;
 
+// What a runner earns: R5 for each collection they finish, and the customer's R8 door fee for each delivery.
+export const PAY_COLLECT = 5;
+export const PAY_DELIVERY = FEE_DOOR_EXTRA;
+
 export type Choice = "point" | "door";
 
 export type Step = {

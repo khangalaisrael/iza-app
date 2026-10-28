@@ -190,7 +190,7 @@ async function runnerAction(parcel: Parcel, user: User, action: string | undefin
     if (parcel.stage !== 1) return deny("You need to collect it first.", 409);
     // The collection job ends here. A door delivery, if the customer wants one, is a new job for anyone.
     await saveParcel({ ...parcel, stage: 2, runnerId: undefined });
-    await addEvent(code, "dropped", `Dropped at ${here}. Ready for you.`, user.name);
+    await addEvent(code, "dropped", `Dropped at ${here}. Ready for you.`, user.name, user.id);
     return ok();
   }
 
@@ -211,7 +211,7 @@ async function runnerAction(parcel: Parcel, user: User, action: string | undefin
       return deny("That code isn't right. Ask the customer to read their 4-digit code again.", 400);
     }
     await saveParcel({ ...parcel, stage: LAST_STAGE });
-    await addEvent(code, "delivered", "Delivered. Trip ended. Enkosi!", user.name);
+    await addEvent(code, "delivered", "Delivered. Trip ended. Enkosi!", user.name, user.id);
     return ok();
   }
   if (action === "return_to_point") {

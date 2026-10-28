@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { db } from "./db";
-import type { Choice, Dropoff, Parcel } from "./parcels";
+import { PAY_COLLECT, PAY_DELIVERY, type Choice, type Dropoff, type Parcel } from "./parcels";
 
 type Row = {
   code: string;
@@ -148,17 +148,32 @@ export async function newParcelCode(): Promise<string> {
 
 export type ParcelEvent = { id: string; at: number; kind: string; text: string; actor: string | null };
 
-export async function addEvent(code: string, kind: string, text: string, actor: string | null): Promise<void> {
+export async function addEvent(code: string, kind: string, text: string, actor: string | null, actorId?: string): Promise<void> {
   await (
     await db()
-  ).query("INSERT INTO parcel_events (id, code, at, kind, text, actor) VALUES ($1, $2, $3, $4, $5, $6)", [
+  ).query("INSERT INTO parcel_events (id, code, at, kind, text, actor, actor_id) VALUES ($1, $2, $3, $4, $5, $6, $7)", [
     randomUUID(),
     code,
     Date.now(),
     kind,
     text,
     actor,
+    actorId ?? null,
   ]);
+}
+
+// What a runner has earned: a flat fee for each collection they finished and for each door delivery.
+export async function runnerEarnings(runnerId: string): Promise<{ collections: number; deliveries: number; total: number }> {
+  const rows = await (
+    await db()
+  ).query<{ kind: string; n: number }>(
+    "SELECT kind, COUNT(*)::int AS n FROM parcel_events WHERE actor_id = $1 AND kind IN ('dropped','delivered') GROUP BY kind",
+    [runnerId],
+  );
+  const count = (kind: string) => rows.find((r) => r.kind === kind)?.n ?? 0;
+  const collections = count("dropped");
+  const deliveries = count("delivered");
+  return { collections, deliveries, total: collections * PAY_COLLECT + deliveries * PAY_DELIVERY };
 }
 
 // Newest first.

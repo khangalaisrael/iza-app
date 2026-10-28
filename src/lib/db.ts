@@ -102,6 +102,8 @@ const SCHEMA = [
     actor TEXT
   )`,
   `CREATE INDEX IF NOT EXISTS parcel_events_code_idx ON parcel_events (code, at)`,
+  // Runner earnings are counted from finished steps, so each event remembers who did it.
+  `ALTER TABLE parcel_events ADD COLUMN IF NOT EXISTS actor_id TEXT`,
 ];
 
 type G = typeof globalThis & { __izaDb?: Promise<Db> };

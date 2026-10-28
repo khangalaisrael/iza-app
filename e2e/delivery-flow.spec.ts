@@ -143,6 +143,11 @@ test("the sender's R12 is recorded at the hub, and the customer's R8 only when t
   const runner = await (await as("runner")).newPage();
   await collectAndDrop(runner, code);
 
+  // The runner's finished collection counts towards what they have earned (R5 each).
+  await runner.goto("/runner");
+  await expect(runner.locator(".stat", { hasText: "Earned" })).toContainText(/R\d+/);
+  await expect(runner.locator(".stat", { hasText: "Earned" })).not.toContainText("0 collected");
+
   // The hub records the business's R12. It cannot be recorded twice.
   const shop = await (await as("point")).newPage();
   await shop.goto("/point");

@@ -7,7 +7,7 @@ import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
 import { LAST_STAGE, needsCollection, type Parcel } from "@/lib/parcels";
 import { listApprovedPoints, type IzaPoint } from "@/lib/pointStore";
-import { listParcels } from "@/lib/store";
+import { listParcels, runnerEarnings } from "@/lib/store";
 import type { User } from "@/lib/users";
 
 export const metadata = { title: "My jobs · Iza" };
@@ -50,7 +50,7 @@ function nextStep(j: Job): string {
 }
 
 async function Board({ user }: { user: User }) {
-  const [all, points] = await Promise.all([listParcels(), listApprovedPoints()]);
+  const [all, points, earned] = await Promise.all([listParcels(), listApprovedPoints(), runnerEarnings(user.id)]);
   const byId = new Map<string, IzaPoint>(points.map((p) => [p.id, p]));
   const isTeam = user.role === "admin";
 
@@ -88,6 +88,13 @@ async function Board({ user }: { user: User }) {
             <div className="card stat">
               <span className="muted">Done</span>
               <strong>{done}</strong>
+            </div>
+            <div className="card stat">
+              <span className="muted">Earned</span>
+              <strong>R{earned.total}</strong>
+              <span className="muted">
+                {earned.collections} collected, {earned.deliveries} delivered
+              </span>
             </div>
           </div>
 
