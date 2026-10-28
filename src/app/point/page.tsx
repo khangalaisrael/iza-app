@@ -1,10 +1,14 @@
+import { connection } from "next/server";
 import { Suspense } from "react";
 import AutoRefresh from "@/components/AutoRefresh";
 import CollectForm from "@/components/CollectForm";
+import ReceiveButton from "@/components/ReceiveButton";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
 import { openNow } from "@/lib/geo";
 import { statusOf, type Parcel } from "@/lib/parcels";
+import { RULES, ageText } from "@/lib/rules";
+import { whatsappLink } from "@/lib/whatsapp";
 import { getPointByOwner } from "@/lib/pointStore";
 import { listParcels } from "@/lib/store";
 import type { User } from "@/lib/users";
@@ -24,13 +28,16 @@ export default function PointPage() {
 }
 
 async function Board({ user }: { user: User }) {
+  await connection();
+  const now = Date.now();
   const isTeam = user.role === "admin";
   const point = isTeam ? undefined : await getPointByOwner(user.id);
   const all = await listParcels();
 
   // A point sees only the parcels sent to its own shop. The team sees every point.
   const here = all.filter((p) => p.stage <= 2 && (isTeam || (point && p.pointId === point.id)));
-  const arriving = here.filter((p) => p.stage < 2);
+  const bringingIn = here.filter((p) => p.stage === 0 && p.dropoff === "self");
+  const arriving = here.filter((p) => p.stage < 2 && !(p.stage === 0 && p.dropoff === "self"));
   const ready = here.filter((p) => p.stage === 2 && p.choice !== "door");
   const forDoor = here.filter((p) => p.stage === 2 && p.choice === "door");
   const open = point ? openNow(point.hours) : null;
@@ -68,31 +75,64 @@ async function Board({ user }: { user: User }) {
         <div className="stack">
           <h2>Someone at the counter?</h2>
           <CollectForm />
-          <ParcelList title="Ready to collect" parcels={ready} empty="Nothing waiting for collection." />
+          <ParcelList title="Ready to collect" parcels={ready} empty="Nothing waiting for collection." now={now} remind />
         </div>
         <div className="stack">
-          <ParcelList title="Coming to you" parcels={arriving} empty="Nothing on its way here." />
-          <ParcelList title="Going out to a door" parcels={forDoor} empty="No door deliveries waiting for a runner." />
+          <ParcelList title="Being brought in" parcels={bringingIn} empty="Nobody is bringing a parcel in." now={now} receive />
+          <ParcelList title="Coming to you" parcels={arriving} empty="Nothing on its way here." now={now} />
+          <ParcelList title="Going out to a door" parcels={forDoor} empty="No door deliveries waiting for a runner." now={now} />
         </div>
       </div>
     </>
   );
 }
 
-function ParcelList({ title, parcels, empty }: { title: string; parcels: Parcel[]; empty: string }) {
+function ParcelList({
+  title,
+  parcels,
+  empty,
+  now,
+  receive = false,
+  remind = false,
+}: {
+  title: string;
+  parcels: Parcel[];
+  empty: string;
+  now: number;
+  receive?: boolean;
+  remind?: boolean;
+}) {
   return (
     <section className="stack" aria-label={title} style={{ gap: 10 }}>
       <h2>{title}</h2>
       {parcels.length === 0 && <p className="muted">{empty}</p>}
-      {parcels.map((p) => (
-        <div key={p.code} className="card nearby">
-          <div className="nearbyBody">
-            <strong>For {p.to}</strong>
-            <div className="mono muted">{p.code}</div>
+      {parcels.map((p) => {
+        const waited = now - (p.updatedAt ?? now);
+        const overdue = remind && waited > RULES.overdueAtPointMs;
+        return (
+          <div key={p.code} className="card stack" style={{ gap: 10 }}>
+            <div className="nearby">
+              <div className="nearbyBody">
+                <strong>For {p.to}</strong>
+                <div className="mono muted">{p.code}</div>
+                {remind && <div className={overdue ? "problem" : "muted"}>{overdue ? `Waiting ${ageText(waited)}. Please tell the team.` : `Waiting ${ageText(waited)}`}</div>}
+              </div>
+              <span className="chip chip-primary">{statusOf(p)}</span>
+            </div>
+            {receive && <ReceiveButton code={p.code} />}
+            {remind && p.recipientPhone && waited > RULES.remindAtPointMs && (
+              <a
+                className="btn btn-soft"
+                href={whatsappLink(p.recipientPhone, `Hi ${p.to}, your Iza parcel ${p.code} is waiting at ${p.point}. Please collect it with your code.`)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Remind {p.to} on WhatsApp
+              </a>
+            )}
           </div>
-          <span className="chip chip-primary">{statusOf(p)}</span>
-        </div>
-      ))}
+        );
+      })}
     </section>
   );
 }

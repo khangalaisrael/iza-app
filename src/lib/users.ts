@@ -80,6 +80,11 @@ export async function listPendingUsers(): Promise<User[]> {
   return rows.map(toUser);
 }
 
+export async function listActiveRunners(): Promise<User[]> {
+  const rows = await (await db()).query<UserRow>("SELECT * FROM users WHERE role = 'runner' AND status = 'active' ORDER BY name");
+  return rows.map(toUser);
+}
+
 export async function setUserStatus(id: string, status: Status): Promise<void> {
   await (await db()).query("UPDATE users SET status = $1 WHERE id = $2", [status, id]);
 }

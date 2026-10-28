@@ -12,7 +12,7 @@ export const metadata = { title: "Collect nearby · Iza" };
 
 export default function CollectPage() {
   return (
-    <Shell>
+    <Shell title="Collect" subtitle="Find a shop near you">
       <h1>Collect nearby</h1>
       <p className="lead">An Iza point is a shop near you where your parcel waits for you.</p>
       <Suspense fallback={null}>

@@ -51,7 +51,7 @@ test("the customer collects: the runner works the job, the shop hands it over", 
   const runner = await (await as("runner")).newPage();
   await runner.goto("/runner");
   const card = runner.locator("article", { hasText: code });
-  await expect(card.getByText("Collect from a business")).toBeVisible();
+  await expect(card.getByText("Collect from a sender")).toBeVisible();
   await card.getByRole("button", { name: "Accept this job" }).click();
   await expect(runner.getByRole("heading", { name: "Step 1: Go and collect it" })).toBeVisible();
   await runner.getByRole("button", { name: "I'm on my way" }).click();
@@ -104,7 +104,7 @@ test("door delivery: a second job, finished only with the customer's 4-digit cod
   await expect(card.getByText("Deliver to a door")).toBeVisible();
   await expect(card.getByText("Blue gate opposite the Engen")).toBeVisible();
   await card.getByRole("button", { name: "Accept this delivery" }).click();
-  await runner.getByRole("button", { name: "I have the parcel" }).click();
+  await runner.getByRole("button", { name: /I've collected it from Corner Shop/ }).click();
   await expect(runner.getByRole("heading", { name: "Step 2: Take it to the customer" })).toBeVisible();
   await expect(runner.getByRole("link", { name: "Message the customer" })).toHaveAttribute("href", /wa\.me\/27833334444/);
 
@@ -114,13 +114,18 @@ test("door delivery: a second job, finished only with the customer's 4-digit cod
   expect(pin).toMatch(/^\d{4}$/);
 
   const wrong = pin === "0000" ? "1111" : "0000";
+  // The trip goes: on the way, arrived, end trip. The code is only asked for at the end.
+  await runner.getByRole("button", { name: "I'm on my way to the customer" }).click();
+  await runner.getByRole("button", { name: "I've arrived at the customer" }).click();
+  await expect(runner.getByLabel("Ask the customer for their 4-digit code")).toBeVisible();
   await runner.getByLabel("Ask the customer for their 4-digit code").fill(wrong);
-  await runner.getByRole("button", { name: "Delivered" }).click();
+  await runner.getByRole("button", { name: "End trip" }).click();
   await expect(runner.locator("p.problem[role=alert]")).toContainText("That code isn't right");
 
   await runner.getByLabel("Ask the customer for their 4-digit code").fill(pin);
-  await runner.getByRole("button", { name: "Delivered" }).click();
+  await runner.getByRole("button", { name: "End trip" }).click();
   await expect(runner.getByRole("heading", { name: "Done. Enkosi!" })).toBeVisible();
+  await expect(runner.getByText(/Trip ended. This parcel/)).toBeVisible();
 
   await customer.reload();
   await expect(customer.getByRole("heading", { name: "Delivered. Enkosi!" })).toBeVisible();
@@ -138,7 +143,7 @@ test("a failed delivery goes back to the Iza point and the customer is told to c
   await collectAndDrop(runner, code);
   await runner.goto("/runner");
   await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this delivery" }).click();
-  await runner.getByRole("button", { name: "I have the parcel" }).click();
+  await runner.getByRole("button", { name: /I've collected it from Corner Shop/ }).click();
   await runner.getByRole("button", { name: "I couldn't deliver it" }).click();
   await runner.getByRole("button", { name: "Nobody was there" }).click();
   await expect(runner.getByRole("heading", { name: "Step 2: Take it to the customer" })).toHaveCount(0);
@@ -216,4 +221,58 @@ test("a stranger sees where a parcel is, but not who it is for or where it is go
   await expect(stranger.getByText("Private Person")).toHaveCount(0);
   await expect(stranger.getByText("0857778888")).toHaveCount(0);
   await stranger.close();
+});
+
+test("a customer sends from home: bringing it in needs no runner, the shop confirms, the team is told", async ({ as, browser, baseURL }) => {
+  const customer = await (await as("customer")).newPage();
+  await customer.goto("/send");
+  await customer.getByText("I will bring it to the point").click();
+  await expect(customer.getByLabel("Pick up from")).toHaveCount(0);
+  await customer.getByLabel("Their name").fill("Gogo Home");
+  await customer.getByLabel("Their WhatsApp number").fill("087 111 2222");
+  await customer.getByText("Corner Shop", { exact: true }).click();
+  await customer.getByRole("button", { name: "Book it" }).click();
+  await expect(customer.getByText("Enkosi! It's booked.")).toBeVisible();
+  await expect(customer.getByText(/The Iza team has been told/)).toBeVisible();
+  const code = (await customer.locator(".bigCode").innerText()).trim();
+
+  // No runner job exists for it.
+  const runner = await (await as("runner")).newPage();
+  await runner.goto("/runner");
+  await expect(runner.locator("article", { hasText: code })).toHaveCount(0);
+
+  // The team sees it at the top of their dashboard.
+  const team = await (await as("admin")).newPage();
+  await team.goto("/ops");
+  await expect(team.getByText("New from a customer").first()).toBeVisible();
+  await expect(team.getByRole("link", { name: code }).first()).toBeVisible();
+
+  // The shop confirms it arrived, and it is then ready to collect.
+  const shop = await (await as("point")).newPage();
+  await shop.goto("/point");
+  const card = shop.locator("div.card", { hasText: code });
+  await card.getByRole("button", { name: "I have received it" }).click();
+  await expect(shop.getByRole("heading", { name: "Ready to collect" })).toBeVisible();
+  await expect(shop.locator("div.card", { hasText: code }).getByRole("button", { name: "I have received it" })).toHaveCount(0);
+
+  const stranger = await browser.newPage({ baseURL });
+  await stranger.goto(`/track/${code}`);
+  await expect(stranger.getByText(/It's at Corner Shop/)).toBeVisible();
+});
+
+test("the team can give a waiting job to a runner, and only the team can", async ({ as }) => {
+  const business = await (await as("business")).newPage();
+  const code = await book(business, { from: "Assign Bakery", to: "Assign Me", phone: "088 222 3333" });
+
+  const team = await as("admin");
+  const page = await team.newPage();
+  await page.goto("/ops");
+  const row = page.locator("tr", { hasText: code });
+  await row.getByRole("combobox").selectOption({ label: "Sipho" });
+  await row.getByRole("button", { name: "Assign" }).click();
+  await expect(page.locator("tr", { hasText: code })).toContainText("Sipho");
+
+  const runner = await as("runner");
+  const res = await runner.request.patch(`/api/parcels/${code}`, { data: { action: "assign", runnerId: "x" } });
+  expect(res.status()).toBe(403);
 });

@@ -57,7 +57,7 @@ export function navFor(role: Role | null): NavItem[] {
     case "admin":
       return [{ label: "Team", href: "/ops" }, send, collect, why];
     case "customer":
-      return [collect, why];
+      return [send, collect, why];
     default:
       return [send, collect, business, why];
   }

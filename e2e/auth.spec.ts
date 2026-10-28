@@ -77,7 +77,7 @@ test("a new runner waits for approval, and the team can approve them", async ({ 
   await admin.goto("/ops");
   await expect(admin.getByText("Zola Runner")).toBeVisible();
   await admin.locator("div", { hasText: "Zola Runner" }).getByRole("button", { name: "Approve" }).last().click();
-  await expect(admin.getByText("Zola Runner")).toHaveCount(0);
+  await expect(admin.getByRole("region", { name: "Waiting for approval" }).getByText("Zola Runner")).toHaveCount(0);
 
   await page.goto("/runner");
   await expect(page.getByRole("heading", { name: "Jobs you can take" })).toBeVisible();
@@ -174,9 +174,9 @@ test("people can only open the screens for their own role", async ({ as }) => {
     await customer.goto(path);
     await expect(customer).toHaveURL(/\/$/);
   }
-  // A customer who opens the sending page is told it is for businesses, not bounced.
+  // A customer can send a parcel from home to the hub.
   await customer.goto("/send");
-  await expect(customer.getByRole("heading", { name: "Sending is for businesses" })).toBeVisible();
+  await expect(customer.getByRole("heading", { name: "Send a parcel from home" })).toBeVisible();
 
   // A runner who tries anywhere else is brought back to their jobs.
   const runner = await (await as("runner")).newPage();
@@ -199,8 +199,8 @@ test("the booking and status APIs refuse people who should not use them", async 
   expect((await request.post("/api/parcels", { data: booking })).status()).toBe(401);
   expect((await request.patch("/api/parcels/IZA-4830", { data: { action: "accept" } })).status()).toBe(401);
 
-  // Only businesses book.
-  for (const role of ["customer", "runner", "point"] as const) {
+  // Customers and businesses book. Runners and shops do not.
+  for (const role of ["runner", "point"] as const) {
     const ctx = await as(role);
     expect((await ctx.request.post("/api/parcels", { data: booking })).status(), role).toBe(403);
   }

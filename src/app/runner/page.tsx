@@ -5,7 +5,7 @@ import AutoRefresh from "@/components/AutoRefresh";
 import FindMeMap from "@/components/FindMeMap";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
-import { LAST_STAGE, type Parcel } from "@/lib/parcels";
+import { LAST_STAGE, needsCollection, type Parcel } from "@/lib/parcels";
 import { listApprovedPoints, type IzaPoint } from "@/lib/pointStore";
 import { listParcels } from "@/lib/store";
 import type { User } from "@/lib/users";
@@ -26,9 +26,9 @@ export default function RunnerPage() {
 
 type Job = { parcel: Parcel; kind: "collect" | "deliver"; from: string; to: string };
 
-// A job is either collecting a parcel from a business, or bringing a door delivery from the Iza point.
+// A job is bringing a door delivery from the Iza point to the customer, or, when a sender asked for a runner, collecting from them first.
 function jobFor(p: Parcel): Job | null {
-  if (p.stage === 0 || p.stage === 1) return { parcel: p, kind: "collect", from: p.pickup, to: p.point };
+  if (needsCollection(p) || p.stage === 1) return { parcel: p, kind: "collect", from: p.pickup, to: p.point };
   if ((p.stage === 2 && p.choice === "door") || p.stage === 3) {
     return { parcel: p, kind: "deliver", from: p.point, to: p.landmark || "The customer's door" };
   }
@@ -57,7 +57,7 @@ async function Board({ user }: { user: User }) {
   const jobs = all.map(jobFor).filter((j): j is Job => j !== null);
   // Jobs I accepted and have not finished, and jobs nobody has taken yet.
   const mine = jobs.filter((j) => j.parcel.runnerId === user.id);
-  const open = jobs.filter((j) => !j.parcel.runnerId && (j.parcel.stage === 0 || j.parcel.stage === 2));
+  const open = jobs.filter((j) => !j.parcel.runnerId && (needsCollection(j.parcel) || j.parcel.stage === 2));
   const done = all.filter((p) => p.stage === LAST_STAGE && p.runner === user.name).length;
 
   const spots = [...mine, ...open]
@@ -98,7 +98,7 @@ async function Board({ user }: { user: User }) {
               <article key={j.parcel.code} className="card jobCard">
                 <div className="jobHead">
                   <span className={j.kind === "collect" ? "chip chip-honey" : "chip chip-primary"}>
-                    {j.kind === "collect" ? "Collect from a business" : "Deliver to a door"}
+                    {j.kind === "collect" ? "Collect from a sender" : "Deliver to a door"}
                   </span>
                   <span className="mono">{j.parcel.code}</span>
                 </div>
@@ -120,7 +120,7 @@ async function Board({ user }: { user: User }) {
               <article key={j.parcel.code} className="card jobCard">
                 <div className="jobHead">
                   <span className={j.kind === "collect" ? "chip chip-honey" : "chip chip-primary"}>
-                    {j.kind === "collect" ? "Collect from a business" : "Deliver to a door"}
+                    {j.kind === "collect" ? "Collect from a sender" : "Deliver to a door"}
                   </span>
                   <span className="mono">{j.parcel.code}</span>
                 </div>

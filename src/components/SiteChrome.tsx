@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { AccountMenu } from "./AccountButton";
+import WhatsAppButton from "./WhatsAppButton";
 import { currentUser } from "@/lib/auth";
 import { actionsFor, navFor } from "@/lib/nav";
 import { WORKSPACE } from "@/lib/roles";
@@ -10,11 +11,14 @@ import styles from "@/app/welcome/welcome.module.css";
 // The top bar, the same on every page: the choices sit along the top, like Pargo's, and change with who is signed in.
 export function SiteHeader() {
   return (
-    <header className={styles.nav}>
-      <Suspense fallback={<Bar user={null} />}>
-        <SignedBar />
-      </Suspense>
-    </header>
+    <>
+      <header className={styles.nav}>
+        <Suspense fallback={<Bar user={null} />}>
+          <SignedBar />
+        </Suspense>
+      </header>
+      <WhatsAppButton />
+    </>
   );
 }
 

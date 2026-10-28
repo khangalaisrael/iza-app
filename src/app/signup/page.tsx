@@ -7,7 +7,7 @@ export const metadata = { title: "Join Iza" };
 
 export default function SignUpPage({ searchParams }: PageProps<"/signup">) {
   return (
-    <Shell>
+    <Shell title="Join Iza" subtitle="Create an account">
       <Suspense fallback={null}>
         <Form searchParams={searchParams} />
       </Suspense>

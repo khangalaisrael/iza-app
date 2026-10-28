@@ -85,6 +85,8 @@ const SCHEMA = [
 
   // The customer reads this 4-digit code out at the door. A parcel cannot be marked delivered without it.
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS delivery_pin TEXT`,
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS dropoff TEXT`,
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS sender_kind TEXT`,
   // Every step a runner takes leaves a line here. Tracking pages are just this list.
   `CREATE TABLE IF NOT EXISTS parcel_events (
     id TEXT PRIMARY KEY,

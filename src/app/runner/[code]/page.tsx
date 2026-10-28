@@ -3,11 +3,11 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import AutoRefresh from "@/components/AutoRefresh";
 import EventFeed from "@/components/EventFeed";
-import JobPanel, { type JobLinks } from "@/components/JobPanel";
+import JobPanel, { type Dest, type JobLinks } from "@/components/JobPanel";
 import LocationShare from "@/components/LocationShare";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
-import { directionsUrl } from "@/lib/geo";
+import { DEFAULT_CENTER } from "@/lib/points";
 import { getPointById } from "@/lib/pointStore";
 import { getParcel, listEvents } from "@/lib/store";
 import { findUserById, type User } from "@/lib/users";
@@ -55,9 +55,6 @@ async function Job({ user, params }: { user: User; params: PageProps<"/runner/[c
 
   const me = user.name.split(" ")[0];
   const links: JobLinks = {
-    pickupMaps: parcel.pickupLat !== undefined && parcel.pickupLng !== undefined ? directionsUrl({ lat: parcel.pickupLat, lng: parcel.pickupLng }) : undefined,
-    pointMaps: point ? directionsUrl(point) : undefined,
-    doorMaps: parcel.lat !== undefined && parcel.lng !== undefined ? directionsUrl({ lat: parcel.lat, lng: parcel.lng }) : undefined,
     // The business's number is shared with the runner who is collecting from them, and the customer's only once the parcel is on its way to them.
     businessWhatsapp:
       owner && isPhone(owner.identifier) && parcel.stage <= 1
@@ -68,6 +65,22 @@ async function Job({ user, params }: { user: User; params: PageProps<"/runner/[c
         ? whatsappLink(parcel.recipientPhone, `Hi ${parcel.to}, it's ${me} from Iza with your parcel ${parcel.code}. I'm nearly there. Please have your 4-digit code ready.`)
         : undefined,
   };
+
+  // Where the runner is going now, shown on a map inside the page.
+  const hub = point ? { lat: point.lat, lng: point.lng } : DEFAULT_CENTER;
+  const pickupPin = parcel.pickupLat !== undefined && parcel.pickupLng !== undefined ? { lat: parcel.pickupLat, lng: parcel.pickupLng } : null;
+  const doorPin = parcel.lat !== undefined && parcel.lng !== undefined ? { lat: parcel.lat, lng: parcel.lng } : null;
+  let dest: Dest | null = null;
+  let start = hub;
+  if (parcel.stage === 0 && pickupPin) dest = { ...pickupPin, label: parcel.pickup };
+  else if (parcel.stage === 1 || (parcel.stage === 2 && parcel.choice === "door")) {
+    dest = { ...hub, label: parcel.point };
+    start = pickupPin ?? hub;
+  } else if (parcel.stage === 3 && doorPin) dest = { ...doorPin, label: parcel.landmark || "The customer's door" };
+  const progress = events.some((e) => e.kind === "arrived_customer") ? 2 : events.some((e) => e.kind === "heading_customer") ? 1 : 0;
+  const began = events.find((e) => e.kind === "picked_from_point");
+  const ended = events.find((e) => e.kind === "delivered");
+  const tripMinutes = began && ended ? Math.max(1, Math.round((ended.at - began.at) / 60000)) : null;
 
   const onTheWay =
     parcel.stage === 3
@@ -100,7 +113,9 @@ async function Job({ user, params }: { user: User; params: PageProps<"/runner/[c
       {parcel.stage >= 4 ? (
         <section className="card stack">
           <h2>Done. Enkosi!</h2>
-          <p className="lead">This parcel has been delivered.</p>
+          <p className="lead">
+            Trip ended. This parcel has been delivered{tripMinutes ? ` in ${tripMinutes} min` : ""}.
+          </p>
           <Link className="btn" href="/runner">
             Find the next job
           </Link>
@@ -114,6 +129,9 @@ async function Job({ user, params }: { user: User; params: PageProps<"/runner/[c
           pickupText={parcel.pickup}
           doorText={parcel.landmark || "the customer's door"}
           links={links}
+          dest={dest}
+          start={start}
+          progress={progress}
         />
       )}
 

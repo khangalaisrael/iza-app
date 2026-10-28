@@ -14,6 +14,7 @@ type Body = {
   pointId?: string; // the Iza point it goes to
   size?: string;
   note?: string;
+  dropoff?: string; // "self": the sender brings it to the hub. "runner": a runner collects it from them.
 };
 
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -21,21 +22,27 @@ const inRange = (v: unknown, limit: number): v is number =>
   typeof v === "number" && Number.isFinite(v) && Math.abs(v) <= limit;
 const bad = (error: string, status = 400) => Response.json({ error }, { status });
 
-// A business books a parcel to an Iza point. The customer chooses collect or door later.
+// A business or a customer sends a parcel to an Iza point. The person it is for chooses collect or door later.
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return bad("Not allowed.", 403);
 
   const user = await userFromRequest(request);
   if (!user) return bad("Please sign in to book.", 401);
-  if (user.status !== "active" || (user.role !== "business" && user.role !== "admin")) {
-    return bad("Only approved businesses can send parcels.", 403);
+  if (user.status !== "active" || (user.role !== "business" && user.role !== "admin" && user.role !== "customer")) {
+    return bad("Only customers and approved businesses can send parcels.", 403);
   }
 
   const body = (await request.json().catch(() => null)) as Body | null;
   const hasPickupPin = inRange(body?.pickupLat, 90) && inRange(body?.pickupLng, 180);
 
-  // Words or coordinates are both fine for the pickup. Neither is not.
-  const from = text(body?.from, 120) || (hasPickupPin ? "Pinned location" : "");
+  const dropoff = body?.dropoff === "self" ? "self" : "runner";
+  const fromCustomer = user.role === "customer";
+
+  // A runner needs to know where to go. If the sender brings it to the hub, no place is needed.
+  const from =
+    dropoff === "self"
+      ? "Brought to the hub by the sender"
+      : text(body?.from, 120) || (hasPickupPin ? "Pinned location" : "");
   if (!from) return bad("Tell us where to collect it: type the place, or share your location.");
 
   const toName = text(body?.toName, 60);
@@ -61,8 +68,10 @@ export async function POST(request: Request) {
     size: ["Small", "Medium", "Large"].includes(text(body?.size, 10)) ? text(body?.size, 10) : "Small",
     ...(text(body?.note, 200) && { note: text(body?.note, 200) }),
     ownerId: user.id,
+    dropoff,
+    senderKind: fromCustomer ? "customer" : "business",
     deliveryPin: newDeliveryPin(),
-    ...(hasPickupPin && {
+    ...(dropoff === "runner" && hasPickupPin && {
       pickupLat: body!.pickupLat,
       pickupLng: body!.pickupLng,
       pickupPlusCode: encodePlusCode(body!.pickupLat!, body!.pickupLng!),
@@ -70,6 +79,17 @@ export async function POST(request: Request) {
   };
 
   await saveParcel(parcel);
-  await addEvent(parcel.code, "booked", `Booked. A runner will collect it and take it to ${point.name}.`, user.name);
-  return Response.json({ code: parcel.code, point: point.name, phone }, { status: 201 });
+  await addEvent(
+    parcel.code,
+    "booked",
+    dropoff === "self"
+      ? `Booked. Waiting for it to be brought to ${point.name}.`
+      : `Booked. A runner will collect it and take it to ${point.name}.`,
+    user.name,
+  );
+  // The team is told about every parcel a customer sends to the hub. It shows at the top of their dashboard.
+  if (fromCustomer) {
+    await addEvent(parcel.code, "sent_by_customer", `A customer sent a parcel to ${point.name}. The team has been told.`, user.name);
+  }
+  return Response.json({ code: parcel.code, point: point.name, phone, dropoff }, { status: 201 });
 }

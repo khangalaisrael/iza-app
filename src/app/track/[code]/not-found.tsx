@@ -3,7 +3,7 @@ import Shell from "@/components/Shell";
 
 export default function ParcelNotFound() {
   return (
-    <Shell>
+    <Shell title="Track" subtitle="Where is my parcel?">
       <h1 style={{ fontSize: 26 }}>We couldn&apos;t find that code</h1>
       <p className="muted" style={{ margin: 0 }}>
         Check the code in your message and try again. Codes look like IZA-4821.

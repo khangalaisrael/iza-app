@@ -50,7 +50,16 @@ export type Parcel = {
   deliveryPin?: string; // 4 digits the customer reads out to the runner at the door
   ownerId?: string; // the business that sent it
   runnerId?: string; // the runner who claimed it
+  dropoff?: Dropoff; // how it gets to the hub: the sender brings it, or a runner collects it
+  senderKind?: "business" | "customer";
+  createdAt?: number;
+  updatedAt?: number;
 };
+
+export type Dropoff = "self" | "runner";
+
+// A parcel is a runner's collection job only when the sender asked for a runner.
+export const needsCollection = (p: Parcel) => p.stage === 0 && p.dropoff !== "self";
 
 export const NO_RUNNER = "Not assigned yet";
 

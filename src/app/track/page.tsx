@@ -3,14 +3,14 @@ import { Suspense } from "react";
 import CodeForm from "@/components/CodeForm";
 import Shell from "@/components/Shell";
 import { currentUser } from "@/lib/auth";
-import { statusOf } from "@/lib/parcels";
+import { statusOf, type Parcel } from "@/lib/parcels";
 import { listParcels, listParcelsFor, listParcelsToPhone } from "@/lib/store";
 
 export const metadata = { title: "Track a parcel · Iza" };
 
 export default function TrackPage() {
   return (
-    <Shell>
+    <Shell title="Track" subtitle="Where is my parcel?">
       <h1 style={{ fontSize: 26 }}>Where&apos;s my parcel?</h1>
       <p className="muted" style={{ margin: 0 }}>
         Type the code from your message.
@@ -24,6 +24,8 @@ export default function TrackPage() {
     </Shell>
   );
 }
+
+const mergeParcels = (a: Parcel[], b: Parcel[]) => [...a, ...b.filter((p) => !a.some((x) => x.code === p.code))];
 
 async function ParcelList() {
   const user = await currentUser();
@@ -45,7 +47,7 @@ async function ParcelList() {
       : user.role === "business"
         ? await listParcelsFor(user.id)
         : user.role === "customer"
-          ? await listParcelsToPhone(user.identifier)
+          ? mergeParcels(await listParcelsToPhone(user.identifier), await listParcelsFor(user.id))
           : [];
   if (mine.length === 0) {
     return (

@@ -8,7 +8,7 @@ export const metadata = { title: "Waiting for approval · Iza" };
 
 export default function PendingPage() {
   return (
-    <Shell>
+    <Shell title="Your account" subtitle="Waiting for approval">
       <Suspense fallback={null}>
         <Waiting />
       </Suspense>

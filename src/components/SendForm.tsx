@@ -16,11 +16,14 @@ export default function SendForm({
   points,
   siteUrl,
   initialPointId,
+  fromCustomer = false,
 }: {
   points: PointChoice[];
   siteUrl: string;
   initialPointId?: string;
+  fromCustomer?: boolean;
 }) {
+  const [dropoff, setDropoff] = useState<"runner" | "self">("runner");
   const [from, setFrom] = useState("");
   const [pickup, setPickup] = useState<Coords | null>(null);
   const [toName, setToName] = useState("");
@@ -30,7 +33,7 @@ export default function SendForm({
   );
   const [size, setSize] = useState("Small");
   const [note, setNote] = useState("");
-  const [sent, setSent] = useState<{ code: string; point: string } | null>(null);
+  const [sent, setSent] = useState<{ code: string; point: string; dropoff: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -59,6 +62,7 @@ export default function SendForm({
           pointId,
           size,
           note,
+          dropoff,
         }),
       });
       const data = await res.json();
@@ -77,7 +81,13 @@ export default function SendForm({
     return (
       <div className="card pop done">
         <h1>Enkosi! It&apos;s booked.</h1>
-        <p className="muted">A runner will collect it from you. Now tell {toName} their code.</p>
+        <p className="muted">
+          {sent.dropoff === "self"
+            ? `Bring it to ${sent.point} and show this code. The shop will confirm it.`
+            : "A runner will collect it from you."}{" "}
+          Now tell {toName} their code.
+        </p>
+        {fromCustomer && <p className="muted">The Iza team has been told about your parcel.</p>}
         <div className="bigCode mono">{sent.code}</div>
         <a className="btn btn-primary" href={whatsappLink(toPhone, message)} target="_blank" rel="noopener noreferrer">
           Send the code on WhatsApp
@@ -95,10 +105,33 @@ export default function SendForm({
   return (
     <form onSubmit={onSubmit} className="stack" noValidate>
       <div>
-        <h1>Send a parcel</h1>
-        <p className="lead">It goes to an Iza point near your customer. They choose how they want it.</p>
+        <h1>{fromCustomer ? "Send a parcel from home" : "Send a parcel"}</h1>
+        <p className="lead">
+          {fromCustomer
+            ? "It goes to an Iza point. The person it is for chooses to collect it or have it brought to their door."
+            : "It goes to an Iza point near your customer. They choose how they want it."}
+        </p>
       </div>
 
+      <fieldset className="field bigChoices">
+        <legend>How will it get to the Iza point?</legend>
+        <label className="bigChoice">
+          <input type="radio" name="dropoff" value="runner" checked={dropoff === "runner"} onChange={() => setDropoff("runner")} />
+          <span>
+            <strong>Send a runner to collect it</strong>
+            <small>A runner comes to you and takes it to the point.</small>
+          </span>
+        </label>
+        <label className="bigChoice">
+          <input type="radio" name="dropoff" value="self" checked={dropoff === "self"} onChange={() => setDropoff("self")} />
+          <span>
+            <strong>I will bring it to the point</strong>
+            <small>Free of runners. The shop confirms when it arrives.</small>
+          </span>
+        </label>
+      </fieldset>
+
+      {dropoff === "runner" && (
       <section className="stack" aria-labelledby="who-sending">
         <h2 id="who-sending">Where do we collect it?</h2>
         <LocationPicker
@@ -113,6 +146,7 @@ export default function SendForm({
           canUseMyLocation
         />
       </section>
+      )}
 
       <section className="stack" aria-labelledby="who-for">
         <h2 id="who-for">Who is it for?</h2>
@@ -168,7 +202,7 @@ export default function SendForm({
       </fieldset>
 
       <div className="field">
-        <label htmlFor="note">A note for the runner (optional)</label>
+        <label htmlFor="note">A note for the team (optional)</label>
         <input id="note" className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Ask for Thembi at the back door" />
       </div>
 

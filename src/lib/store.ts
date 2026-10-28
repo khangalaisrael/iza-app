@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { db } from "./db";
-import type { Choice, Parcel } from "./parcels";
+import type { Choice, Dropoff, Parcel } from "./parcels";
 
 type Row = {
   code: string;
@@ -27,6 +27,10 @@ type Row = {
   size: string | null;
   note: string | null;
   delivery_pin: string | null;
+  dropoff: string | null;
+  sender_kind: string | null;
+  created_at: number;
+  updated_at: number;
 };
 
 function fromRow(r: Row): Parcel {
@@ -55,6 +59,10 @@ function fromRow(r: Row): Parcel {
     ...(r.delivery_pin !== null && { deliveryPin: r.delivery_pin }),
     ...(r.owner_id !== null && { ownerId: r.owner_id }),
     ...(r.runner_id !== null && { runnerId: r.runner_id }),
+    ...(r.dropoff !== null && { dropoff: r.dropoff as Dropoff }),
+    ...(r.sender_kind !== null && { senderKind: r.sender_kind as "business" | "customer" }),
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
   };
 }
 
@@ -70,8 +78,8 @@ export async function saveParcel(p: Parcel): Promise<void> {
   ).query(
     `INSERT INTO parcels (code, owner_id, runner_id, to_name, pickup, landmark, runner, stage, point,
        lat, lng, plus_code, runner_lat, runner_lng, pickup_lat, pickup_lng, pickup_plus_code,
-       recipient_phone, point_id, choice, fee, size, note, delivery_pin, created_at, updated_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$25)
+       recipient_phone, point_id, choice, fee, size, note, delivery_pin, created_at, updated_at, dropoff, sender_kind)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$25,$26,$27)
      ON CONFLICT (code) DO UPDATE SET
        owner_id = EXCLUDED.owner_id, runner_id = EXCLUDED.runner_id, to_name = EXCLUDED.to_name,
        pickup = EXCLUDED.pickup, landmark = EXCLUDED.landmark, runner = EXCLUDED.runner,
@@ -80,13 +88,14 @@ export async function saveParcel(p: Parcel): Promise<void> {
        pickup_lat = EXCLUDED.pickup_lat, pickup_lng = EXCLUDED.pickup_lng, pickup_plus_code = EXCLUDED.pickup_plus_code,
        recipient_phone = EXCLUDED.recipient_phone, point_id = EXCLUDED.point_id, choice = EXCLUDED.choice,
        fee = EXCLUDED.fee, size = EXCLUDED.size, note = EXCLUDED.note, delivery_pin = EXCLUDED.delivery_pin,
+       dropoff = EXCLUDED.dropoff, sender_kind = EXCLUDED.sender_kind,
        updated_at = EXCLUDED.updated_at`,
     [
       p.code, p.ownerId ?? null, p.runnerId ?? null, p.to, p.pickup, p.landmark, p.runner, p.stage, p.point,
       p.lat ?? null, p.lng ?? null, p.plusCode ?? null, p.runnerLat ?? null, p.runnerLng ?? null,
       p.pickupLat ?? null, p.pickupLng ?? null, p.pickupPlusCode ?? null,
       p.recipientPhone ?? null, p.pointId ?? null, p.choice ?? null, p.fee ?? null, p.size ?? null, p.note ?? null,
-      p.deliveryPin ?? null, now,
+      p.deliveryPin ?? null, now, p.dropoff ?? null, p.senderKind ?? null,
     ],
   );
 }
@@ -156,4 +165,19 @@ export function newDeliveryPin(): string {
     const pin = String(randomInt(1000, 10000));
     if (!/^(\d)\1{3}$/.test(pin)) return pin;
   }
+}
+
+// Everything that has happened lately, across all parcels, newest first. For the team.
+export type FeedEvent = ParcelEvent & { code: string };
+
+export async function recentEvents(limit = 20, kinds?: string[], since = 0): Promise<FeedEvent[]> {
+  const d = await db();
+  if (kinds?.length) {
+    const marks = kinds.map((_, i) => "$" + (i + 3)).join(",");
+    return d.query<FeedEvent>(
+      `SELECT id, code, at, kind, text, actor FROM parcel_events WHERE at > $1 AND kind IN (${marks}) ORDER BY at DESC LIMIT $2`,
+      [since, limit, ...kinds],
+    );
+  }
+  return d.query<FeedEvent>("SELECT id, code, at, kind, text, actor FROM parcel_events WHERE at > $1 ORDER BY at DESC LIMIT $2", [since, limit]);
 }

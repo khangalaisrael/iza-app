@@ -15,7 +15,7 @@ import type { User } from "@/lib/users";
 
 export default function ParcelPage({ params }: PageProps<"/track/[code]">) {
   return (
-    <Shell>
+    <Shell title="Track" subtitle="Where is my parcel?">
       <Suspense fallback={<p className="muted">Finding your parcel…</p>}>
         <ParcelDetails params={params} />
       </Suspense>
@@ -85,6 +85,15 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
           <ChooseDelivery key={`${parcel.choice}-${parcel.stage}`} code={parcel.code} pointName={parcel.point} current={parcel.choice} />
         </section>
       )}
+
+      <a
+        className="btn btn-soft"
+        href={`https://wa.me/?text=${encodeURIComponent(`Follow my Iza parcel ${parcel.code}: ${process.env.NEXT_PUBLIC_SITE_URL ?? "https://iza-app-israels-projects-71356823.vercel.app"}/track/${parcel.code}`)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Share this on WhatsApp
+      </a>
 
       {parcel.choice === "door" && parcel.stage >= 2 && parcel.stage < 4 && parcel.deliveryPin && (
         <section className="card stack pinCard" aria-label="Your delivery code">

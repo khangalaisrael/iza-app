@@ -3,7 +3,7 @@ import { authFile, expect, test, topMenu } from "./fixtures";
 // Somewhere in Langa, close to the Fresh Cuts Barber Iza point.
 const NEAR_BARBER = { latitude: -33.9426, longitude: 18.5319 };
 
-test("a business shares its location, and the runner can open the pickup spot in Maps", async ({ browser, baseURL, as }) => {
+test("a business shares its location, and the runner gets directions inside the page", async ({ browser, baseURL, as }) => {
   const sender = await browser.newContext({
     baseURL,
     storageState: authFile("business"),
@@ -23,9 +23,9 @@ test("a business shares its location, and the runner can open the pickup spot in
   const runner = await (await as("runner")).newPage();
   await runner.goto("/runner");
   await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this job" }).click();
-  const link = runner.getByRole("link", { name: "Open directions" });
-  await expect(link).toBeVisible();
-  await expect(link).toHaveAttribute("href", /destination=-33\.9441,18\.5298/);
+  const directions = runner.getByRole("region", { name: /Directions to/ });
+  await expect(directions).toBeVisible();
+  await expect(directions.getByText("Going to")).toBeVisible();
   await sender.close();
 });
 
@@ -129,7 +129,7 @@ test("the home screen is for customers, and everyone who works is taken to their
   const customer = await (await as("customer")).newPage();
   await customer.goto("/");
   await expect(customer.getByRole("link", { name: /Earn with Iza/ })).toBeVisible();
-  await expect((await topMenu(customer)).getByRole("link", { name: "Send" })).toHaveCount(0);
+  await expect((await topMenu(customer)).getByRole("link", { name: "For my business" })).toHaveCount(0);
 
   const lands: [Parameters<typeof as>[0], RegExp][] = [
     ["runner", /\/runner$/],

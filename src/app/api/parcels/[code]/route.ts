@@ -1,9 +1,9 @@
 import { sameOrigin, userFromRequest } from "@/lib/auth";
-import { FEE_DOOR, FEE_POINT, LAST_STAGE, NO_RUNNER, type Parcel } from "@/lib/parcels";
+import { FEE_DOOR, FEE_POINT, LAST_STAGE, NO_RUNNER, needsCollection, type Parcel } from "@/lib/parcels";
 import { encodePlusCode } from "@/lib/pluscode";
 import { getPointById } from "@/lib/pointStore";
 import { addEvent, getParcel, listEvents, saveParcel } from "@/lib/store";
-import type { User } from "@/lib/users";
+import { findUserById, type User } from "@/lib/users";
 
 type Body = {
   action?: string;
@@ -14,6 +14,7 @@ type Body = {
   kind?: string;
   reason?: string;
   pin?: string;
+  runnerId?: string;
 };
 
 const deny = (error: string, status: number) => Response.json({ error }, { status });
@@ -62,8 +63,33 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/parcels/[c
   if (user.status !== "active") return deny("Your account is waiting for approval.", 403);
 
   if (action === "collect") return collect(parcel, user);
+  if (action === "receive") return receive(parcel, user);
+  if (action === "assign") return assign(parcel, user, body);
   if (user.role !== "runner" && user.role !== "admin") return deny("Only runners can work on a job.", 403);
   return runnerAction(parcel, user, action, body);
+}
+
+// The Iza point confirms that the sender brought the parcel in.
+async function receive(parcel: Parcel, user: User) {
+  const point = parcel.pointId ? await getPointById(parcel.pointId) : undefined;
+  const isItsPoint = user.role === "point" && !!point && point.ownerId === user.id;
+  if (!isItsPoint && user.role !== "admin") return deny("Only the Iza point this parcel was sent to can confirm it.", 403);
+  if (parcel.stage !== 0 || parcel.dropoff !== "self") return deny("That parcel isn't waiting to be brought in.", 409);
+  await saveParcel({ ...parcel, stage: 2 });
+  await addEvent(parcel.code, "received", `Received at ${parcel.point}. Ready for you.`, point?.name ?? user.name);
+  return ok();
+}
+
+// The team gives a job to a runner. This is how stuck jobs get moving.
+async function assign(parcel: Parcel, user: User, body: Body | null) {
+  if (user.role !== "admin") return deny("Only the team can assign a runner.", 403);
+  const runner = typeof body?.runnerId === "string" ? await findUserById(body.runnerId) : undefined;
+  if (!runner || runner.role !== "runner" || runner.status !== "active") return deny("Choose an approved runner.", 400);
+  const open = needsCollection(parcel) || (parcel.stage === 2 && parcel.choice === "door");
+  if (!open) return deny("That parcel isn't waiting for a runner.", 409);
+  await saveParcel({ ...parcel, runner: runner.name, runnerId: runner.id });
+  await addEvent(parcel.code, "assigned", `${runner.name.split(" ")[0]} will take it.`, user.name);
+  return ok();
 }
 
 async function collect(parcel: Parcel, user: User) {
@@ -86,7 +112,7 @@ async function runnerAction(parcel: Parcel, user: User, action: string | undefin
 
   // 1. Take a job. Two kinds are open: collecting from a business, and bringing a door delivery from the point.
   if (action === "accept") {
-    const open = !parcel.runnerId && (parcel.stage === 0 || (parcel.stage === 2 && parcel.choice === "door"));
+    const open = !parcel.runnerId && (needsCollection(parcel) || (parcel.stage === 2 && parcel.choice === "door"));
     if (!open) return deny("That job isn't open any more. Someone else may have taken it.", 409);
     await saveParcel({ ...parcel, runner: user.name, runnerId: user.id });
     await addEvent(code, "accepted", parcel.stage === 0 ? `${who} will collect it.` : `${who} will bring it to your door.`, user.name);
@@ -143,7 +169,7 @@ async function runnerAction(parcel: Parcel, user: User, action: string | undefin
   if (action === "pickup_from_point") {
     if (parcel.stage !== 2 || parcel.choice !== "door") return deny("There is nothing to take from the point.", 409);
     await saveParcel({ ...parcel, stage: 3 });
-    await addEvent(code, "picked_from_point", `Picked up from ${here}. On the way to you.`, user.name);
+    await addEvent(code, "picked_from_point", `${who} collected it from ${here}.`, user.name);
     return ok();
   }
   if (action === "deliver") {
@@ -156,7 +182,7 @@ async function runnerAction(parcel: Parcel, user: User, action: string | undefin
       return deny("That code isn't right. Ask the customer to read their 4-digit code again.", 400);
     }
     await saveParcel({ ...parcel, stage: LAST_STAGE });
-    await addEvent(code, "delivered", "Delivered. Enkosi!", user.name);
+    await addEvent(code, "delivered", "Delivered. Trip ended. Enkosi!", user.name);
     return ok();
   }
   if (action === "return_to_point") {
