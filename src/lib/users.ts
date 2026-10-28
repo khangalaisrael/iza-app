@@ -11,6 +11,7 @@ export type User = {
   role: Role;
   status: Status;
   pointName: string | null;
+  details: Record<string, string>; // what they told us when they applied, such as a runner's area
 };
 
 type UserRow = {
@@ -21,7 +22,17 @@ type UserRow = {
   role: Role;
   status: Status;
   point_name: string | null;
+  details: string | null;
 };
+
+function parseDetails(text: string | null): Record<string, string> {
+  try {
+    const value = text ? JSON.parse(text) : {};
+    return value && typeof value === "object" ? (value as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
 
 const toUser = (r: UserRow): User => ({
   id: r.id,
@@ -30,6 +41,7 @@ const toUser = (r: UserRow): User => ({
   role: r.role,
   status: r.status,
   pointName: r.point_name,
+  details: parseDetails(r.details),
 });
 
 // An email is kept lowercase. A phone number is kept as digits only, so
@@ -63,14 +75,15 @@ export async function createUser(input: {
   role: Role;
   status: Status;
   pointName?: string | null;
+  details?: Record<string, string>;
 }): Promise<User> {
   const id = randomUUID();
   await (
     await db()
   ).query(
-    `INSERT INTO users (id, name, identifier, password_hash, role, status, point_name, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [id, input.name, input.identifier, input.passwordHash, input.role, input.status, input.pointName ?? null, Date.now()],
+    `INSERT INTO users (id, name, identifier, password_hash, role, status, point_name, created_at, details)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [id, input.name, input.identifier, input.passwordHash, input.role, input.status, input.pointName ?? null, Date.now(), JSON.stringify(input.details ?? {})],
   );
   return (await findUserById(id))!;
 }

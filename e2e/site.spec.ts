@@ -97,17 +97,18 @@ test("the website questions open and close", async ({ page }) => {
 test("join us offers runners, Izza points and businesses their own way in", async ({ page }) => {
   await page.goto("/join");
   await page.getByRole("link", { name: "Apply to be a runner" }).click();
-  await expect(page).toHaveURL(/\/signup\?as=runner/);
-  await expect(page.getByRole("radio", { name: /I want to deliver/ })).toBeChecked();
+  await expect(page).toHaveURL(/\/signup\/runner$/);
+  await expect(page.getByRole("heading", { name: "Become a runner" })).toBeVisible();
 
   await page.goto("/join");
   await page.getByRole("link", { name: "Register your place" }).click();
-  await expect(page.getByRole("radio", { name: /host an Izza point/ })).toBeChecked();
-  await expect(page.getByLabel("When are you open?")).toBeVisible();
+  await expect(page).toHaveURL(/\/signup\/point$/);
+  await expect(page.getByRole("heading", { name: "Host an Izza point" })).toBeVisible();
 
   await page.goto("/join");
   await page.getByRole("main").getByRole("link", { name: "Open a business account" }).click();
-  await expect(page.getByRole("radio", { name: /I send parcels/ })).toBeChecked();
+  await expect(page).toHaveURL(/\/signup\/business$/);
+  await expect(page.getByRole("heading", { name: "Send parcels for your business" })).toBeVisible();
 });
 
 test("the business page explains what the customer pays", async ({ page }) => {

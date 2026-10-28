@@ -1,25 +1,59 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import AuthForm from "@/components/AuthForm";
 import Shell from "@/components/Shell";
 import { safeNext } from "@/lib/auth";
 
 export const metadata = { title: "Join Izza" };
 
+const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
+const WAYS = [
+  { role: "customer", title: "I'm getting a parcel", note: "Start right away" },
+  { role: "business", title: "I send parcels", note: "For shops and sellers. We approve you first" },
+  { role: "runner", title: "I want to deliver", note: "Become a runner. We approve you first" },
+  { role: "point", title: "I'll host an Izza point", note: "A shop, salon or hall. We approve you first" },
+] as const;
+
 export default function SignUpPage({ searchParams }: PageProps<"/signup">) {
   return (
     <Shell title="Sign up" subtitle="Make an account">
       <Suspense fallback={null}>
-        <Form searchParams={searchParams} />
+        <Choose searchParams={searchParams} />
       </Suspense>
     </Shell>
   );
 }
 
-const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
-
-async function Form({ searchParams }: { searchParams: PageProps<"/signup">["searchParams"] }) {
+// The first screen only asks one thing: how will you use Izza? Each answer has its own short page, so nobody scrolls through a form
+// that is mostly for someone else. Old links such as /signup?as=runner go straight to the right page.
+async function Choose({ searchParams }: { searchParams: PageProps<"/signup">["searchParams"] }) {
   const { next, as } = await searchParams;
-  // /signup?as=runner opens the form already set to the right way of joining.
-  const startRole = ["customer", "business", "runner", "point"].includes(first(as) ?? "") ? first(as)! : "customer";
-  return <AuthForm mode="signup" next={safeNext(first(next))} startRole={startRole} />;
+  const after = safeNext(first(next));
+  const query = after === "/" ? "" : `?next=${encodeURIComponent(after)}`;
+  const direct = WAYS.find((w) => w.role === first(as));
+  if (direct) redirect(`/signup/${direct.role}${query}`);
+
+  return (
+    <>
+      <h1>Join Izza</h1>
+      <nav className="field bigChoices" aria-label="How will you use Izza?">
+        <p style={{ margin: 0, fontWeight: 600 }}>How will you use Izza?</p>
+        {WAYS.map((w) => (
+          <Link key={w.role} href={`/signup/${w.role}${query}`} className="bigChoice">
+            <span className="plain">
+              <strong>{w.title}</strong>
+              <small>{w.note}</small>
+            </span>
+          </Link>
+        ))}
+      </nav>
+      <p className="muted center">
+        Already have an account?{" "}
+        <Link href={`/signin${query}`} className="tapLink" style={{ color: "var(--primary)", fontWeight: 700 }}>
+          Sign in
+        </Link>
+      </p>
+    </>
+  );
 }

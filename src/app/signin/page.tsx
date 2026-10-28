@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import AuthForm from "@/components/AuthForm";
+import SignInForm from "@/components/SignInForm";
 import Shell from "@/components/Shell";
 import { safeNext } from "@/lib/auth";
 
@@ -17,5 +17,5 @@ export default function SignInPage({ searchParams }: PageProps<"/signin">) {
 
 async function Form({ searchParams }: { searchParams: PageProps<"/signin">["searchParams"] }) {
   const { next } = await searchParams;
-  return <AuthForm mode="signin" next={safeNext(Array.isArray(next) ? next[0] : next)} />;
+  return <SignInForm next={safeNext(Array.isArray(next) ? next[0] : next)} />;
 }

@@ -1567,3 +1567,8 @@ html {
 .moreItem:active {
   background: var(--tint);
 }
+
+/* Something marked hidden stays hidden, even inside a layout that would otherwise show it. */
+[hidden] {
+  display: none !important;
+}

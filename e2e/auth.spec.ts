@@ -3,12 +3,24 @@ import { expect, test, PASSWORD, signIn, topMenu } from "./fixtures";
 
 const stamp = () => Date.now().toString().slice(-8);
 
+// Opens the right sign-up page from the chooser, and fills in everything that page asks for. For an Izza point it stops after the
+// first step, on the "your place" step, because the tests for hubs fill that part themselves.
 async function signUp(page: Page, opts: { role: string; name: string; id: string; password?: string }) {
   await page.goto("/signup");
-  await page.getByText(opts.role, { exact: true }).click();
+  await page.getByRole("link", { name: new RegExp("^" + opts.role) }).click();
   await page.getByLabel(/Your name|Business name/).fill(opts.name);
   await page.getByLabel("Phone number or email").fill(opts.id);
   await page.getByLabel("Password").fill(opts.password ?? "a-good-long-password");
+  if (opts.role.includes("deliver")) {
+    await page.getByLabel("Where do you live?").fill("Langa");
+    await page.getByLabel("How will you get around?").selectOption("Bicycle");
+    await page.getByLabel(/I am 18 or older/).check();
+  } else if (opts.role.includes("send parcels")) {
+    await page.getByLabel("What do you sell?").selectOption("Food");
+    await page.getByLabel("Where are you based?").fill("Langa");
+  } else if (opts.role.includes("host")) {
+    await page.getByRole("button", { name: "Next: your place" }).click();
+  }
 }
 
 test("signed-out visitors are sent to sign in, then back where they were going", async ({ page }) => {
@@ -139,7 +151,9 @@ test("a point application needs the place's name, a location and its hours", asy
   // What was typed is still there after an error. Only the password has to be typed again.
   await expect(page.getByLabel("Your name")).toHaveValue("Half Done");
   await page.getByLabel("Name of your shop or place").fill("Half Done Shop");
+  await page.getByRole("button", { name: "← Back to step 1" }).click();
   await page.getByLabel("Password").fill("a-good-long-password");
+  await page.getByRole("button", { name: "Next: your place" }).click();
   await page.getByRole("button", { name: "Send my application" }).click();
   await expect(page.locator("form [role=alert]")).toContainText("Search for your place");
 });
@@ -304,7 +318,7 @@ test("the team gives someone a one-time link to choose a new password", async ({
 });
 
 test("the privacy notice is linked from the footer and the sign-up form", async ({ page }) => {
-  await page.goto("/signup");
+  await page.goto("/signup/customer");
   await page.getByRole("link", { name: "privacy notice" }).click();
   await expect(page.getByRole("heading", { name: "What we keep" })).toBeVisible();
   await page.goto("/");
@@ -433,4 +447,56 @@ test("the team can switch a person off and on again", async ({ page, as, browser
   const other = await (await as("business")).newPage();
   await other.goto("/ops");
   await expect(other.getByText(/^Show all/)).toHaveCount(0);
+});
+
+test("signing up has a short page for each way of joining, and each asks only what it needs", async ({ page }) => {
+  await page.goto("/signup");
+  await expect(page.getByRole("heading", { name: "Join Izza" })).toBeVisible();
+  await expect(page.getByLabel("Password")).toHaveCount(0); // the chooser has no form on it
+
+  // A customer: three things.
+  await page.getByRole("link", { name: /^I'm getting a parcel/ }).click();
+  await expect(page).toHaveURL(/\/signup\/customer$/);
+  await expect(page.locator("form input:not([type=hidden])")).toHaveCount(3);
+
+  // A business also says what it sells and where.
+  await page.goto("/signup/business");
+  await expect(page.getByLabel("What do you sell?")).toBeVisible();
+  await expect(page.getByLabel("Where do you live?")).toHaveCount(0);
+
+  // A runner says where they live, how they travel, and that they are an adult.
+  await page.goto("/signup/runner");
+  await expect(page.getByLabel("Where do you live?")).toBeVisible();
+  await page.getByLabel("Your name").fill("Young Runner");
+  await page.getByLabel("Phone number or email").fill(`young-${Date.now()}@iza.test`);
+  await page.getByLabel("Password").fill("a-good-long-password");
+  await page.getByLabel("Where do you live?").fill("Langa");
+  await page.getByLabel("How will you get around?").selectOption("On foot");
+  await page.getByRole("button", { name: "Send my application" }).click();
+  await expect(page.locator("form [role=alert]")).toContainText("18 or older");
+
+  // A hub starts with the person, and only then asks about the place.
+  await page.goto("/signup/point");
+  await expect(page.getByText("Step 1 of 2")).toBeVisible();
+  await expect(page.getByLabel("Name of your shop or place")).toBeHidden();
+  await page.getByRole("button", { name: "Next: your place" }).click();
+  await expect(page.locator("form [role=alert]")).toContainText("your name");
+  await expect(page.getByLabel("Name of your shop or place")).toBeHidden();
+
+  // Old links still work, and a made-up page is a 404.
+  await page.goto("/signup?as=runner");
+  await expect(page).toHaveURL(/\/signup\/runner$/);
+  await page.goto("/signup/dragon");
+  await expect(page.getByRole("heading", { name: "We couldn't find that page" })).toBeVisible();
+});
+
+test("the team sees what a runner or business said when they applied", async ({ page, as }) => {
+  const id = `details-${Date.now()}@iza.test`;
+  await signUp(page, { role: "I want to deliver", name: "Detail Runner", id });
+  await page.getByRole("button", { name: "Send my application" }).click();
+  await expect(page).toHaveURL(/\/pending$/);
+
+  const team = await (await as("admin")).newPage();
+  await team.goto("/ops");
+  await expect(team.getByText("Lives in Langa. Gets around: Bicycle.").first()).toBeVisible();
 });

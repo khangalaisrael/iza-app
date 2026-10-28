@@ -253,6 +253,13 @@ async function Board() {
                   <div className="muted">
                     {roleLabel[u.role]} · {u.identifier}
                   </div>
+                  {(u.details.category || u.details.area || u.details.transport) && (
+                    <div className="muted">
+                      {u.role === "business"
+                        ? `Sells: ${u.details.category ?? "not said"}. Based in ${u.details.area ?? "not said"}.`
+                        : `Lives in ${u.details.area ?? "not said"}. Gets around: ${u.details.transport ?? "not said"}.`}
+                    </div>
+                  )}
                   {u.role === "point" && placeOf.get(u.id) && (
                     <div className="muted">
                       {placeOf.get(u.id)!.name}, {placeOf.get(u.id)!.kind}. {placeOf.get(u.id)!.address}. Open {placeOf.get(u.id)!.hours}.

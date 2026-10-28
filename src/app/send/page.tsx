@@ -42,13 +42,13 @@ async function Content({ searchParams }: { searchParams: PageProps<"/send">["sea
         <section className="card stack" aria-label="Sign up to send">
           <h2>First, a quick account</h2>
           <p className="muted" style={{ margin: 0 }}>It takes a minute, and you can follow your parcel from your phone.</p>
-          <Link className="btn btn-primary" href="/signup?next=%2Fsend">
+          <Link className="btn btn-primary" href="/signup/customer?next=%2Fsend">
             Create an account to send
           </Link>
           <Link className="btn btn-soft" href="/signin?next=%2Fsend">
             I already have an account
           </Link>
-          <Link className="linkBtn" href="/signup?as=business&next=%2Fsend">
+          <Link className="linkBtn" href="/signup/business?next=%2Fsend">
             I send parcels for a business
           </Link>
         </section>

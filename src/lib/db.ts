@@ -60,6 +60,8 @@ const SCHEMA = [
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS pickup_plus_code TEXT`,
 
   // A business sends, the customer chooses how to receive it, runners and Izza points do the work.
+  // The few things a business or runner tells us when they apply, so the team can see them when they decide.
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS details TEXT`,
   `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`,
   `ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('customer','business','runner','point','admin'))`,
   `CREATE TABLE IF NOT EXISTS points (
