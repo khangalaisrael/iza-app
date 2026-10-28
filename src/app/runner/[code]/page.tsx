@@ -10,7 +10,7 @@ import RequireRole from "@/components/RequireRole";
 import { FEE_DOOR_EXTRA } from "@/lib/parcels";
 import { DEFAULT_CENTER } from "@/lib/points";
 import { getPointById } from "@/lib/pointStore";
-import { getParcel, listEvents } from "@/lib/store";
+import { getParcel, hasPhoto, listEvents } from "@/lib/store";
 import { findUserById, type User } from "@/lib/users";
 import { whatsappLink } from "@/lib/whatsapp";
 
@@ -48,10 +48,11 @@ async function Job({ user, params }: { user: User; params: PageProps<"/runner/[c
     );
   }
 
-  const [point, events, owner] = await Promise.all([
+  const [point, events, owner, photo] = await Promise.all([
     parcel.pointId ? getPointById(parcel.pointId) : undefined,
     listEvents(parcel.code),
     parcel.ownerId ? findUserById(parcel.ownerId) : undefined,
+    hasPhoto(parcel.code),
   ]);
 
   const me = user.name.split(" ")[0];
@@ -135,6 +136,7 @@ async function Job({ user, params }: { user: User; params: PageProps<"/runner/[c
           progress={progress}
           doorFee={parcel.choice === "door" ? FEE_DOOR_EXTRA : undefined}
           doorPaid={!!parcel.doorPaidAt}
+          photoTaken={photo}
         />
       )}
 

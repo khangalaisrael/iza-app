@@ -95,6 +95,9 @@ async function Board({ user }: { user: User }) {
               <span className="muted">
                 {earned.collections} collected, {earned.deliveries} delivered
               </span>
+              <span className="muted">
+                Paid out R{earned.paid} · still owed R{earned.owed}
+              </span>
             </div>
           </div>
 

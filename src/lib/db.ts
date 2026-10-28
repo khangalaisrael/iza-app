@@ -104,6 +104,22 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS parcel_events_code_idx ON parcel_events (code, at)`,
   // Runner earnings are counted from finished steps, so each event remembers who did it.
   `ALTER TABLE parcel_events ADD COLUMN IF NOT EXISTS actor_id TEXT`,
+  // When the team pays a runner what they have earned.
+  `CREATE TABLE IF NOT EXISTS runner_payouts (
+    id TEXT PRIMARY KEY,
+    runner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    amount INTEGER NOT NULL CHECK (amount > 0),
+    at BIGINT NOT NULL,
+    paid_by TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS runner_payouts_idx ON runner_payouts (runner_id)`,
+  // A photo of the parcel at the door, taken by the runner as proof of delivery.
+  `CREATE TABLE IF NOT EXISTS parcel_photos (
+    code TEXT PRIMARY KEY REFERENCES parcels(code) ON DELETE CASCADE,
+    image TEXT NOT NULL,
+    at BIGINT NOT NULL,
+    taken_by TEXT
+  )`,
 ];
 
 type G = typeof globalThis & { __izaDb?: Promise<Db> };

@@ -10,7 +10,7 @@ import { currentUser } from "@/lib/auth";
 import { etaMinutes } from "@/lib/geo";
 import { destinationOf, etaOf, runnerPositionOf, stepsOf, type Parcel } from "@/lib/parcels";
 import { getPointById, type IzaPoint } from "@/lib/pointStore";
-import { getParcel, listEvents } from "@/lib/store";
+import { getParcel, hasPhoto, listEvents } from "@/lib/store";
 import type { User } from "@/lib/users";
 
 export default function ParcelPage({ params }: PageProps<"/track/[code]">) {
@@ -57,7 +57,11 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
   const found = await getParcel(decodeURIComponent(code));
   if (!found) notFound();
 
-  const [point, events] = await Promise.all([found.pointId ? getPointById(found.pointId) : undefined, listEvents(found.code)]);
+  const [point, events, photo] = await Promise.all([
+    found.pointId ? getPointById(found.pointId) : undefined,
+    listEvents(found.code),
+    hasPhoto(found.code),
+  ]);
   const user = await currentUser();
   const full = canSeePrivate(user, found, point);
   const parcel = full ? found : redact(found);
@@ -113,6 +117,14 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
           center={runnerPos ?? dest}
           height={240}
         />
+      )}
+
+      {full && photo && parcel.stage >= 3 && (
+        <section className="card stack" aria-label="Photo of your parcel">
+          <h2>Photo from the runner</h2>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/api/parcels/${parcel.code}/photo`} alt="Your parcel at the door" style={{ width: "100%", borderRadius: 12 }} />
+        </section>
       )}
 
       <section className="card">

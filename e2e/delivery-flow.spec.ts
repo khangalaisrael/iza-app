@@ -164,11 +164,39 @@ test("the sender's R12 is recorded at the hub, and the customer's R8 only when t
   await runner.getByRole("button", { name: "Customer paid R8 cash" }).click();
   await expect(runner.getByText("Door fee R8 received.")).toBeVisible();
 
+  // The runner photographs the parcel at the door. Only people on the parcel can see the photo.
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await runner.getByLabel("Photo of the parcel").setInputFiles({ name: "door.png", mimeType: "image/png", buffer: png });
+  await expect(runner.getByRole("button", { name: /Photo saved/ })).toBeVisible();
+  const seen = await runner.request.get(`/api/parcels/${code}/photo`);
+  expect(seen.status()).toBe(200);
+  expect(seen.headers()["content-type"]).toBe("image/jpeg");
+  expect((await customer.request.get(`/api/parcels/${code}/photo`)).status()).toBe(401);
+
   // A stranger cannot record payments, and the sender's fee cannot be recorded twice.
   const res = await customer.request.patch(`/api/parcels/${code}`, { data: { action: "mark_paid", what: "door" }, headers: { origin: baseURL! } });
   expect(res.status()).toBe(401);
   const second = await shop.request.patch(`/api/parcels/${code}`, { data: { action: "mark_paid", what: "send" }, headers: { origin: baseURL! } });
   expect(second.status()).toBe(409);
+});
+
+test("the team pays a runner what they are owed, and only the team can", async ({ as, browser, baseURL }) => {
+  const business = await (await as("business")).newPage();
+  const code = await book(business, { from: "Thembi's Kitchen", to: "Mandla", phone: "085 777 8888" });
+  const runner = await (await as("runner")).newPage();
+  await collectAndDrop(runner, code);
+
+  await runner.goto("/runner");
+  await expect(runner.locator(".stat", { hasText: "Earned" })).toContainText(/still owed R[1-9]\d*/);
+
+  const refused = await runner.request.post("/api/payouts", { data: { runnerId: "x" }, headers: { origin: baseURL! } });
+  expect(refused.status()).toBe(403);
+
+  const team = await (await as("admin")).newPage();
+  await team.goto("/ops");
+  await team.getByRole("button", { name: /Mark .* as paid R[1-9]/ }).first().click();
+  await runner.reload();
+  await expect(runner.locator(".stat", { hasText: "Earned" })).toContainText("still owed R0");
 });
 
 test("a failed delivery goes back to the Iza point and the customer is told to collect it", async ({ as, browser, baseURL }) => {

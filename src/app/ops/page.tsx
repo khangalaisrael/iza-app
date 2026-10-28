@@ -5,12 +5,13 @@ import { approveUserAction } from "@/app/auth/actions";
 import AddPointForm from "@/components/AddPointForm";
 import AssignRunner from "@/components/AssignRunner";
 import AutoRefresh from "@/components/AutoRefresh";
+import PayoutButton from "@/components/PayoutButton";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
 import { FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, needsCollection, statusOf, type Parcel } from "@/lib/parcels";
 import { listPendingPoints } from "@/lib/pointStore";
 import { RULES, ageText } from "@/lib/rules";
-import { listParcels, recentEvents } from "@/lib/store";
+import { listParcels, recentEvents, runnerEarnings } from "@/lib/store";
 import { listActiveRunners, listPendingUsers } from "@/lib/users";
 import { whatsappLink } from "@/lib/whatsapp";
 
@@ -91,8 +92,10 @@ async function Board() {
   }
   alerts.sort((a, b) => (a.level === b.level ? b.age - a.age : a.level === "high" ? -1 : 1));
 
-  const runnerList = runners.map((r) => ({
+  const earnings = await Promise.all(runners.map((r) => runnerEarnings(r.id)));
+  const runnerList = runners.map((r, i) => ({
     ...r,
+    owed: earnings[i].owed,
     carrying: live.filter((p) => p.runnerId === r.id).length,
     done: all.filter((p) => p.stage === LAST_STAGE && p.runner === r.name).length,
   }));
@@ -257,8 +260,9 @@ async function Board() {
               <div key={r.id} className="rosterRow">
                 <strong>{r.name}</strong>
                 <span className="muted">
-                  {r.carrying} carrying · {r.done} delivered
+                  {r.carrying} carrying · {r.done} delivered · owed R{r.owed}
                 </span>
+                <PayoutButton runnerId={r.id} name={r.name} owed={r.owed} />
               </div>
             ))}
           </section>

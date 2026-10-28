@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import PhotoButton from "./PhotoButton";
 import TripRoute from "./TripRoute";
 
 export type JobLinks = {
@@ -24,6 +25,7 @@ type Props = {
   progress: number; // on a delivery: 0 collected, 1 on the way, 2 arrived
   doorFee?: number; // what the customer pays the runner at the door; unset when they collect at the hub
   doorPaid?: boolean;
+  photoTaken?: boolean; // a proof-of-delivery photo is already saved
 };
 
 const PROBLEMS: [string, string][] = [
@@ -35,7 +37,7 @@ const PROBLEMS: [string, string][] = [
 ];
 
 // One job, one screen. The layout never changes: where you are, the map, one big button, then the extras.
-export default function JobPanel({ code, stage, choice, pointName, pickupText, doorText, links, dest, start, progress, doorFee, doorPaid }: Props) {
+export default function JobPanel({ code, stage, choice, pointName, pickupText, doorText, links, dest, start, progress, doorFee, doorPaid, photoTaken }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -195,6 +197,8 @@ export default function JobPanel({ code, stage, choice, pointName, pickupText, d
             </button>
           )
         ) : null}
+
+        {stage === 3 && <PhotoButton code={code} taken={!!photoTaken} />}
 
         {primary && (
           <button type="button" className="btn btn-block jobPrimary" disabled={busy || primary.disabled} onClick={primary.run}>

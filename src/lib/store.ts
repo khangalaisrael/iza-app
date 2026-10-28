@@ -1,5 +1,6 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { db } from "./db";
+import { notifyCustomer } from "./notify";
 import { PAY_COLLECT, PAY_DELIVERY, type Choice, type Dropoff, type Parcel } from "./parcels";
 
 type Row = {
@@ -160,10 +161,13 @@ export async function addEvent(code: string, kind: string, text: string, actor: 
     actor,
     actorId ?? null,
   ]);
+  notifyCustomer(code, kind, text);
 }
 
 // What a runner has earned: a flat fee for each collection they finished and for each door delivery.
-export async function runnerEarnings(runnerId: string): Promise<{ collections: number; deliveries: number; total: number }> {
+export type Earnings = { collections: number; deliveries: number; total: number; paid: number; owed: number };
+
+export async function runnerEarnings(runnerId: string): Promise<Earnings> {
   const rows = await (
     await db()
   ).query<{ kind: string; n: number }>(
@@ -173,7 +177,49 @@ export async function runnerEarnings(runnerId: string): Promise<{ collections: n
   const count = (kind: string) => rows.find((r) => r.kind === kind)?.n ?? 0;
   const collections = count("dropped");
   const deliveries = count("delivered");
-  return { collections, deliveries, total: collections * PAY_COLLECT + deliveries * PAY_DELIVERY };
+  const [{ paid }] = await (
+    await db()
+  ).query<{ paid: number }>("SELECT COALESCE(SUM(amount), 0)::int AS paid FROM runner_payouts WHERE runner_id = $1", [runnerId]);
+  const total = collections * PAY_COLLECT + deliveries * PAY_DELIVERY;
+  return { collections, deliveries, total, paid, owed: total - paid };
+}
+
+// The team pays a runner everything they are owed. Returns the amount, or 0 if nothing was owed.
+export async function payOutRunner(runnerId: string, paidBy: string): Promise<number> {
+  const { owed } = await runnerEarnings(runnerId);
+  if (owed <= 0) return 0;
+  await (
+    await db()
+  ).query("INSERT INTO runner_payouts (id, runner_id, amount, at, paid_by) VALUES ($1, $2, $3, $4, $5)", [
+    randomUUID(),
+    runnerId,
+    owed,
+    Date.now(),
+    paidBy,
+  ]);
+  return owed;
+}
+
+// ---- Delivery photo: a small JPEG as a data URL, one per parcel ----
+
+export async function savePhoto(code: string, image: string, takenBy: string): Promise<void> {
+  await (
+    await db()
+  ).query(
+    `INSERT INTO parcel_photos (code, image, at, taken_by) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (code) DO UPDATE SET image = EXCLUDED.image, at = EXCLUDED.at, taken_by = EXCLUDED.taken_by`,
+    [code, image, Date.now(), takenBy],
+  );
+}
+
+export async function getPhoto(code: string): Promise<string | undefined> {
+  const [row] = await (await db()).query<{ image: string }>("SELECT image FROM parcel_photos WHERE code = $1", [code]);
+  return row?.image;
+}
+
+export async function hasPhoto(code: string): Promise<boolean> {
+  const [row] = await (await db()).query<{ n: number }>("SELECT COUNT(*)::int AS n FROM parcel_photos WHERE code = $1", [code]);
+  return row.n > 0;
 }
 
 // Newest first.
