@@ -47,6 +47,7 @@ export default function NavStrip({ items }: { items: NavItem[] }) {
         ) : (
           <Link key={item.label} href={item.href} className={styles.stripTab}>
             {item.label}
+            {item.badge ? <span className={styles.badge} aria-label={`${item.badge} waiting`}>{item.badge}</span> : null}
           </Link>
         ),
       )}

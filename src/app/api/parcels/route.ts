@@ -3,6 +3,7 @@ import { FEE_DOOR, FEE_POINT, NO_RUNNER, type Parcel } from "@/lib/parcels";
 import { getPointById } from "@/lib/pointStore";
 import { encodePlusCode } from "@/lib/pluscode";
 import { addEvent, newAccessKey, newDeliveryPin, newParcelCode, saveParcel } from "@/lib/store";
+import { notifyTeam } from "@/lib/notify";
 import { normalizeIdentifier } from "@/lib/users";
 
 type Body = {
@@ -96,6 +97,7 @@ export async function POST(request: Request) {
   // The team is told about every parcel a customer sends to the hub. It shows at the top of their dashboard.
   if (fromCustomer) {
     await addEvent(parcel.code, "sent_by_customer", `A customer sent a parcel to ${point.name}. The team has been told.`, user.name);
+    notifyTeam(`${user.name} sent parcel ${parcel.code} to ${point.name}.`);
   }
   return Response.json({ code: parcel.code, key: parcel.accessKey, point: point.name, phone, dropoff, delivery: toDoor ? "door" : "shop" }, { status: 201 });
 }

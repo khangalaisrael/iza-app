@@ -353,3 +353,31 @@ test("Collect has a place to type your code", async ({ page }) => {
   await page.getByRole("button", { name: "Find my parcel" }).click();
   await expect(page).toHaveURL(/\/track\/IZA-4821$/);
 });
+
+test("the Team tab shows how many things are waiting for the team", async ({ page, as, browser, baseURL }) => {
+  const id = `waiting-${Date.now()}@iza.test`;
+  await signUp(page, { role: "I'm getting a parcel", name: "Waiting Wendy", id });
+  await page.getByRole("button", { name: "Create my account" }).click();
+  await expect(page).toHaveURL(/\/$/);
+
+  const team = await (await as("admin")).newPage();
+  await team.goto("/ops");
+  const count = async () => Number((await team.getByLabel(/ waiting$/).first().textContent({ timeout: 2000 }).catch(() => "0")) ?? 0);
+  const before = await count();
+
+  // Wendy forgets her password and asks for a link. The team's count goes up by one.
+  const asker = await browser.newPage({ baseURL });
+  await asker.goto("/forgot");
+  await asker.getByLabel("Phone number or email").fill(id);
+  await asker.getByRole("button", { name: "Ask for a reset link" }).click();
+  await expect(asker.getByRole("heading", { name: "Request sent" })).toBeVisible();
+
+  await team.reload();
+  await expect(team.getByLabel(/ waiting$/).first()).toBeVisible();
+  expect(await count()).toBe(before + 1);
+
+  // Nobody else sees a count.
+  const business = await (await as("business")).newPage();
+  await business.goto("/parcels");
+  await expect(business.getByLabel(/ waiting$/)).toHaveCount(0);
+});

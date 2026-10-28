@@ -1,6 +1,6 @@
 import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { db } from "./db";
-import { notifyCustomer } from "./notify";
+import { notifyCustomer, notifyTeam } from "./notify";
 import { PAY_COLLECT, PAY_DELIVERY, type Choice, type Dropoff, type Parcel } from "./parcels";
 
 type Row = {
@@ -166,6 +166,21 @@ export async function addEvent(code: string, kind: string, text: string, actor: 
     actorId ?? null,
   ]);
   notifyCustomer(code, kind, text);
+  // A runner's problem, or a parcel that came back, needs the team to look at it.
+  if (kind === "problem" || kind === "returned") notifyTeam(`${code}: ${text}`);
+}
+
+// How many things are waiting for the team: applications, password requests and parcels customers sent that nobody has collected.
+// This is the number on the Team tab.
+export async function teamAttention(): Promise<number> {
+  const [row] = await (
+    await db()
+  ).query<{ n: number }>(
+    `SELECT (SELECT COUNT(*) FROM users WHERE status = 'pending')::int
+          + (SELECT COUNT(*) FROM reset_requests)::int
+          + (SELECT COUNT(*) FROM parcels WHERE sender_kind = 'customer' AND stage = 0 AND cancelled_at IS NULL)::int AS n`,
+  );
+  return row.n;
 }
 
 // What a runner has earned: a flat fee for each collection they finished and for each door delivery.

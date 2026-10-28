@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { endSession, requireUser, safeNext, startSession } from "@/lib/auth";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "@/lib/password";
 import { landingFor } from "@/lib/roles";
+import { notifyTeam } from "@/lib/notify";
 import { addResetRequest, clearResetRequest, consumeReset, createReset, setPassword } from "@/lib/reset";
 import { POINT_KINDS, createPoint, setPointStatusForOwner } from "@/lib/pointStore";
 import {
@@ -83,6 +84,7 @@ export async function signUpAction(_prev: AuthState, form: FormData): Promise<Au
     // Two people signing up with the same details at the same moment: the database lets only one through.
     return fail("That phone number or email already has an account. Try signing in.");
   }
+  if (!approved) notifyTeam(`New ${role === "point" ? "Izza point" : role} application from ${name}, waiting for approval.`);
   if (role === "point") {
     await createPoint({
       name: pointName,
@@ -172,7 +174,10 @@ export async function requestResetAction(_prev: AuthState, form: FormData): Prom
   if (!(await tooManyFailures("reset:" + identifier))) {
     await recordFailure("reset:" + identifier); // reuses the sign-in counter so one number cannot be asked about again and again
     const user = await findUserByIdentifier(identifier);
-    if (user && user.status !== "disabled") await addResetRequest(user.id);
+    if (user && user.status !== "disabled") {
+      await addResetRequest(user.id);
+      notifyTeam(`${user.name} forgot their password and is waiting for a reset link.`);
+    }
   }
   return { link: "sent", phone: identifier, values: { identifier: raw } };
 }

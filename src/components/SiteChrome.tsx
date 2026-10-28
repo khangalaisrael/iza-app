@@ -4,6 +4,7 @@ import { AccountMenu } from "./AccountButton";
 import NavStrip from "./NavStrip";
 import WhatsAppButton from "./WhatsAppButton";
 import { currentUser } from "@/lib/auth";
+import { teamAttention } from "@/lib/store";
 import { t, type Lang } from "@/lib/i18n";
 import { getLang } from "@/lib/lang";
 import { actionsFor, navFor } from "@/lib/nav";
@@ -27,12 +28,14 @@ export function SiteHeader() {
 
 async function SignedBar() {
   const [user, lang] = await Promise.all([currentUser(), getLang()]);
-  return <Bar user={user} lang={lang} />;
+  // The team's tab shows how many things are waiting for them.
+  const waiting = user?.role === "admin" && user.status === "active" ? await teamAttention() : 0;
+  return <Bar user={user} lang={lang} waiting={waiting} />;
 }
 
-function Bar({ user, lang = "en" }: { user: User | null; lang?: Lang }) {
+function Bar({ user, lang = "en", waiting = 0 }: { user: User | null; lang?: Lang; waiting?: number }) {
   const role = user?.role ?? null;
-  const items = navFor(role);
+  const items = navFor(role).map((item) => (item.href === "/ops" && waiting > 0 ? { ...item, badge: waiting } : item));
   const { find, track } = actionsFor(role);
   const isWorker = user && user.role !== "customer" && user.status === "active";
 
@@ -50,6 +53,7 @@ function Bar({ user, lang = "en" }: { user: User | null; lang?: Lang }) {
           <div key={item.label} className={styles.group}>
             <Link href={item.href} className={item.children ? styles.hasMenu : undefined}>
               {item.label}
+              {item.badge ? <span className={styles.badge} aria-label={`${item.badge} waiting`}>{item.badge}</span> : null}
             </Link>
             {item.children && (
               <ul className={styles.dropdown}>

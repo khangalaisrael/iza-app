@@ -10,12 +10,12 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://izza-app.vercel.app";
 // Sends through the WhatsApp Business Cloud API (Meta). It needs WHATSAPP_TOKEN and WHATSAPP_PHONE_ID.
 // A business can only start a chat with an approved message template, so set WHATSAPP_TEMPLATE to a template whose
 // body is one variable, {{1}}, and optionally WHATSAPP_TEMPLATE_LANG (default en). Without the keys this does nothing.
-async function send(to: string, text: string): Promise<void> {
+async function send(to: string, text: string, templateName = process.env.WHATSAPP_TEMPLATE): Promise<void> {
   const token = process.env.WHATSAPP_TOKEN;
   const phoneId = process.env.WHATSAPP_PHONE_ID;
   if (!token || !phoneId) return;
 
-  const template = process.env.WHATSAPP_TEMPLATE;
+  const template = templateName;
   const body = template
     ? {
         messaging_product: "whatsapp",
@@ -45,6 +45,29 @@ async function run(code: string, text: string): Promise<void> {
     await send(whatsappNumber(row.recipient_phone), `Izza: ${text} ${SITE}/track/${code}${row.access_key ? `?k=${row.access_key}` : ""}`);
   } catch (err) {
     console.error("WhatsApp update failed", err); // a failed message must never fail the job
+  }
+}
+
+// The team's own alerts: a new application, a password request, a parcel a customer sent, a runner's problem.
+// Set TEAM_WHATSAPP_NUMBER to the team's WhatsApp number (several can be separated by commas), and, because WhatsApp only lets a
+// business start a chat with an approved template, WHATSAPP_TEAM_TEMPLATE to a template whose body is one variable, {{1}}.
+// Without the keys and the number this does nothing, and the count on the Team tab is the only alert.
+export function notifyTeam(text: string): void {
+  const numbers = (process.env.TEAM_WHATSAPP_NUMBER ?? "").split(",").map((n) => n.trim()).filter(Boolean);
+  if (!process.env.WHATSAPP_TOKEN || numbers.length === 0) return;
+  const go = async () => {
+    for (const n of numbers) {
+      try {
+        await send(whatsappNumber(n), `Izza team: ${text} ${SITE}/ops`, process.env.WHATSAPP_TEAM_TEMPLATE ?? process.env.WHATSAPP_TEMPLATE);
+      } catch (err) {
+        console.error("Team alert failed", err); // an alert that fails must never fail the action that caused it
+      }
+    }
+  };
+  try {
+    after(go);
+  } catch {
+    void go();
   }
 }
 

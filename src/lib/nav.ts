@@ -1,7 +1,7 @@
 import type { Role } from "./users";
 
 export type NavChild = { label: string; href: string };
-export type NavItem = { label: string; href: string; children?: NavChild[] };
+export type NavItem = { label: string; href: string; children?: NavChild[]; badge?: number };
 
 const send: NavItem = {
   label: "Send",
