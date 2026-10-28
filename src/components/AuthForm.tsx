@@ -140,6 +140,21 @@ export default function AuthForm({
         {pending ? "One moment…" : signup ? (role === "customer" ? "Create my account" : "Send my application") : "Sign in"}
       </button>
 
+      {!signup && (
+        <p className="muted center" style={{ margin: 0 }}>
+          Forgot your password? Message the Iza team on WhatsApp and we will send you a link to choose a new one.
+        </p>
+      )}
+      {signup && (
+        <p className="muted center" style={{ margin: 0 }}>
+          By joining you agree to how we use your details in our{" "}
+          <Link href="/privacy" style={{ color: "var(--primary)", fontWeight: 700 }}>
+            privacy notice
+          </Link>
+          .
+        </p>
+      )}
+
       <p className="muted center">
         {signup ? "Already have an account? " : "New to Iza? "}
         <Link

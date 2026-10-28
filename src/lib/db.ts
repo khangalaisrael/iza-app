@@ -113,6 +113,12 @@ const SCHEMA = [
     paid_by TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS runner_payouts_idx ON runner_payouts (runner_id)`,
+  // One-time links the team gives to someone who forgot their password. Only the hash of the token is kept.
+  `CREATE TABLE IF NOT EXISTS password_resets (
+    token_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at BIGINT NOT NULL
+  )`,
   // A photo of the parcel at the door, taken by the runner as proof of delivery.
   `CREATE TABLE IF NOT EXISTS parcel_photos (
     code TEXT PRIMARY KEY REFERENCES parcels(code) ON DELETE CASCADE,

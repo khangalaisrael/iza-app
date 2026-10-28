@@ -4,10 +4,12 @@ import { redirect } from "next/navigation";
 import { endSession, requireUser, safeNext, startSession } from "@/lib/auth";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "@/lib/password";
 import { landingFor } from "@/lib/roles";
+import { consumeReset, createReset, setPassword } from "@/lib/reset";
 import { POINT_KINDS, createPoint, setPointStatusForOwner } from "@/lib/pointStore";
 import {
   clearFailures,
   createUser,
+  findUserById,
   findUserByIdentifier,
   normalizeIdentifier,
   recordFailure,
@@ -17,7 +19,7 @@ import {
 } from "@/lib/users";
 
 // `values` gives back what was typed (never the password), so an error does not wipe the form.
-export type AuthState = { error?: string; values?: Record<string, string> };
+export type AuthState = { error?: string; values?: Record<string, string>; link?: string; phone?: string };
 
 const SIGNUP_ROLES: Role[] = ["customer", "business", "runner", "point"];
 const WRONG = "That phone number, email or password isn't right.";
@@ -144,6 +146,36 @@ export async function addPointAction(_prev: AuthState, form: FormData): Promise<
 
   await createPoint({ name, kind, address: address || name, lat, lng, hours, ownerId: null, status: "approved" });
   redirect("/ops?added=1");
+}
+
+// The team makes a one-time reset link for someone who forgot their password, and sends it to them themselves.
+export async function issueResetAction(_prev: AuthState, form: FormData): Promise<AuthState> {
+  await requireUser(["admin"], "/ops");
+  const raw = String(form.get("identifier") ?? "");
+  const identifier = normalizeIdentifier(raw);
+  const values = { identifier: raw };
+  if (!identifier) return { error: "Enter their phone number or email.", values };
+  const user = await findUserByIdentifier(identifier);
+  if (!user || user.status === "disabled") return { error: "No active account with that phone number or email.", values };
+  const token = await createReset(user.id);
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://iza-app-israels-projects-71356823.vercel.app";
+  return { link: `${site}/reset/${token}`, phone: identifier.includes("@") ? undefined : identifier, values };
+}
+
+// Someone opens the link they were given and chooses a new password. The link works once.
+export async function resetPasswordAction(_prev: AuthState, form: FormData): Promise<AuthState> {
+  const token = String(form.get("token") ?? "");
+  const password = String(form.get("password") ?? "");
+  if (password.length < 8 || password.length > 200) return { error: "Use a password of at least 8 characters." };
+  if (password !== String(form.get("again") ?? "")) return { error: "The two passwords don't match." };
+
+  const userId = await consumeReset(token);
+  if (!userId) return { error: "This link has expired or was already used. Ask the Iza team for a new one." };
+  await setPassword(userId, await hashPassword(password));
+  await clearFailures((await findUserById(userId))!.identifier);
+  await startSession(userId);
+  const user = (await findUserById(userId))!;
+  redirect(user.status === "active" ? landingFor(user.role) : "/pending");
 }
 
 export async function approveUserAction(form: FormData): Promise<void> {

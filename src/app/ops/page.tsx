@@ -6,6 +6,7 @@ import AddPointForm from "@/components/AddPointForm";
 import AssignRunner from "@/components/AssignRunner";
 import AutoRefresh from "@/components/AutoRefresh";
 import PayoutButton from "@/components/PayoutButton";
+import ResetLinkForm from "@/components/ResetLinkForm";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
 import { FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, needsCollection, statusOf, type Parcel } from "@/lib/parcels";
@@ -265,6 +266,12 @@ async function Board() {
                 <PayoutButton runnerId={r.id} name={r.name} owed={r.owed} />
               </div>
             ))}
+          </section>
+
+          <section className="card stack" style={{ gap: 10 }} aria-labelledby="reset">
+            <h2 id="reset">Forgot a password?</h2>
+            <p className="muted" style={{ margin: 0 }}>Make a one-time link and send it to the person yourself. Check it really is them first.</p>
+            <ResetLinkForm />
           </section>
 
           <section className="card stack" style={{ gap: 10 }} aria-labelledby="add-point">

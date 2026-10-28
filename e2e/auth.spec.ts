@@ -253,3 +253,56 @@ test("the team can add an Iza point themselves, and it is live straight away", a
   await expect(visitor.getByText("Hub Test Corner")).toBeVisible();
   await ctx.close();
 });
+
+test("the team gives someone a one-time link to choose a new password", async ({ page, as, browser, baseURL }) => {
+  const id = `forgot-${Date.now()}@iza.test`;
+  await signUp(page, { role: "I'm getting a parcel", name: "Forgetful", id, password: "the-old-password" });
+  await page.getByRole("button", { name: "Create my account" }).click();
+  await expect(page).toHaveURL(/\/$/);
+
+  // Only the team can make a link.
+  const team = await (await as("admin")).newPage();
+  await team.goto("/ops");
+  await team.getByLabel("Their phone number or email").fill("nobody@iza.test");
+  await team.getByRole("button", { name: "Make a reset link" }).click();
+  await expect(team.locator("form [role=alert]")).toContainText("No active account");
+  await team.getByLabel("Their phone number or email").fill(id);
+  await team.getByRole("button", { name: "Make a reset link" }).click();
+  const link = await team.getByLabel("Reset link").inputValue();
+  expect(link).toMatch(/\/reset\/[\w-]{20,}$/);
+  const path = new URL(link).pathname;
+
+  const signedOut = await browser.newPage({ baseURL });
+  await signedOut.goto("/ops");
+  await expect(signedOut).toHaveURL(/\/signin/);
+
+  // They open the link, and the two passwords must match.
+  const person = await browser.newPage({ baseURL });
+  await person.goto(path);
+  await person.getByLabel("New password").fill("the-new-password");
+  await person.getByLabel("Type it again").fill("something-else-entirely");
+  await person.getByRole("button", { name: "Save my new password" }).click();
+  await expect(person.locator("form [role=alert]")).toContainText("don't match");
+  // The form clears itself after an error, so both boxes are filled again.
+  await person.getByLabel("New password").fill("the-new-password");
+  await person.getByLabel("Type it again").fill("the-new-password");
+  await person.getByRole("button", { name: "Save my new password" }).click();
+  await expect(person).toHaveURL(/\/$/);
+  await expect(person.getByLabel(/Account menu/)).toBeVisible();
+
+  // The old password stops working, the new one works, and the link cannot be used again.
+  await signIn(signedOut, id, "the-old-password");
+  await expect(signedOut.locator("form [role=alert]")).toContainText("isn't right");
+  await signIn(signedOut, id, "the-new-password");
+  await expect(signedOut.getByLabel(/Account menu/)).toBeVisible();
+  await person.goto(path);
+  await expect(person.getByRole("heading", { name: "This link doesn't work any more" })).toBeVisible();
+});
+
+test("the privacy notice is linked from the footer and the sign-up form", async ({ page }) => {
+  await page.goto("/signup");
+  await page.getByRole("link", { name: "privacy notice" }).click();
+  await expect(page.getByRole("heading", { name: "What we keep" })).toBeVisible();
+  await page.goto("/");
+  await expect(page.getByRole("contentinfo").getByRole("link", { name: "Privacy notice" })).toBeVisible();
+});

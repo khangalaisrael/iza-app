@@ -156,6 +156,9 @@ export function SiteFooter() {
               <li>
                 <Link href="/why#operate">How we operate</Link>
               </li>
+              <li>
+                <Link href="/privacy">Privacy notice</Link>
+              </li>
               <li>Rondebosch, Cape Town</li>
             </ul>
           </div>
