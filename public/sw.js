@@ -11,6 +11,10 @@ self.addEventListener("push", (event) => {
       body: data.body,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
+      vibrate: [200, 100, 200],
+      silent: false,
+      tag: data.url,
+      renotify: true,
       data: { url: data.url },
     }),
   );

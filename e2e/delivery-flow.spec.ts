@@ -7,11 +7,35 @@ const CODE = /^IZA-[2-9A-HJ-NP-Z]{6}$/;
 const KEYS = new Map<string, string>();
 const receiverUrl = (code: string) => `/track/${code}?k=${KEYS.get(code)}`;
 
+// Every circle sits exactly on the tracker's line, the line runs from one circle to the next, and each step's words are beside
+// its circle (not underneath it). Checked on a parcel with finished steps, which is where a styling clash once hid.
+async function expectTrackerAligned(page: Page) {
+  const dots = page.locator(".trDot");
+  const lines = page.locator(".trLine");
+  const n = await dots.count();
+  expect(n).toBeGreaterThanOrEqual(4);
+  expect(await lines.count()).toBe(n - 1);
+  for (let i = 0; i < n; i++) {
+    const d = (await dots.nth(i).boundingBox())!;
+    const title = (await page.locator(".trStep .trBody strong").nth(i).boundingBox())!;
+    expect(title.x).toBeGreaterThanOrEqual(d.x + d.width);
+    expect(Math.abs(title.y + title.height / 2 - (d.y + d.height / 2))).toBeLessThan(24);
+    if (i < n - 1) {
+      const next = (await dots.nth(i + 1).boundingBox())!;
+      const l = (await lines.nth(i).boundingBox())!;
+      expect(Math.abs(d.x + d.width / 2 - (l.x + l.width / 2))).toBeLessThan(1);
+      expect(l.y).toBeGreaterThanOrEqual(d.y + d.height - 1);
+      expect(l.y + l.height).toBeLessThanOrEqual(next.y + 1);
+    }
+  }
+}
+
 // A business books a parcel to Corner Shop for someone, and gets the code back.
-async function book(page: Page, opts: { from: string; to: string; phone: string; point?: string; toDoor?: boolean }) {
+async function book(page: Page, opts: { from: string; to: string; phone: string; point?: string; toDoor?: boolean; toHub?: boolean }) {
   await page.goto("/send");
   if (opts.toDoor) await page.getByText("Bring it to their door").click();
-  await page.getByLabel("Pick up from").fill(opts.from);
+  if (opts.toHub) await page.getByText("I will take it to the hub myself").click();
+  else await page.getByLabel("Pick up from").fill(opts.from);
   await page.getByLabel("Their name").fill(opts.to);
   await page.getByLabel("Their WhatsApp number").fill(opts.phone);
   await page.getByText(opts.point ?? "Corner Shop", { exact: true }).click();
@@ -77,8 +101,8 @@ test("the customer collects: the runner works the job, the shop hands it over", 
 
   // The customer reads the runner's updates.
   await customer.reload();
-  await expect(customer.getByText(/is on the way to collect it/)).toBeVisible();
-  await expect(customer.getByText(/Dropped at Corner Shop/)).toBeVisible();
+  await expect(customer.getByLabel("Updates").getByText(/is on the way to collect it/)).toBeVisible();
+  await expect(customer.getByLabel("Updates").getByText(/Dropped at Corner Shop/)).toBeVisible();
 
   // The collection job is finished, and a collect-at-the-point parcel is not a delivery job.
   await runner.goto("/runner");
@@ -237,7 +261,7 @@ test("a failed delivery goes back to the Izza point and the customer is told to 
   await expect(runner.getByRole("heading", { name: "Step 2: Take it to the customer" })).toHaveCount(0);
 
   await customer.goto(receiverUrl(code));
-  await expect(customer.getByText(/back at Corner Shop/)).toBeVisible();
+  await expect(customer.getByLabel("Updates").getByText(/back at Corner Shop/)).toBeVisible();
   await expect(customer.getByText("Nobody was there.")).toBeVisible();
 
   // It is now a collect-at-the-point parcel, so the shop can hand it over.
@@ -538,4 +562,142 @@ test("phone notifications: only people who can see a parcel can ask for them, an
   // With a phone subscribed that cannot be reached, the job still goes through.
   await collectAndDrop(runner, code);
   await expect(runner.getByRole("heading", { name: "Done. Enkosi!" })).toBeVisible();
+});
+
+test("the tracker draws every circle exactly on its line, with the time of each finished step", async ({ as, browser, baseURL }) => {
+  const business = await (await as("business")).newPage();
+  const code = await book(business, { from: "Thembi's Kitchen", to: "Aligned Ayanda", phone: "082 555 0001" });
+  const receiver = await browser.newPage({ baseURL });
+  await receiver.goto(receiverUrl(code));
+
+  await expectTrackerAligned(receiver);
+  // A freshly booked parcel is on its first step, which already shows when it was booked.
+  await expect(receiver.locator(".trStep time").first()).toBeVisible();
+  await expect(receiver.locator(".trLatest")).toContainText("Latest update");
+  await expect(receiver.locator(".trStep.tr-now")).toHaveCount(1);
+});
+
+test("live location starts by itself on the delivery leg, and the runner can navigate turn by turn", async ({ as, browser, baseURL }) => {
+  const door = { lat: -33.9432, lng: 18.532 };
+  const business = await (await as("business")).newPage();
+  const code = await book(business, { from: "Thembi's Kitchen", to: "Navigated Nomsa", phone: "082 555 0002" });
+
+  // The receiver chooses the door and pins where they are.
+  const receiver = await browser.newPage({ baseURL });
+  const chose = await receiver.request.patch(`/api/parcels/${code}`, {
+    data: { action: "choose", choice: "door", landmark: "Blue gate, Main Rd", ...door, key: KEYS.get(code) },
+    headers: { origin: baseURL! },
+  });
+  expect(chose.ok()).toBeTruthy();
+
+  const runnerCtx = await as("runner");
+  await runnerCtx.grantPermissions(["geolocation"]);
+  await runnerCtx.setGeolocation({ latitude: -33.9441, longitude: 18.5296 });
+  const runner = await runnerCtx.newPage();
+  // A made-up route, so the test does not depend on a routing service: east for 222 m, then a left turn for 100 m.
+  await runner.route("**/route/v1/**", (route) =>
+    route.fulfill({
+      json: {
+        routes: [
+          {
+            distance: 322,
+            duration: 120,
+            geometry: { coordinates: [[18.5296, -33.9441], [18.532, -33.9441], [18.532, -33.9432]] },
+            legs: [
+              {
+                steps: [
+                  { distance: 222, name: "Lerato St", maneuver: { type: "depart", modifier: "east", location: [18.5296, -33.9441] } },
+                  { distance: 100, name: "Main Rd", maneuver: { type: "turn", modifier: "left", location: [18.532, -33.9441] } },
+                  { distance: 0, name: "", maneuver: { type: "arrive", location: [18.532, -33.9432] } },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    }),
+  );
+  await collectAndDrop(runner, code);
+  await runner.goto("/runner");
+  await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this delivery" }).click();
+  await runner.getByRole("button", { name: /I've collected it from Corner Shop/ }).click();
+
+  // The runner sets off, so the phone's position changes, as a real one does.
+  await runnerCtx.setGeolocation({ latitude: -33.9441, longitude: 18.5297 });
+
+  // On the way, sharing starts without anyone pressing a button, and the receiver sees the runner live.
+  await expect(runner.getByText(/Live\. The customer can see you/)).toBeVisible({ timeout: 25000 });
+  await receiver.goto(receiverUrl(code));
+  await expect(receiver.getByText("Your runner is live on the map.")).toBeVisible();
+  await expect(receiver.locator(".trStep.tr-done")).toHaveCount(3);
+  await expectTrackerAligned(receiver);
+
+  // Full-screen navigation: the next turn, then closer, then arrival.
+  await runner.getByRole("button", { name: "Start navigation" }).click();
+  const nav = runner.getByRole("dialog", { name: "Navigation" });
+  await expect(nav).toBeVisible();
+  await expect(nav.locator(".navTop")).toContainText("Turn left onto Main Rd");
+  await expect(nav.locator(".navTop strong")).toHaveText(/^2[0-3]0 m$/);
+  await expect(nav.locator(".navStats")).toContainText("min");
+
+  await runnerCtx.setGeolocation({ latitude: -33.9441, longitude: 18.5318 });
+  await expect(nav.locator(".navTop strong")).toHaveText(/^(10|20|30) m$/, { timeout: 20000 });
+
+  await runnerCtx.setGeolocation({ latitude: door.lat, longitude: door.lng });
+  await expect(nav.locator(".navTop")).toContainText("You have arrived", { timeout: 20000 });
+  await nav.getByRole("button", { name: "Done" }).click();
+  await expect(nav).toHaveCount(0);
+});
+
+test("send straight to the hub: no runner, the sender pays the hub in cash, and the receiver collects there", async ({ as, browser, baseURL }) => {
+  const business = await (await as("business")).newPage();
+  const code = await book(business, { from: "", to: "Hub Hlengiwe", phone: "082 555 0003", toHub: true });
+  await expect(business.getByText(/Take it to Corner Shop and pay R12 cash there/)).toBeVisible();
+
+  // No runner job exists for it.
+  const runner = await (await as("runner")).newPage();
+  await runner.goto("/runner");
+  await expect(runner.locator("article", { hasText: code })).toHaveCount(0);
+
+  // The hub takes the cash and confirms it arrived.
+  const shop = await (await as("point")).newPage();
+  await shop.goto("/point");
+  const card = shop.locator("div.card", { hasText: code });
+  await expect(card.getByText("Sender owes R12")).toBeVisible();
+  await card.getByRole("button", { name: "Cash received" }).click();
+  await expect(card.getByText("Sender paid R12")).toBeVisible();
+  await card.getByRole("button", { name: "I have received it" }).click();
+  await expect(shop.getByRole("heading", { name: "Ready to collect" })).toBeVisible();
+
+  // The receiver chooses to collect there, and the hub hands it over. A runner was never needed.
+  const receiver = await browser.newPage({ baseURL });
+  await receiver.goto(receiverUrl(code));
+  await receiver.getByText("I'll collect it").click();
+  await receiver.getByRole("button", { name: "Confirm" }).click();
+  await expect(receiver.getByText("Saved. Thank you!")).toBeVisible();
+  await shop.getByLabel("Someone at the counter?").fill(code);
+  await shop.getByRole("button", { name: "Hand over" }).click();
+  await expect(shop.getByText(`${code} handed over. Enkosi!`)).toBeVisible();
+  await receiver.reload();
+  await expect(receiver.getByRole("heading", { name: "Delivered. Enkosi!" })).toBeVisible();
+});
+
+test("a chime is meant to play when a new job turns up for a runner, and sound can be turned off", async ({ as }) => {
+  const runner = await (await as("runner")).newPage();
+  await runner.goto("/runner");
+  await runner.waitForTimeout(500);
+  expect(await runner.evaluate(() => (window as unknown as { __izzaChimes?: number }).__izzaChimes ?? 0)).toBe(0);
+
+  // A business books a parcel. The runner's page refreshes itself and sees a new open job.
+  const business = await (await as("business")).newPage();
+  await book(business, { from: "Thembi's Kitchen", to: "Chime Chipo", phone: "082 555 0004" });
+  await runner.waitForFunction(() => ((window as unknown as { __izzaChimes?: number }).__izzaChimes ?? 0) >= 1, null, { timeout: 30000 });
+
+  // The More page has a switch for it, and it is remembered.
+  await runner.goto("/more");
+  const toggle = runner.getByRole("button", { name: /^Sound is on/ });
+  await toggle.click();
+  await expect(runner.getByRole("button", { name: /^Sound is off/ })).toBeVisible();
+  await runner.reload();
+  await expect(runner.getByRole("button", { name: /^Sound is off/ })).toBeVisible();
 });

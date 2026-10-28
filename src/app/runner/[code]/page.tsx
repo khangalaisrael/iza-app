@@ -170,6 +170,7 @@ async function Job({ user, params }: { user: User; params: PageProps<"/runner/[c
           senderFee={parcel.dropoff !== "self" ? FEE_POINT : undefined}
           senderPaid={!!parcel.paidAt}
           photoTaken={photo}
+          transport={user.details?.transport}
         />
       )}
 

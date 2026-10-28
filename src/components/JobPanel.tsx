@@ -28,6 +28,7 @@ type Props = {
   senderFee?: number; // what the sender pays the runner at a pickup; unset when the sender brings it to the hub
   senderPaid?: boolean;
   photoTaken?: boolean; // a proof-of-delivery photo is already saved
+  transport?: string; // how this runner gets around, so directions use roads, paths or cycle routes that suit them
 };
 
 const PROBLEMS: [string, string][] = [
@@ -39,7 +40,7 @@ const PROBLEMS: [string, string][] = [
 ];
 
 // One job, one screen. The layout never changes: where you are, the map, one big button, then the extras.
-export default function JobPanel({ code, stage, choice, pointName, pickupText, doorText, links, dest, start, progress, doorFee, doorPaid, photoTaken, senderFee, senderPaid }: Props) {
+export default function JobPanel({ code, stage, choice, pointName, pickupText, doorText, links, dest, start, progress, doorFee, doorPaid, photoTaken, senderFee, senderPaid, transport }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,7 +170,7 @@ export default function JobPanel({ code, stage, choice, pointName, pickupText, d
           </p>
         </div>
 
-        {dest && <TripRoute to={dest} toLabel={dest.label} start={start} />}
+        {dest && <TripRoute to={dest} toLabel={dest.label} start={start} transport={transport} />}
 
         {showPin && (
           <div className="field pinBox">

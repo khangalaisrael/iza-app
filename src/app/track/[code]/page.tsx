@@ -3,10 +3,12 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import AutoRefresh from "@/components/AutoRefresh";
 import CancelButton from "@/components/CancelButton";
+import ChimeOnChange from "@/components/ChimeOnChange";
 import ChooseDelivery from "@/components/ChooseDelivery";
 import EventFeed from "@/components/EventFeed";
 import LanguageLinks from "@/components/LanguageLinks";
 import MapView from "@/components/MapView";
+import Tracker from "@/components/Tracker";
 import NotifyButton from "@/components/NotifyButton";
 import Shell from "@/components/Shell";
 import { currentUser } from "@/lib/auth";
@@ -15,6 +17,7 @@ import { getLang } from "@/lib/lang";
 import { etaMinutes } from "@/lib/geo";
 import { FEE_DOOR_EXTRA, FEE_POINT, awaitingAddress, destinationOf, etaOf, runnerPositionOf, stepsOf, type Parcel } from "@/lib/parcels";
 import { getPointById, type IzaPoint } from "@/lib/pointStore";
+import { ageText } from "@/lib/rules";
 import { getParcel, hasPhoto, keyMatches, listEvents } from "@/lib/store";
 import type { User } from "@/lib/users";
 
@@ -85,6 +88,18 @@ async function ParcelDetails({
   const parcel = full ? found : redact(found);
   const cancelled = !!parcel.cancelledAt;
 
+  // When each step happened, from what was recorded. Newest first, so the first match is the latest.
+  const now = Date.now();
+  const at = (...kinds: string[]) => events.find((e) => kinds.includes(e.kind))?.at;
+  const stageTimes: Partial<Record<number, number>> = {
+    0: parcel.createdAt,
+    1: at("collected"),
+    2: at("dropped", "received"),
+    3: at("picked_from_point"),
+    4: at("delivered", "collected_by_customer"),
+  };
+  const latest = events.find((e) => e.kind !== "pin_wrong" && e.kind !== "sent_by_customer");
+
   const here = point ? { lat: point.lat, lng: point.lng } : undefined;
   const dest = destinationOf(parcel, here);
   const runnerPos = full && parcel.stage === 3 ? runnerPositionOf(parcel) : undefined;
@@ -95,6 +110,7 @@ async function ParcelDetails({
   return (
     <>
       <AutoRefresh seconds={parcel.stage === 3 ? 2 : 5} />
+      <ChimeOnChange value={latest?.id} />
       <section className="hero">
         <p className="greeting">{t(lang, "Molo, {name}", { name: parcel.to })}</p>
         <h1>{headline}</h1>
@@ -168,6 +184,16 @@ async function ParcelDetails({
         </section>
       )}
 
+      {full && parcel.stage === 3 && !cancelled && (
+        <p className="muted" style={{ margin: 0 }} role="status">
+          {runnerPos
+            ? now - (parcel.updatedAt ?? now) < 20000
+              ? "Your runner is live on the map."
+              : `Your runner's location was last seen ${ageText(now - (parcel.updatedAt ?? now))} ago.`
+            : "Your runner has not shared their location yet."}
+        </p>
+      )}
+
       {showMap && (
         <MapView
           points={point ? [{ id: point.id, name: point.name, lat: point.lat, lng: point.lng }] : []}
@@ -206,17 +232,14 @@ async function ParcelDetails({
             {t(lang, "to see more about this parcel.")}
           </p>
         )}
-        <ol className="timeline">
-          {stepsOf(parcel, lang).map((s) => (
-            <li key={s.title} className={s.state}>
-              <span className="dot" aria-hidden="true" />
-              <div>
-                <strong>{s.title}</strong>
-                <small>{s.detail}</small>
-              </div>
-            </li>
-          ))}
-        </ol>
+        {latest && (
+          <div className="trLatest" role="status">
+            <span>Latest update</span>
+            <strong>{latest.text}</strong>
+            <small>{ageText(now - latest.at)} ago</small>
+          </div>
+        )}
+        <Tracker steps={stepsOf(parcel, lang)} times={stageTimes} now={now} />
       </section>
       {(isReceiver || isSender) && !cancelled && parcel.stage < 4 && <NotifyButton code={parcel.code} accessKey={keyOk ? key : undefined} />}
       {isSender && !cancelled && found.stage === 0 && <CancelButton code={parcel.code} />}

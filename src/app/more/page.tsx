@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import LanguageLinks from "@/components/LanguageLinks";
 import Shell from "@/components/Shell";
+import SoundToggle from "@/components/SoundToggle";
 import { signOutAction } from "@/app/auth/actions";
 import { currentUser } from "@/lib/auth";
 import { navFor } from "@/lib/nav";
@@ -49,6 +50,11 @@ async function Content() {
             Privacy notice
           </Link>
         </div>
+      </section>
+
+      <section className="stack" style={{ gap: 8 }} aria-label="Sound">
+        <h2>Sound</h2>
+        <SoundToggle />
       </section>
 
       <section className="stack" style={{ gap: 8 }} aria-label="Language">

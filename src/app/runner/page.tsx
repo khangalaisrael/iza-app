@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import AcceptButton from "@/components/AcceptButton";
 import AutoRefresh from "@/components/AutoRefresh";
+import ChimeOnChange from "@/components/ChimeOnChange";
 import FindMeMap from "@/components/FindMeMap";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
@@ -74,6 +75,7 @@ async function Board({ user }: { user: User }) {
   return (
     <>
       <AutoRefresh />
+      <ChimeOnChange value={open.length + mine.length} />
       <h1 className="visually-hidden">My jobs</h1>
       <div className="portalGrid">
         <div className="stack">

@@ -1572,3 +1572,232 @@ html {
 [hidden] {
   display: none !important;
 }
+
+/* The tracker: one unbroken line, a circle for each step sitting exactly on it, the current step pulsing. */
+.tracker {
+  display: grid;
+  gap: 10px;
+}
+.trSummary {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 14px;
+}
+.trList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.trStep {
+  display: flex;
+  gap: 14px;
+}
+.trRail {
+  flex: none;
+  width: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.trDot {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--line);
+  background: var(--white);
+  color: #fff;
+}
+.trLine {
+  flex: 1;
+  width: 4px;
+  min-height: 20px;
+  margin: 4px 0;
+  border-radius: 2px;
+  background: var(--line);
+}
+.trBody {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 22px;
+  min-width: 0;
+}
+.trStep:last-child .trBody {
+  padding-bottom: 0;
+}
+.trBody strong {
+  font-size: 17px;
+}
+.trBody small {
+  color: var(--muted);
+  font-size: 14px;
+}
+.trBody time {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 14px;
+}
+.trStep.tr-done .trDot {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.trStep.tr-done .trLine {
+  background: var(--primary);
+}
+.trStep.tr-now .trDot {
+  border-color: var(--honey);
+  background: var(--white);
+  box-shadow: 0 0 0 5px var(--honey-bg);
+  animation: trPulse 1800ms var(--ease-out) infinite;
+}
+.trStep.tr-now .trDot::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--honey);
+}
+.trStep.tr-next .trBody strong {
+  color: var(--muted);
+}
+.trLatest {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--honey-bg);
+}
+.trLatest span {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--honey-ink);
+}
+.trLatest small {
+  color: var(--honey-ink);
+}
+@keyframes trPulse {
+  50% {
+    box-shadow: 0 0 0 9px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trStep.tr-now .trDot {
+    animation: none;
+  }
+}
+
+/* A small light that shows the runner's location is being sent. */
+.liveDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--line);
+}
+.liveDot.on {
+  background: #25d366;
+  box-shadow: 0 0 0 4px rgb(37 211 102 / 0.25);
+}
+
+/* Full-screen navigation: the map fills the screen, the next turn sits at the top, the time and distance left at the bottom. */
+.navFull {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  height: 100dvh;
+  background: var(--bg);
+}
+.navMap {
+  position: absolute;
+  inset: 0;
+}
+.navMap > div {
+  height: 100%;
+}
+.navTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: calc(14px + env(safe-area-inset-top)) 18px 16px;
+  background: var(--panel);
+  color: #fff;
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 10px 30px rgb(19 32 27 / 0.3);
+}
+.navTop > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.navTop strong {
+  font-family: var(--font-heading);
+  font-size: 30px;
+  line-height: 1.05;
+}
+.navTop span {
+  font-size: 17px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.navBottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  background: var(--white);
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -10px 30px rgb(19 32 27 / 0.2);
+}
+.navStats {
+  display: grid;
+  gap: 2px;
+}
+.navStats strong {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  color: var(--primary);
+}
+.navStats span {
+  color: var(--muted);
+  font-weight: 700;
+}
+.navButtons {
+  display: flex;
+  gap: 8px;
+}
+.navButtons .btn {
+  flex: 1;
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.navButtons .btn-primary {
+  flex: 1.4;
+}
+.navMe {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--primary);
+  box-shadow: 0 2px 10px rgb(19 32 27 / 0.4);
+}

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AdvancedMarker, APIProvider, Map, Pin, useMap } from "@vis.gl/react-google-maps";
+import NavigationMode from "./NavigationMode";
+import { profileFor, routeUrl } from "@/lib/navigation";
 
 type LatLng = { lat: number; lng: number };
 type Step = { text: string; meters: number };
@@ -55,7 +57,9 @@ function Line({ path, me, to }: { path: LatLng[]; me: LatLng; to: LatLng }) {
  * Directions inside the website: the route to where the runner is going, the distance, the time and each turn.
  * It uses the runner's own position, and the start given if the phone won't share it.
  */
-export default function TripRoute({ to, toLabel, start }: { to: LatLng; toLabel: string; start: LatLng }) {
+export default function TripRoute({ to, toLabel, start, transport }: { to: LatLng; toLabel: string; start: LatLng; transport?: string }) {
+  const [navigating, setNavigating] = useState(false);
+  const profile = profileFor(transport);
   const [here, setHere] = useState<LatLng | null>(null);
   const [route, setRoute] = useState<Route | null>(null);
   const [failed, setFailed] = useState(false);
@@ -80,7 +84,7 @@ export default function TripRoute({ to, toLabel, start }: { to: LatLng; toLabel:
     if (lastFetch.current && metersBetween(lastFetch.current, from) < 150) return;
     lastFetch.current = from;
     const ctl = new AbortController();
-    const url = `https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${toLng},${toLat}?overview=full&geometries=geojson&steps=true`;
+    const url = routeUrl(profile, from, { lat: toLat, lng: toLng });
     fetch(url, { signal: ctl.signal })
       .then((r) => r.json())
       .then((d) => {
@@ -98,7 +102,7 @@ export default function TripRoute({ to, toLabel, start }: { to: LatLng; toLabel:
         if (e.name !== "AbortError") setFailed(true);
       });
     return () => ctl.abort();
-  }, [from, toLat, toLng]);
+  }, [from, toLat, toLng, profile]);
 
   const straight = metersBetween(from, { lat: toLat, lng: toLng });
 
@@ -111,9 +115,14 @@ export default function TripRoute({ to, toLabel, start }: { to: LatLng; toLabel:
         </div>
         <div className="tripNumbers" aria-live="polite">
           <strong>{route ? distanceText(route.meters) : `About ${distanceText(straight)}`}</strong>
-          <span>{route ? `${minutesText(route.seconds)} by road` : failed ? "Route unavailable" : "Finding the route…"}</span>
+          <span>{route ? `${minutesText(route.seconds)} ${profile === "foot" ? "on foot" : profile === "bike" ? "by bicycle" : "by road"}` : failed ? "Route unavailable" : "Finding the route…"}</span>
         </div>
       </div>
+
+      <button type="button" className="btn btn-primary btn-block" onClick={() => setNavigating(true)}>
+        Start navigation
+      </button>
+      {navigating && <NavigationMode to={{ lat: toLat, lng: toLng }} toLabel={toLabel} start={start} profile={profile} onExit={() => setNavigating(false)} />}
 
       {apiKey ? (
         <APIProvider apiKey={apiKey}>
@@ -121,7 +130,7 @@ export default function TripRoute({ to, toLabel, start }: { to: LatLng; toLabel:
             <Map mapId="DEMO_MAP_ID" defaultCenter={from} defaultZoom={15} gestureHandling="greedy" disableDefaultUI zoomControl>
               {route && <Line path={route.path} me={from} to={{ lat: toLat, lng: toLng }} />}
               <AdvancedMarker position={{ lat: toLat, lng: toLng }} title={toLabel}>
-                <Pin background="#f2b631" borderColor="#13201b" glyphColor="#13201b" />
+                <Pin background="#cd4600" borderColor="#ffffff" glyphColor="#ffffff" />
               </AdvancedMarker>
               <AdvancedMarker position={from} title="You">
                 <div className="meDot" aria-label="You are here" />

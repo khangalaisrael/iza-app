@@ -25,6 +25,7 @@ export const PAY_DELIVERY = FEE_DOOR_EXTRA;
 export type Choice = "point" | "door";
 
 export type Step = {
+  stage: number; // which of the five stages this step is
   title: string;
   detail: string;
   state: "done" | "now" | "next";
@@ -126,6 +127,7 @@ export function stepsOf(p: Parcel, lang: Lang = "en"): Step[] {
   return STAGES.map((title, i) => ({ title, i }))
     .filter(({ i }) => !(i === 3 && p.choice === "point"))
     .map(({ title, i }) => ({
+      stage: i,
       title: t(lang, title),
       detail: detailFor(p, i, lang),
       state: (i < p.stage || (i === p.stage && i === LAST_STAGE) ? "done" : i === p.stage ? "now" : "next") as Step["state"],

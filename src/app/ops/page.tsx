@@ -5,6 +5,7 @@ import { approveUserAction, setUserActiveAction } from "@/app/auth/actions";
 import AddPointForm from "@/components/AddPointForm";
 import AssignRunner from "@/components/AssignRunner";
 import AutoRefresh from "@/components/AutoRefresh";
+import ChimeOnChange from "@/components/ChimeOnChange";
 import PayoutButton from "@/components/PayoutButton";
 import ResetLinkForm from "@/components/ResetLinkForm";
 import TeamAlertsCard from "@/components/TeamAlertsCard";
@@ -136,6 +137,7 @@ async function Board() {
     <>
       <AutoRefresh seconds={5} />
       <h1 className="visually-hidden">Team dashboard</h1>
+      <ChimeOnChange value={alerts.length + resetRequests.length + pending.length + pendingPoints.length} />
       <div className="kpiGrid">
         {stats.map((s) => (
           <div key={s.label} className={s.hot ? "card kpi kpiHot" : "card kpi"}>

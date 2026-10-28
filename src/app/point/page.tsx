@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 import AutoRefresh from "@/components/AutoRefresh";
+import ChimeOnChange from "@/components/ChimeOnChange";
 import CollectForm from "@/components/CollectForm";
 import MarkPaidButton from "@/components/MarkPaidButton";
 import ReceiveButton from "@/components/ReceiveButton";
@@ -46,6 +47,7 @@ async function Board({ user }: { user: User }) {
   return (
     <>
       <AutoRefresh />
+      <ChimeOnChange value={arriving.length + bringingIn.length + ready.length + forDoor.length} />
       <div>
         <h1>{point?.name ?? "All Izza points"}</h1>
         {point && (
@@ -79,7 +81,7 @@ async function Board({ user }: { user: User }) {
           <ParcelList title="Ready to collect" parcels={ready} empty="Nothing waiting for collection." now={now} remind />
         </div>
         <div className="stack">
-          <ParcelList title="Being brought in" parcels={bringingIn} empty="Nobody is bringing a parcel in." now={now} receive />
+          <ParcelList title="Being brought in" parcels={bringingIn} empty="Nobody is bringing a parcel in." now={now} receive hint="Take the R12 cash, then tap Received." />
           <ParcelList title="Coming to you" parcels={arriving} empty="Nothing on its way here." now={now} />
           <ParcelList title="Going out to a door" parcels={forDoor} empty="No door deliveries waiting for a runner." now={now} />
         </div>
@@ -95,6 +97,7 @@ function ParcelList({
   now,
   receive = false,
   remind = false,
+  hint,
 }: {
   title: string;
   parcels: Parcel[];
@@ -102,11 +105,13 @@ function ParcelList({
   now: number;
   receive?: boolean;
   remind?: boolean;
+  hint?: string;
 }) {
   return (
     <section className="stack" aria-label={title} style={{ gap: 10 }}>
       <h2>{title}</h2>
       {parcels.length === 0 && <p className="muted">{empty}</p>}
+      {parcels.length > 0 && hint && <p className="muted" style={{ margin: 0 }}>{hint}</p>}
       {parcels.map((p) => {
         const waited = now - (p.updatedAt ?? now);
         const overdue = remind && waited > RULES.overdueAtPointMs;

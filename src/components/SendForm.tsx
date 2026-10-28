@@ -34,8 +34,8 @@ export default function SendForm({
   initialPointId?: string;
   fromCustomer?: boolean;
 }) {
-  // A runner always collects it from the sender, so there is nothing to ask.
-  const dropoff = "runner";
+  // "runner": a runner collects it from the sender. "self": the sender brings it to the hub themselves, so no runner is needed.
+  const [dropoff, setDropoff] = useState<"runner" | "self">("runner");
   // "shop": they choose to collect or have it brought. "door": the sender does not know where they are, so they pin it.
   const [delivery, setDelivery] = useState<"shop" | "door">("shop");
   const [from, setFrom] = useState("");
@@ -105,7 +105,9 @@ export default function SendForm({
       <div className="card pop done">
         <h1>Enkosi! It&apos;s booked.</h1>
         <p className="muted">
-          A runner will collect it from you.{" "}
+          {sent.dropoff === "self"
+            ? `Take it to ${sent.point} and pay R${FEE_POINT} cash there. Show this code.`
+            : "A runner will collect it from you."}{" "}
           {sent.delivery === "door" ? `Now send ${toName} the link so they can pin where to bring it.` : `Now tell ${toName} their code.`}
         </p>
         {fromCustomer && <p className="muted">The Izza team has been told about your parcel.</p>}
@@ -138,6 +140,25 @@ export default function SendForm({
         </p>
       </div>
 
+      <fieldset className="field bigChoices">
+        <legend>Who takes it to the hub?</legend>
+        <label className="bigChoice">
+          <input type="radio" name="dropoff" value="runner" checked={dropoff === "runner"} onChange={() => setDropoff("runner")} />
+          <span>
+            <strong>A runner collects it from me</strong>
+            <small>You pay the runner R{FEE_POINT} cash when they collect it.</small>
+          </span>
+        </label>
+        <label className="bigChoice">
+          <input type="radio" name="dropoff" value="self" checked={dropoff === "self"} onChange={() => setDropoff("self")} />
+          <span>
+            <strong>I will take it to the hub myself</strong>
+            <small>No runner. You pay the hub R{FEE_POINT} cash when you hand it in.</small>
+          </span>
+        </label>
+      </fieldset>
+
+      {dropoff === "runner" && (
       <section className="stack" aria-labelledby="who-sending">
         <h2 id="who-sending">Where do we collect it?</h2>
         <LocationPicker
@@ -152,6 +173,7 @@ export default function SendForm({
           canUseMyLocation
         />
       </section>
+      )}
 
       <section className="stack" aria-labelledby="who-for">
         <h2 id="who-for">Who is it for?</h2>
@@ -241,11 +263,13 @@ export default function SendForm({
       </div>
 
       <div className="total" aria-live="polite">
-        <span>You pay</span>
+        <span>{dropoff === "self" ? "You pay the hub, in cash" : "You pay the runner, in cash"}</span>
         <strong>R{FEE_POINT}</strong>
       </div>
       <p className="muted" style={{ margin: 0 }}>
-        If your customer wants it brought to their door, they pay R{FEE_DOOR_EXTRA} extra.
+        {dropoff === "self"
+          ? `If they collect it at the hub, no runner is needed at all. If they want it at their door, they pay R${FEE_DOOR_EXTRA} extra.`
+          : `If your customer wants it brought to their door, they pay R${FEE_DOOR_EXTRA} extra.`}
       </p>
 
       {error && (
