@@ -23,8 +23,8 @@ export default function ParcelsPage() {
 
 async function List({ user }: { user: User }) {
   const parcels = await listParcelsFor(user.id);
-  const live = parcels.filter((p) => p.stage < 4);
-  const done = parcels.filter((p) => p.stage === 4);
+  const live = parcels.filter((p) => p.stage < 4 && !p.cancelledAt);
+  const done = parcels.filter((p) => p.stage === 4 || p.cancelledAt);
 
   return (
     <>
@@ -56,7 +56,7 @@ async function List({ user }: { user: User }) {
 
       {done.length > 0 && (
         <section className="stack" aria-label="Delivered">
-          <h2>Delivered</h2>
+          <h2>Finished</h2>
           {done.map((p) => (
             <Link key={p.code} href={`/track/${p.code}`} className="card nearby">
               <div className="nearbyBody">

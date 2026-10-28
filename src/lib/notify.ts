@@ -40,9 +40,9 @@ async function send(to: string, text: string): Promise<void> {
 async function run(code: string, text: string): Promise<void> {
   try {
     if (!process.env.WHATSAPP_TOKEN) return;
-    const [row] = await (await db()).query<{ recipient_phone: string | null }>("SELECT recipient_phone FROM parcels WHERE code = $1", [code]);
+    const [row] = await (await db()).query<{ recipient_phone: string | null; access_key: string | null }>("SELECT recipient_phone, access_key FROM parcels WHERE code = $1", [code]);
     if (!row?.recipient_phone) return;
-    await send(whatsappNumber(row.recipient_phone), `Izza: ${text} ${SITE}/track/${code}`);
+    await send(whatsappNumber(row.recipient_phone), `Izza: ${text} ${SITE}/track/${code}${row.access_key ? `?k=${row.access_key}` : ""}`);
   } catch (err) {
     console.error("WhatsApp update failed", err); // a failed message must never fail the job
   }

@@ -12,11 +12,13 @@ export default function ChooseDelivery({
   pointName,
   current,
   lang = "en",
+  accessKey,
 }: {
   code: string;
   pointName: string;
   current?: "point" | "door";
   lang?: Lang;
+  accessKey?: string; // from the receiver's link
 }) {
   const router = useRouter();
   const [choice, setChoice] = useState<"point" | "door">(current ?? "point");
@@ -35,7 +37,7 @@ export default function ChooseDelivery({
       const res = await fetch(`/api/parcels/${encodeURIComponent(code)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "choose", choice, landmark, lat: spot?.lat, lng: spot?.lng }),
+        body: JSON.stringify({ action: "choose", choice, landmark, lat: spot?.lat, lng: spot?.lng, key: accessKey }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong.");

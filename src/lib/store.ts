@@ -1,4 +1,4 @@
-import { randomInt, randomUUID } from "node:crypto";
+import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { db } from "./db";
 import { notifyCustomer } from "./notify";
 import { PAY_COLLECT, PAY_DELIVERY, type Choice, type Dropoff, type Parcel } from "./parcels";
@@ -33,6 +33,8 @@ type Row = {
   paid_at: number | null;
   paid_by: string | null;
   door_paid_at: number | null;
+  access_key: string | null;
+  cancelled_at: number | null;
   created_at: number;
   updated_at: number;
 };
@@ -68,6 +70,8 @@ function fromRow(r: Row): Parcel {
     ...(r.paid_at !== null && { paidAt: r.paid_at }),
     ...(r.paid_by !== null && { paidBy: r.paid_by }),
     ...(r.door_paid_at !== null && { doorPaidAt: r.door_paid_at }),
+    ...(r.access_key !== null && { accessKey: r.access_key }),
+    ...(r.cancelled_at !== null && { cancelledAt: r.cancelled_at }),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -86,8 +90,8 @@ export async function saveParcel(p: Parcel): Promise<void> {
     `INSERT INTO parcels (code, owner_id, runner_id, to_name, pickup, landmark, runner, stage, point,
        lat, lng, plus_code, runner_lat, runner_lng, pickup_lat, pickup_lng, pickup_plus_code,
        recipient_phone, point_id, choice, fee, size, note, delivery_pin, created_at, updated_at, dropoff, sender_kind,
-       paid_at, paid_by, door_paid_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$25,$26,$27,$28,$29,$30)
+       paid_at, paid_by, door_paid_at, access_key, cancelled_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$25,$26,$27,$28,$29,$30,$31,$32)
      ON CONFLICT (code) DO UPDATE SET
        owner_id = EXCLUDED.owner_id, runner_id = EXCLUDED.runner_id, to_name = EXCLUDED.to_name,
        pickup = EXCLUDED.pickup, landmark = EXCLUDED.landmark, runner = EXCLUDED.runner,
@@ -97,7 +101,7 @@ export async function saveParcel(p: Parcel): Promise<void> {
        recipient_phone = EXCLUDED.recipient_phone, point_id = EXCLUDED.point_id, choice = EXCLUDED.choice,
        fee = EXCLUDED.fee, size = EXCLUDED.size, note = EXCLUDED.note, delivery_pin = EXCLUDED.delivery_pin,
        dropoff = EXCLUDED.dropoff, sender_kind = EXCLUDED.sender_kind,
-       paid_at = EXCLUDED.paid_at, paid_by = EXCLUDED.paid_by, door_paid_at = EXCLUDED.door_paid_at,
+       paid_at = EXCLUDED.paid_at, paid_by = EXCLUDED.paid_by, door_paid_at = EXCLUDED.door_paid_at, access_key = EXCLUDED.access_key, cancelled_at = EXCLUDED.cancelled_at,
        updated_at = EXCLUDED.updated_at`,
     [
       p.code, p.ownerId ?? null, p.runnerId ?? null, p.to, p.pickup, p.landmark, p.runner, p.stage, p.point,
@@ -105,7 +109,7 @@ export async function saveParcel(p: Parcel): Promise<void> {
       p.pickupLat ?? null, p.pickupLng ?? null, p.pickupPlusCode ?? null,
       p.recipientPhone ?? null, p.pointId ?? null, p.choice ?? null, p.fee ?? null, p.size ?? null, p.note ?? null,
       p.deliveryPin ?? null, now, p.dropoff ?? null, p.senderKind ?? null,
-      p.paidAt ?? null, p.paidBy ?? null, p.doorPaidAt ?? null,
+      p.paidAt ?? null, p.paidBy ?? null, p.doorPaidAt ?? null, p.accessKey ?? null, p.cancelledAt ?? null,
     ],
   );
 }
@@ -227,6 +231,19 @@ export async function listEvents(code: string): Promise<ParcelEvent[]> {
   return (
     await db()
   ).query<ParcelEvent>("SELECT id, at, kind, text, actor FROM parcel_events WHERE code = $1 ORDER BY at DESC", [code]);
+}
+
+// The secret in the receiver's link, 12 characters. Whoever has the short code but not this cannot see the delivery code.
+export function newAccessKey(): string {
+  return randomBytes(9).toString("base64url");
+}
+
+// Compares in constant time, so the key cannot be guessed a character at a time.
+export function keyMatches(parcel: Parcel, key: unknown): boolean {
+  if (typeof key !== "string" || !parcel.accessKey) return false;
+  const a = Buffer.from(key);
+  const b = Buffer.from(parcel.accessKey);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 // Four digits, never starting a run of the same number, so they are not guessed by accident.

@@ -7,7 +7,7 @@ import JobPanel, { type Dest, type JobLinks } from "@/components/JobPanel";
 import LocationShare from "@/components/LocationShare";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
-import { FEE_DOOR_EXTRA } from "@/lib/parcels";
+import { FEE_DOOR_EXTRA, FEE_POINT } from "@/lib/parcels";
 import { DEFAULT_CENTER } from "@/lib/points";
 import { getPointById } from "@/lib/pointStore";
 import { getParcel, hasPhoto, listEvents } from "@/lib/store";
@@ -112,7 +112,15 @@ async function Job({ user, params }: { user: User; params: PageProps<"/runner/[c
         )}
       </div>
 
-      {parcel.stage >= 4 ? (
+      {parcel.cancelledAt ? (
+        <section className="card stack">
+          <h2>This parcel was cancelled</h2>
+          <p className="lead">The sender cancelled it, so there is nothing to collect. Thank you for coming.</p>
+          <Link className="btn" href="/runner">
+            Find the next job
+          </Link>
+        </section>
+      ) : parcel.stage >= 4 ? (
         <section className="card stack">
           <h2>Done. Enkosi!</h2>
           <p className="lead">
@@ -136,6 +144,8 @@ async function Job({ user, params }: { user: User; params: PageProps<"/runner/[c
           progress={progress}
           doorFee={parcel.choice === "door" ? FEE_DOOR_EXTRA : undefined}
           doorPaid={!!parcel.doorPaidAt}
+          senderFee={parcel.dropoff !== "self" ? FEE_POINT : undefined}
+          senderPaid={!!parcel.paidAt}
           photoTaken={photo}
         />
       )}

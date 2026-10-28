@@ -2,7 +2,7 @@ import { sameOrigin, userFromRequest } from "@/lib/auth";
 import { FEE_DOOR, FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, NO_RUNNER, doorReady, needsCollection, type Parcel } from "@/lib/parcels";
 import { encodePlusCode } from "@/lib/pluscode";
 import { getPointById } from "@/lib/pointStore";
-import { addEvent, getParcel, listEvents, saveParcel } from "@/lib/store";
+import { addEvent, getParcel, keyMatches, listEvents, saveParcel } from "@/lib/store";
 import { findUserById, type User } from "@/lib/users";
 
 type Body = {
@@ -16,6 +16,7 @@ type Body = {
   pin?: string;
   runnerId?: string;
   what?: string;
+  key?: string; // the secret from the receiver's link
 };
 
 const deny = (error: string, status: number) => Response.json({ error }, { status });
@@ -57,7 +58,15 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/parcels/[c
   const body = (await request.json().catch(() => null)) as Body | null;
   const action = body?.action;
 
-  if (action === "choose") return choose(parcel, body);
+  if (parcel.cancelledAt) return deny("This parcel was cancelled.", 409);
+
+  // Choosing how to receive it belongs to the receiver: whoever has the key from their link, the signed-in person it is addressed to, or the team.
+  if (action === "choose") {
+    const who = await userFromRequest(request);
+    const isReceiver = !!who && who.status === "active" && (who.role === "admin" || (!!parcel.recipientPhone && who.identifier === parcel.recipientPhone));
+    if (!keyMatches(parcel, body?.key) && !isReceiver) return deny("Open the link the sender gave you to choose how you want it.", 403);
+    return choose(parcel, body);
+  }
 
   const user = await userFromRequest(request);
   if (!user) return deny("Please sign in.", 401);
@@ -67,6 +76,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/parcels/[c
   if (action === "receive") return receive(parcel, user);
   if (action === "assign") return assign(parcel, user, body);
   if (action === "mark_paid") return markPaid(parcel, user, body);
+  if (action === "cancel") return cancel(parcel, user);
   if (user.role !== "runner" && user.role !== "admin") return deny("Only runners can work on a job.", 403);
   return runnerAction(parcel, user, action, body);
 }
@@ -79,6 +89,17 @@ async function receive(parcel: Parcel, user: User) {
   if (parcel.stage !== 0 || parcel.dropoff !== "self") return deny("That parcel isn't waiting to be brought in.", 409);
   await saveParcel({ ...parcel, stage: 2 });
   await addEvent(parcel.code, "received", `Received at ${parcel.point}. Ready for you.`, point?.name ?? user.name);
+  return ok();
+}
+
+// The sender cancels a parcel nobody has collected yet. The team can cancel one that is still on its way to the Izza point.
+async function cancel(parcel: Parcel, user: User) {
+  const isSender = parcel.ownerId === user.id;
+  if (!isSender && user.role !== "admin") return deny("Only the sender or the team can cancel a parcel.", 403);
+  const late = user.role === "admin" ? parcel.stage > 2 : parcel.stage > 0;
+  if (late) return deny(user.role === "admin" ? "It is already on its way to the customer." : "A runner has already collected it, so it can't be cancelled here. Ask the Izza team.", 409);
+  await saveParcel({ ...parcel, cancelledAt: Date.now(), runner: NO_RUNNER, runnerId: undefined });
+  await addEvent(parcel.code, "cancelled", "The sender cancelled this parcel.", user.name);
   return ok();
 }
 

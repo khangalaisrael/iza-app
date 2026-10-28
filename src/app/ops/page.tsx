@@ -50,7 +50,7 @@ async function Board() {
     listResetRequests(),
   ]);
 
-  const live = all.filter((p) => p.stage < LAST_STAGE);
+  const live = all.filter((p) => p.stage < LAST_STAGE && !p.cancelledAt);
   const waitingForRunner = live.filter((p) => !p.runnerId && (needsCollection(p) || doorReady(p)));
   const atPoints = live.filter((p) => p.stage === 2);
   const out = live.filter((p) => p.stage === 3);
@@ -112,7 +112,7 @@ async function Board() {
 
   // Cash the team has not seen recorded yet: senders' R12 and door customers' R8 on parcels already delivered by door.
   const owed =
-    all.filter((p) => !p.paidAt).length * FEE_POINT +
+    all.filter((p) => !p.paidAt && !p.cancelledAt).length * FEE_POINT +
     all.filter((p) => p.choice === "door" && p.stage === LAST_STAGE && !p.doorPaidAt).length * FEE_DOOR_EXTRA;
 
   const stats = [
@@ -160,7 +160,7 @@ async function Board() {
                   href={whatsappLink(
                     a.parcel.recipientPhone,
                     awaitingAddress(a.parcel)
-                      ? `Hi ${a.parcel.to}, your Izza parcel ${a.code} is ready to be brought to your door. Please open this link and pin where you are: ${process.env.NEXT_PUBLIC_SITE_URL ?? "https://izza-app.vercel.app"}/track/${a.code}`
+                      ? `Hi ${a.parcel.to}, your Izza parcel ${a.code} is ready to be brought to your door. Please open this link and pin where you are: ${process.env.NEXT_PUBLIC_SITE_URL ?? "https://izza-app.vercel.app"}/track/${a.code}${a.parcel.accessKey ? `?k=${a.parcel.accessKey}` : ""}`
                       : `Hi ${a.parcel.to}, your Izza parcel ${a.code} is waiting at ${a.parcel.point}. Please collect it with your code.`,
                   )}
                   target="_blank"

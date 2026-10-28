@@ -57,6 +57,8 @@ export type Parcel = {
   runnerId?: string; // the runner who claimed it
   dropoff?: Dropoff; // how it gets to the hub: the sender brings it, or a runner collects it
   senderKind?: "business" | "customer";
+  accessKey?: string; // the secret in the receiver's link. The short code alone shows status; the key unlocks the delivery code and the choice
+  cancelledAt?: number; // the sender cancelled it before a runner collected it
   paidAt?: number; // when the sender paid FEE_POINT (business or customer sending); unset means still owing
   paidBy?: string; // who took the sender's cash
   doorPaidAt?: number; // when the receiving customer paid FEE_DOOR_EXTRA to the runner (door delivery only)
@@ -67,7 +69,7 @@ export type Parcel = {
 export type Dropoff = "self" | "runner";
 
 // A parcel is a runner's collection job only when the sender asked for a runner.
-export const needsCollection = (p: Parcel) => p.stage === 0 && p.dropoff !== "self";
+export const needsCollection = (p: Parcel) => p.stage === 0 && p.dropoff !== "self" && !p.cancelledAt;
 
 export const NO_RUNNER = "Not assigned yet";
 
@@ -79,12 +81,14 @@ export const doorReady = (p: Parcel) => p.stage === 2 && p.choice === "door" && 
 
 // These three take the language the person reads, and default to English (the team's screens stay in English).
 export function statusOf(p: Parcel, lang: Lang = "en"): string {
+  if (p.cancelledAt) return t(lang, "Cancelled");
   if (p.stage === 2 && awaitingAddress(p)) return t(lang, "Waiting for their address");
   if (p.stage === 2 && p.choice === "door") return t(lang, "Waiting for a runner");
   return t(lang, STAGES[p.stage]);
 }
 
 export function etaOf(p: Parcel, lang: Lang = "en"): string {
+  if (p.cancelledAt) return t(lang, "This parcel was cancelled");
   switch (p.stage) {
     case 0:
       return t(lang, "A runner will collect it today");

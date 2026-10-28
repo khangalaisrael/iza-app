@@ -2,7 +2,7 @@ import { sameOrigin, userFromRequest } from "@/lib/auth";
 import { FEE_DOOR, FEE_POINT, NO_RUNNER, type Parcel } from "@/lib/parcels";
 import { getPointById } from "@/lib/pointStore";
 import { encodePlusCode } from "@/lib/pluscode";
-import { addEvent, newDeliveryPin, newParcelCode, saveParcel } from "@/lib/store";
+import { addEvent, newAccessKey, newDeliveryPin, newParcelCode, saveParcel } from "@/lib/store";
 import { normalizeIdentifier } from "@/lib/users";
 
 type Body = {
@@ -76,6 +76,7 @@ export async function POST(request: Request) {
     dropoff,
     senderKind: fromCustomer ? "customer" : "business",
     deliveryPin: newDeliveryPin(),
+    accessKey: newAccessKey(),
     ...(dropoff === "runner" && hasPickupPin && {
       pickupLat: body!.pickupLat,
       pickupLng: body!.pickupLng,
@@ -96,5 +97,5 @@ export async function POST(request: Request) {
   if (fromCustomer) {
     await addEvent(parcel.code, "sent_by_customer", `A customer sent a parcel to ${point.name}. The team has been told.`, user.name);
   }
-  return Response.json({ code: parcel.code, point: point.name, phone, dropoff, delivery: toDoor ? "door" : "shop" }, { status: 201 });
+  return Response.json({ code: parcel.code, key: parcel.accessKey, point: point.name, phone, dropoff, delivery: toDoor ? "door" : "shop" }, { status: 201 });
 }

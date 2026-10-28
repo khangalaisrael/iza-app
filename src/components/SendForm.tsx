@@ -35,7 +35,7 @@ export default function SendForm({
   );
   const [size, setSize] = useState("Small");
   const [note, setNote] = useState("");
-  const [sent, setSent] = useState<{ code: string; point: string; dropoff: string; delivery: string } | null>(null);
+  const [sent, setSent] = useState<{ code: string; key: string; point: string; dropoff: string; delivery: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -79,7 +79,7 @@ export default function SendForm({
   }
 
   if (sent) {
-    const link = `${siteUrl}/track/${sent.code}`;
+    const link = `${siteUrl}/track/${sent.code}?k=${sent.key}`;
     const message =
       sent.delivery === "door"
         ? `Molo ${toName}! A parcel is coming to your door. Your Izza code is ${sent.code}. Please open this link and pin exactly where you are, so we can bring it: ${link}`

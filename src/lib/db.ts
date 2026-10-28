@@ -92,6 +92,10 @@ const SCHEMA = [
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS paid_by TEXT`,
   // The customer's R8 for door delivery, paid to the runner at the door.
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS door_paid_at BIGINT`,
+  // The receiver's secret link key, and a sender cancelling. Parcels from before the key existed get one now.
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS access_key TEXT`,
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS cancelled_at BIGINT`,
+  `UPDATE parcels SET access_key = md5(random()::text || code || clock_timestamp()::text) WHERE access_key IS NULL`,
   // Every step a runner takes leaves a line here. Tracking pages are just this list.
   `CREATE TABLE IF NOT EXISTS parcel_events (
     id TEXT PRIMARY KEY,
@@ -232,4 +236,6 @@ async function seedDemo(d: Db) {
     }
   }
   await d.query("UPDATE parcels SET delivery_pin = '1234' WHERE delivery_pin IS NULL");
+  // The example parcels get a key anyone can guess, so tests and demos can open them.
+  await d.query("UPDATE parcels SET access_key = 'demo-' || code WHERE access_key IS NULL OR code IN ('IZA-4821','IZA-4825','IZA-4830')");
 }

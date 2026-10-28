@@ -25,6 +25,8 @@ type Props = {
   progress: number; // on a delivery: 0 collected, 1 on the way, 2 arrived
   doorFee?: number; // what the customer pays the runner at the door; unset when they collect at the hub
   doorPaid?: boolean;
+  senderFee?: number; // what the sender pays the runner at a pickup; unset when the sender brings it to the hub
+  senderPaid?: boolean;
   photoTaken?: boolean; // a proof-of-delivery photo is already saved
 };
 
@@ -37,7 +39,7 @@ const PROBLEMS: [string, string][] = [
 ];
 
 // One job, one screen. The layout never changes: where you are, the map, one big button, then the extras.
-export default function JobPanel({ code, stage, choice, pointName, pickupText, doorText, links, dest, start, progress, doorFee, doorPaid, photoTaken }: Props) {
+export default function JobPanel({ code, stage, choice, pointName, pickupText, doorText, links, dest, start, progress, doorFee, doorPaid, photoTaken, senderFee, senderPaid }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -194,6 +196,18 @@ export default function JobPanel({ code, stage, choice, pointName, pickupText, d
           ) : (
             <button type="button" className="btn btn-soft btn-block" disabled={busy} onClick={() => act("mark_paid", { what: "door" }, "Door fee recorded.")}>
               Customer paid R{doorFee} cash
+            </button>
+          )
+        ) : null}
+
+        {stage <= 1 && senderFee ? (
+          senderPaid ? (
+            <p role="status" className="saved">
+              Sender&apos;s R{senderFee} received.
+            </p>
+          ) : (
+            <button type="button" className="btn btn-soft btn-block" disabled={busy} onClick={() => act("mark_paid", { what: "send" }, "Sender's fee recorded.")}>
+              Sender paid R{senderFee} cash
             </button>
           )
         ) : null}

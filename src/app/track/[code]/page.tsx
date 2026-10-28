@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import AutoRefresh from "@/components/AutoRefresh";
+import CancelButton from "@/components/CancelButton";
 import ChooseDelivery from "@/components/ChooseDelivery";
 import EventFeed from "@/components/EventFeed";
 import MapView from "@/components/MapView";
@@ -12,14 +13,14 @@ import { getLang } from "@/lib/lang";
 import { etaMinutes } from "@/lib/geo";
 import { FEE_DOOR_EXTRA, FEE_POINT, awaitingAddress, destinationOf, etaOf, runnerPositionOf, stepsOf, type Parcel } from "@/lib/parcels";
 import { getPointById, type IzaPoint } from "@/lib/pointStore";
-import { getParcel, hasPhoto, listEvents } from "@/lib/store";
+import { getParcel, hasPhoto, keyMatches, listEvents } from "@/lib/store";
 import type { User } from "@/lib/users";
 
-export default function ParcelPage({ params }: PageProps<"/track/[code]">) {
+export default function ParcelPage({ params, searchParams }: PageProps<"/track/[code]">) {
   return (
     <Shell title="Track" subtitle="Where is my parcel?">
       <Suspense fallback={<p className="muted">Finding your parcel…</p>}>
-        <ParcelDetails params={params} />
+        <ParcelDetails params={params} searchParams={searchParams} />
       </Suspense>
     </Shell>
   );
@@ -53,7 +54,13 @@ function redact(p: Parcel): Parcel {
   };
 }
 
-async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["params"] }) {
+async function ParcelDetails({
+  params,
+  searchParams,
+}: {
+  params: PageProps<"/track/[code]">["params"];
+  searchParams: PageProps<"/track/[code]">["searchParams"];
+}) {
   await connection();
   const { code } = await params;
   const found = await getParcel(decodeURIComponent(code));
@@ -65,15 +72,23 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
     hasPhoto(found.code),
   ]);
   const [user, lang] = await Promise.all([currentUser(), getLang()]);
-  const full = canSeePrivate(user, found, point);
+  // The short code on its own only shows where a parcel is. The key in the receiver's link (or being signed in as the person it
+  // is addressed to) is what unlocks the delivery code and the choice, so a runner who knows the code cannot read the delivery code.
+  const { k } = await searchParams;
+  const key = Array.isArray(k) ? k[0] : k;
+  const keyOk = keyMatches(found, key);
+  const isReceiver = keyOk || user?.role === "admin" || (!!user && !!found.recipientPhone && user.identifier === found.recipientPhone);
+  const isSender = !!user && (user.id === found.ownerId || user.role === "admin");
+  const full = canSeePrivate(user, found, point) || keyOk;
   const parcel = full ? found : redact(found);
+  const cancelled = !!parcel.cancelledAt;
 
   const here = point ? { lat: point.lat, lng: point.lng } : undefined;
   const dest = destinationOf(parcel, here);
   const runnerPos = full && parcel.stage === 3 ? runnerPositionOf(parcel) : undefined;
   const headline = runnerPos ? t(lang, "About {min} min away", { min: etaMinutes(runnerPos, dest) }) : etaOf(parcel, lang);
   const showMap = parcel.stage >= 1 && parcel.stage < 4 && (full || parcel.choice !== "door");
-  const canChoose = parcel.stage < 3;
+  const canChoose = parcel.stage < 3 && !cancelled && isReceiver;
 
   return (
     <>
@@ -86,6 +101,19 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
         </p>
       </section>
 
+      {cancelled && (
+        <section className="card stack" role="status">
+          <h2>{t(lang, "Cancelled")}</h2>
+          <p style={{ margin: 0 }}>The sender cancelled this parcel. Nothing more will happen to it.</p>
+        </section>
+      )}
+
+      {!isReceiver && !cancelled && parcel.stage < 4 && (
+        <p className="muted" style={{ margin: 0 }}>
+          Got a link from the sender? Open it to choose how you want your parcel and to see your delivery code.
+        </p>
+      )}
+
       {canChoose && awaitingAddress(parcel) && (
         <p className="lead" style={{ margin: 0 }}>
           {t(lang, "This parcel is being brought to your door. Tell us exactly where you are.")}
@@ -94,20 +122,20 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
 
       {canChoose && (
         <section className="card">
-          <ChooseDelivery key={`${parcel.choice}-${parcel.stage}`} code={parcel.code} pointName={parcel.point} current={parcel.choice} lang={lang} />
+          <ChooseDelivery key={`${parcel.choice}-${parcel.stage}`} code={parcel.code} pointName={parcel.point} current={parcel.choice} lang={lang} accessKey={keyOk ? key : undefined} />
         </section>
       )}
 
       <a
         className="btn btn-soft"
-        href={`https://wa.me/?text=${encodeURIComponent(`Follow my Izza parcel ${parcel.code}: ${process.env.NEXT_PUBLIC_SITE_URL ?? "https://izza-app.vercel.app"}/track/${parcel.code}`)}`}
+        href={`https://wa.me/?text=${encodeURIComponent(`Follow my Izza parcel ${parcel.code}: ${process.env.NEXT_PUBLIC_SITE_URL ?? "https://izza-app.vercel.app"}/track/${parcel.code}${keyOk ? `?k=${key}` : ""}`)}`}
         target="_blank"
         rel="noopener noreferrer"
       >
         {t(lang, "Share this on WhatsApp")}
       </a>
 
-      {parcel.choice === "door" && parcel.stage >= 2 && parcel.stage < 4 && parcel.deliveryPin && (
+      {isReceiver && !cancelled && parcel.choice === "door" && parcel.stage >= 2 && parcel.stage < 4 && parcel.deliveryPin && (
         <section className="card stack pinCard" aria-label="Your delivery code">
           <h2>{t(lang, "Your delivery code")}</h2>
           <div className="bigCode mono">{parcel.deliveryPin}</div>
@@ -152,7 +180,7 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
         <section className="card stack" aria-label="Photo of your parcel">
           <h2>{t(lang, "Photo from the runner")}</h2>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/api/parcels/${parcel.code}/photo`} alt="Your parcel at the door" style={{ width: "100%", borderRadius: 12 }} />
+          <img src={`/api/parcels/${parcel.code}/photo${keyOk ? `?k=${key}` : ""}`} alt="Your parcel at the door" style={{ width: "100%", borderRadius: 12 }} />
         </section>
       )}
 
@@ -188,6 +216,7 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
           ))}
         </ol>
       </section>
+      {isSender && !cancelled && found.stage === 0 && <CancelButton code={parcel.code} />}
       <EventFeed events={events} title={t(lang, "Updates")} />
     </>
   );

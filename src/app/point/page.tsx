@@ -36,7 +36,7 @@ async function Board({ user }: { user: User }) {
   const all = await listParcels();
 
   // A point sees only the parcels sent to its own shop. The team sees every point.
-  const here = all.filter((p) => p.stage <= 2 && (isTeam || (point && p.pointId === point.id)));
+  const here = all.filter((p) => p.stage <= 2 && !p.cancelledAt && (isTeam || (point && p.pointId === point.id)));
   const bringingIn = here.filter((p) => p.stage === 0 && p.dropoff === "self");
   const arriving = here.filter((p) => p.stage < 2 && !(p.stage === 0 && p.dropoff === "self"));
   const ready = here.filter((p) => p.stage === 2 && p.choice !== "door");

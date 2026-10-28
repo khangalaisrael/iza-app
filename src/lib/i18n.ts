@@ -15,6 +15,8 @@ const xh: Record<string, string> = {
   "On the way": "Isendleleni",
   "Delivered": "Ifikile",
   "Waiting for a runner": "Silinde umthumeli",
+  "Cancelled": "Ikhanseliwe",
+  "This parcel was cancelled": "Le parcel ikhanseliwe",
   "Waiting for their address": "Silinde idilesi yabo",
   "Tell us where to bring it": "Sixelele apho sifanele ukuyizisa khona",
   "This parcel is being brought to your door. Tell us exactly where you are.": "Le parcel iza kuzisiwa emnyango wakho. Sixelele ngqo apho ukhoyo.",
