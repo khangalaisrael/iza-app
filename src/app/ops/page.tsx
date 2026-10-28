@@ -7,7 +7,7 @@ import AssignRunner from "@/components/AssignRunner";
 import AutoRefresh from "@/components/AutoRefresh";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
-import { LAST_STAGE, needsCollection, statusOf, type Parcel } from "@/lib/parcels";
+import { FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, needsCollection, statusOf, type Parcel } from "@/lib/parcels";
 import { listPendingPoints } from "@/lib/pointStore";
 import { RULES, ageText } from "@/lib/rules";
 import { listParcels, recentEvents } from "@/lib/store";
@@ -100,6 +100,11 @@ async function Board() {
   const placeOf = new Map(pendingPoints.map((p) => [p.ownerId, p]));
   const forAssign = runners.map((r) => ({ id: r.id, name: r.name }));
 
+  // Cash the team has not seen recorded yet: senders' R12 and door customers' R8 on parcels already delivered by door.
+  const owed =
+    all.filter((p) => !p.paidAt).length * FEE_POINT +
+    all.filter((p) => p.choice === "door" && p.stage === LAST_STAGE && !p.doorPaidAt).length * FEE_DOOR_EXTRA;
+
   const stats = [
     { label: "Active parcels", value: String(live.length) },
     { label: "Need a runner", value: String(waitingForRunner.length), hot: waitingForRunner.length > 0 },
@@ -108,6 +113,7 @@ async function Board() {
     { label: "Delivered, last 24 h", value: String(deliveredToday) },
     { label: "Returned, last 24 h", value: String(returned), hot: returned > 0 },
     { label: "Average door trip", value: avgTrip },
+    { label: "Cash not recorded", value: `R${owed}`, hot: owed > 0 },
   ];
 
   return (

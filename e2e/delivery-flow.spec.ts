@@ -133,6 +133,39 @@ test("door delivery: a second job, finished only with the customer's 4-digit cod
   await expect(customer.getByText(/wrong delivery code/)).toHaveCount(0);
 });
 
+test("the sender's R12 is recorded at the hub, and the customer's R8 only when they chose a door", async ({ as, browser, baseURL }) => {
+  const business = await (await as("business")).newPage();
+  const code = await book(business, { from: "Thembi's Kitchen", to: "Buhle", phone: "084 555 6666" });
+
+  const customer = await browser.newPage({ baseURL });
+  await chooseDoor(customer, code, "Green gate next to the creche");
+
+  const runner = await (await as("runner")).newPage();
+  await collectAndDrop(runner, code);
+
+  // The hub records the business's R12. It cannot be recorded twice.
+  const shop = await (await as("point")).newPage();
+  await shop.goto("/point");
+  const card = shop.locator(".card", { hasText: code });
+  await expect(card.getByText("Sender owes R12")).toBeVisible();
+  await card.getByRole("button", { name: "Cash received" }).click();
+  await expect(card.getByText("Sender paid R12")).toBeVisible();
+
+  // The door customer pays the R8 extra to the runner on the trip.
+  await runner.goto("/runner");
+  await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this delivery" }).click();
+  await runner.getByRole("button", { name: /I've collected it from Corner Shop/ }).click();
+  await runner.getByRole("button", { name: "I'm on my way to the customer" }).click();
+  await runner.getByRole("button", { name: "Customer paid R8 cash" }).click();
+  await expect(runner.getByText("Door fee R8 received.")).toBeVisible();
+
+  // A stranger cannot record payments, and the sender's fee cannot be recorded twice.
+  const res = await customer.request.patch(`/api/parcels/${code}`, { data: { action: "mark_paid", what: "door" }, headers: { origin: baseURL! } });
+  expect(res.status()).toBe(401);
+  const second = await shop.request.patch(`/api/parcels/${code}`, { data: { action: "mark_paid", what: "send" }, headers: { origin: baseURL! } });
+  expect(second.status()).toBe(409);
+});
+
 test("a failed delivery goes back to the Iza point and the customer is told to collect it", async ({ as, browser, baseURL }) => {
   const business = await (await as("business")).newPage();
   const code = await book(business, { from: "Failed Bakery", to: "Not Home", phone: "084 444 5555" });
