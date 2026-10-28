@@ -97,7 +97,7 @@ export async function POST(request: Request) {
   // The team is told about every parcel a customer sends to the hub. It shows at the top of their dashboard.
   if (fromCustomer) {
     await addEvent(parcel.code, "sent_by_customer", `A customer sent a parcel to ${point.name}. The team has been told.`, user.name);
-    notifyTeam(`${user.name} sent parcel ${parcel.code} to ${point.name}.`);
+    notifyTeam(`${user.name} sent parcel ${parcel.code} to ${point.name}.`, "A customer sent a parcel.");
   }
   return Response.json({ code: parcel.code, key: parcel.accessKey, point: point.name, phone, dropoff, delivery: toDoor ? "door" : "shop" }, { status: 201 });
 }

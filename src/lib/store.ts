@@ -167,7 +167,7 @@ export async function addEvent(code: string, kind: string, text: string, actor: 
   ]);
   notifyCustomer(code, kind, text);
   // A runner's problem, or a parcel that came back, needs the team to look at it.
-  if (kind === "problem" || kind === "returned") notifyTeam(`${code}: ${text}`);
+  if (kind === "problem" || kind === "returned") notifyTeam(`${code}: ${text}`, "A runner reported a problem with a parcel.");
 }
 
 // How many things are waiting for the team: applications, password requests and parcels customers sent that nobody has collected.

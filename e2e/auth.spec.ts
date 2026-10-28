@@ -381,3 +381,19 @@ test("the Team tab shows how many things are waiting for the team", async ({ pag
   await business.goto("/parcels");
   await expect(business.getByLabel(/ waiting$/)).toHaveCount(0);
 });
+
+test("the team page shows how to get alerts on a phone, with a private channel that stays the same", async ({ as }) => {
+  const team = await (await as("admin")).newPage();
+  await team.goto("/ops");
+  const channel = team.getByLabel("Alert channel name");
+  const name = await channel.inputValue();
+  expect(name).toMatch(/^izza-team-[0-9a-f]{24}$/);
+  await expect(team.getByRole("link", { name: "Or open the channel in your browser" })).toHaveAttribute("href", `https://ntfy.sh/${name}`);
+  // The same channel every time, so the phone does not need setting up again.
+  await team.reload();
+  expect(await team.getByLabel("Alert channel name").inputValue()).toBe(name);
+  // Only the team has it.
+  const business = await (await as("business")).newPage();
+  await business.goto("/ops");
+  await expect(business.getByLabel("Alert channel name")).toHaveCount(0);
+});

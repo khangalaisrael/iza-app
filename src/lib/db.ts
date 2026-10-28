@@ -117,6 +117,11 @@ const SCHEMA = [
     paid_by TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS runner_payouts_idx ON runner_payouts (runner_id)`,
+  // Small settings the site keeps for itself, such as the team's private alert channel.
+  `CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  )`,
   // One-time links the team gives to someone who forgot their password. Only the hash of the token is kept.
   `CREATE TABLE IF NOT EXISTS password_resets (
     token_hash TEXT PRIMARY KEY,

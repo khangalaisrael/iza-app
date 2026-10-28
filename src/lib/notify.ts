@@ -1,5 +1,6 @@
 import { after } from "next/server";
 import { db } from "./db";
+import { teamTopic } from "./settings";
 import { whatsappNumber } from "./whatsapp";
 
 // The updates the customer gets on WhatsApp by themselves. Everything else stays on the tracking page.
@@ -52,7 +53,10 @@ async function run(code: string, text: string): Promise<void> {
 // Set TEAM_WHATSAPP_NUMBER to the team's WhatsApp number (several can be separated by commas), and, because WhatsApp only lets a
 // business start a chat with an approved template, WHATSAPP_TEAM_TEMPLATE to a template whose body is one variable, {{1}}.
 // Without the keys and the number this does nothing, and the count on the Team tab is the only alert.
-export function notifyTeam(text: string): void {
+// The phone alert (ntfy.sh, a public service) never names anyone: it only says something is waiting, and the team opens the Team page
+// for the details. The WhatsApp message goes through the business's own account, so it can carry the detail.
+export function notifyTeam(text: string, generic = "Something is waiting for the team."): void {
+  pushToTeamPhones(generic);
   const numbers = (process.env.TEAM_WHATSAPP_NUMBER ?? "").split(",").map((n) => n.trim()).filter(Boolean);
   if (!process.env.WHATSAPP_TOKEN || numbers.length === 0) return;
   const go = async () => {
@@ -68,6 +72,33 @@ export function notifyTeam(text: string): void {
     after(go);
   } catch {
     void go();
+  }
+}
+
+// Alerts to the team's phones through ntfy.sh. It needs no account and no keys: the team opens the link on their Team page once.
+// Only the live site sends them, so tests and local work never message anyone.
+export async function sendTeamPush(text: string, title = "Izza team"): Promise<boolean> {
+  if (process.env.VERCEL_ENV !== "production") return false;
+  try {
+    const topic = await teamTopic();
+    const res = await fetch(`https://ntfy.sh/${topic}`, {
+      method: "POST",
+      headers: { Title: title, Click: `${SITE}/ops`, Tags: "package" },
+      body: text,
+    });
+    return res.ok;
+  } catch (err) {
+    console.error("Team push failed", err); // an alert that fails must never fail the action that caused it
+    return false;
+  }
+}
+
+function pushToTeamPhones(text: string): void {
+  if (process.env.VERCEL_ENV !== "production") return;
+  try {
+    after(() => sendTeamPush(text));
+  } catch {
+    void sendTeamPush(text);
   }
 }
 

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { endSession, requireUser, safeNext, startSession } from "@/lib/auth";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "@/lib/password";
 import { landingFor } from "@/lib/roles";
-import { notifyTeam } from "@/lib/notify";
+import { notifyTeam, sendTeamPush } from "@/lib/notify";
 import { addResetRequest, clearResetRequest, consumeReset, createReset, setPassword } from "@/lib/reset";
 import { POINT_KINDS, createPoint, setPointStatusForOwner } from "@/lib/pointStore";
 import {
@@ -84,7 +84,7 @@ export async function signUpAction(_prev: AuthState, form: FormData): Promise<Au
     // Two people signing up with the same details at the same moment: the database lets only one through.
     return fail("That phone number or email already has an account. Try signing in.");
   }
-  if (!approved) notifyTeam(`New ${role === "point" ? "Izza point" : role} application from ${name}, waiting for approval.`);
+  if (!approved) notifyTeam(`New ${role === "point" ? "Izza point" : role} application from ${name}, waiting for approval.`, "A new application is waiting for approval.");
   if (role === "point") {
     await createPoint({
       name: pointName,
@@ -176,10 +176,18 @@ export async function requestResetAction(_prev: AuthState, form: FormData): Prom
     const user = await findUserByIdentifier(identifier);
     if (user && user.status !== "disabled") {
       await addResetRequest(user.id);
-      notifyTeam(`${user.name} forgot their password and is waiting for a reset link.`);
+      notifyTeam(`${user.name} forgot their password and is waiting for a reset link.`, "Someone is waiting for a password reset link.");
     }
   }
   return { link: "sent", phone: identifier, values: { identifier: raw } };
+}
+
+// The team checks that alerts reach their phone.
+export async function testTeamAlertAction(): Promise<AuthState> {
+  await requireUser(["admin"], "/ops");
+  if (process.env.VERCEL_ENV !== "production") return { error: "Alerts only go out from the live site, so this test does nothing here." };
+  const ok = await sendTeamPush("This is a test alert from Izza. If you can read this, alerts are working.", "Izza test");
+  return ok ? { link: "sent" } : { error: "The alert could not be sent. Try again in a minute." };
 }
 
 // Someone opens the link they were given and chooses a new password. The link works once.

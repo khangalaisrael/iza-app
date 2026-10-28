@@ -7,6 +7,8 @@ import AssignRunner from "@/components/AssignRunner";
 import AutoRefresh from "@/components/AutoRefresh";
 import PayoutButton from "@/components/PayoutButton";
 import ResetLinkForm from "@/components/ResetLinkForm";
+import TeamAlertsCard from "@/components/TeamAlertsCard";
+import { teamTopic } from "@/lib/settings";
 import ResetRequestRow from "@/components/ResetRequestRow";
 import { listResetRequests } from "@/lib/reset";
 import PortalShell from "@/components/PortalShell";
@@ -39,7 +41,7 @@ const DAY = 24 * 60 * 60 * 1000;
 async function Board() {
   await connection();
   const now = Date.now();
-  const [all, runners, pending, pendingPoints, problems, trips, feed, resetRequests] = await Promise.all([
+  const [all, runners, pending, pendingPoints, problems, trips, feed, resetRequests, alertTopic] = await Promise.all([
     listParcels(),
     listActiveRunners(),
     listPendingUsers(),
@@ -48,6 +50,7 @@ async function Board() {
     recentEvents(500, ["picked_from_point", "delivered"], now - 7 * DAY),
     recentEvents(12),
     listResetRequests(),
+    teamTopic(),
   ]);
 
   const live = all.filter((p) => p.stage < LAST_STAGE && !p.cancelledAt);
@@ -277,6 +280,12 @@ async function Board() {
                 <PayoutButton runnerId={r.id} name={r.name} owed={r.owed} />
               </div>
             ))}
+          </section>
+
+          <section className="card stack" style={{ gap: 10 }} aria-labelledby="alerts">
+            <h2 id="alerts">Alerts on your phone</h2>
+            <p className="muted" style={{ margin: 0 }}>Get a notification when someone applies, asks for a password or a customer sends a parcel. The alert only says something is waiting, with no names, and you open this page for the details. Free, set up once.</p>
+            <TeamAlertsCard topic={alertTopic} />
           </section>
 
           <section className="card stack" style={{ gap: 10 }} aria-labelledby="reset">
