@@ -1,5 +1,5 @@
 import { sameOrigin, userFromRequest } from "@/lib/auth";
-import { FEE_DOOR, FEE_POINT, LAST_STAGE, NO_RUNNER, needsCollection, type Parcel } from "@/lib/parcels";
+import { FEE_DOOR, FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, NO_RUNNER, needsCollection, type Parcel } from "@/lib/parcels";
 import { encodePlusCode } from "@/lib/pluscode";
 import { getPointById } from "@/lib/pointStore";
 import { addEvent, getParcel, listEvents, saveParcel } from "@/lib/store";
@@ -15,6 +15,7 @@ type Body = {
   reason?: string;
   pin?: string;
   runnerId?: string;
+  what?: string;
 };
 
 const deny = (error: string, status: number) => Response.json({ error }, { status });
@@ -65,6 +66,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/parcels/[c
   if (action === "collect") return collect(parcel, user);
   if (action === "receive") return receive(parcel, user);
   if (action === "assign") return assign(parcel, user, body);
+  if (action === "mark_paid") return markPaid(parcel, user, body);
   if (user.role !== "runner" && user.role !== "admin") return deny("Only runners can work on a job.", 403);
   return runnerAction(parcel, user, action, body);
 }
@@ -77,6 +79,33 @@ async function receive(parcel: Parcel, user: User) {
   if (parcel.stage !== 0 || parcel.dropoff !== "self") return deny("That parcel isn't waiting to be brought in.", 409);
   await saveParcel({ ...parcel, stage: 2 });
   await addEvent(parcel.code, "received", `Received at ${parcel.point}. Ready for you.`, point?.name ?? user.name);
+  return ok();
+}
+
+// Two payments, two payers:
+//   send: the sender (a business, or a customer sending from home) pays FEE_POINT to get it to the hub.
+//         The hub it was sent to, the runner collecting it, or the team records it.
+//   door: the customer who chose door delivery pays FEE_DOOR_EXTRA to the runner at the door.
+//         Only the runner carrying it, or the team, records it.
+async function markPaid(parcel: Parcel, user: User, body: Body | null) {
+  const point = parcel.pointId ? await getPointById(parcel.pointId) : undefined;
+  const isItsPoint = user.role === "point" && !!point && point.ownerId === user.id;
+  const isItsRunner = user.role === "runner" && parcel.runnerId === user.id;
+  const isTeam = user.role === "admin";
+
+  if (body?.what === "door") {
+    if (!isItsRunner && !isTeam) return deny("Only the runner bringing it, or the team, can record the door payment.", 403);
+    if (parcel.choice !== "door") return deny("This customer is collecting at the hub, so there is no door fee.", 409);
+    if (parcel.doorPaidAt) return deny("The door fee is already marked as paid.", 409);
+    await saveParcel({ ...parcel, doorPaidAt: Date.now() });
+    await addEvent(parcel.code, "door_paid", `Door delivery fee received (R${FEE_DOOR_EXTRA}).`, user.name);
+    return ok();
+  }
+
+  if (!isItsPoint && !isItsRunner && !isTeam) return deny("Only the Iza point, the runner on this job or the team can record the sender's payment.", 403);
+  if (parcel.paidAt) return deny("The sender's fee is already marked as paid.", 409);
+  await saveParcel({ ...parcel, paidAt: Date.now(), paidBy: user.name });
+  await addEvent(parcel.code, "paid", `Sender's fee received (R${FEE_POINT}).`, user.name);
   return ok();
 }
 

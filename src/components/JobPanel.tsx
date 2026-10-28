@@ -22,6 +22,8 @@ type Props = {
   dest: Dest | null; // where the runner is going now, shown on the map
   start: { lat: number; lng: number }; // where the route begins if the phone will not share its location
   progress: number; // on a delivery: 0 collected, 1 on the way, 2 arrived
+  doorFee?: number; // what the customer pays the runner at the door; unset when they collect at the hub
+  doorPaid?: boolean;
 };
 
 const PROBLEMS: [string, string][] = [
@@ -33,7 +35,7 @@ const PROBLEMS: [string, string][] = [
 ];
 
 // One job, one screen. The layout never changes: where you are, the map, one big button, then the extras.
-export default function JobPanel({ code, stage, choice, pointName, pickupText, doorText, links, dest, start, progress }: Props) {
+export default function JobPanel({ code, stage, choice, pointName, pickupText, doorText, links, dest, start, progress, doorFee, doorPaid }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -181,6 +183,18 @@ export default function JobPanel({ code, stage, choice, pointName, pickupText, d
             />
           </div>
         )}
+
+        {stage === 3 && doorFee ? (
+          doorPaid ? (
+            <p role="status" className="saved">
+              Door fee R{doorFee} received.
+            </p>
+          ) : (
+            <button type="button" className="btn btn-soft btn-block" disabled={busy} onClick={() => act("mark_paid", { what: "door" }, "Door fee recorded.")}>
+              Customer paid R{doorFee} cash
+            </button>
+          )
+        ) : null}
 
         {primary && (
           <button type="button" className="btn btn-block jobPrimary" disabled={busy || primary.disabled} onClick={primary.run}>

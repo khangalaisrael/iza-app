@@ -2,11 +2,12 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import AutoRefresh from "@/components/AutoRefresh";
 import CollectForm from "@/components/CollectForm";
+import MarkPaidButton from "@/components/MarkPaidButton";
 import ReceiveButton from "@/components/ReceiveButton";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
 import { openNow } from "@/lib/geo";
-import { statusOf, type Parcel } from "@/lib/parcels";
+import { FEE_POINT, statusOf, type Parcel } from "@/lib/parcels";
 import { RULES, ageText } from "@/lib/rules";
 import { whatsappLink } from "@/lib/whatsapp";
 import { getPointByOwner } from "@/lib/pointStore";
@@ -119,6 +120,14 @@ function ParcelList({
               </div>
               <span className="chip chip-primary">{statusOf(p)}</span>
             </div>
+            {p.paidAt ? (
+              <span className="chip">Sender paid R{FEE_POINT}</span>
+            ) : (
+              <>
+                <span className="muted">Sender owes R{FEE_POINT}</span>
+                <MarkPaidButton code={p.code} />
+              </>
+            )}
             {receive && <ReceiveButton code={p.code} />}
             {remind && p.recipientPhone && waited > RULES.remindAtPointMs && (
               <a

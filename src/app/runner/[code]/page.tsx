@@ -7,6 +7,7 @@ import JobPanel, { type Dest, type JobLinks } from "@/components/JobPanel";
 import LocationShare from "@/components/LocationShare";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
+import { FEE_DOOR_EXTRA } from "@/lib/parcels";
 import { DEFAULT_CENTER } from "@/lib/points";
 import { getPointById } from "@/lib/pointStore";
 import { getParcel, listEvents } from "@/lib/store";
@@ -132,6 +133,8 @@ async function Job({ user, params }: { user: User; params: PageProps<"/runner/[c
           dest={dest}
           start={start}
           progress={progress}
+          doorFee={parcel.choice === "door" ? FEE_DOOR_EXTRA : undefined}
+          doorPaid={!!parcel.doorPaidAt}
         />
       )}
 

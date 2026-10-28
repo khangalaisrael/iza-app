@@ -87,6 +87,11 @@ const SCHEMA = [
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS delivery_pin TEXT`,
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS dropoff TEXT`,
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS sender_kind TEXT`,
+  // Cash payments: when the fee was received and by whom.
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS paid_at BIGINT`,
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS paid_by TEXT`,
+  // The customer's R8 for door delivery, paid to the runner at the door.
+  `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS door_paid_at BIGINT`,
   // Every step a runner takes leaves a line here. Tracking pages are just this list.
   `CREATE TABLE IF NOT EXISTS parcel_events (
     id TEXT PRIMARY KEY,

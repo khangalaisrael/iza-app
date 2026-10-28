@@ -52,6 +52,9 @@ export type Parcel = {
   runnerId?: string; // the runner who claimed it
   dropoff?: Dropoff; // how it gets to the hub: the sender brings it, or a runner collects it
   senderKind?: "business" | "customer";
+  paidAt?: number; // when the sender paid FEE_POINT (business or customer sending); unset means still owing
+  paidBy?: string; // who took the sender's cash
+  doorPaidAt?: number; // when the receiving customer paid FEE_DOOR_EXTRA to the runner (door delivery only)
   createdAt?: number;
   updatedAt?: number;
 };
