@@ -27,11 +27,15 @@ test("nothing scrolls sideways when signed in either", async ({ as }) => {
     const page = await (await as(role)).newPage();
     for (const path of paths) {
       await page.goto(path);
-      await page.waitForLoadState("domcontentloaded");
-    await page.waitForTimeout(400);
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      );
+      await page.waitForLoadState("load");
+      await page.waitForTimeout(400);
+      // A page can redirect or refresh itself while it settles, which throws away the page being measured. Measure again.
+      const measure = () =>
+        page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      const overflow = await measure().catch(async () => {
+        await page.waitForLoadState("load");
+        return measure();
+      });
       expect(overflow, `${role} ${path} overflows by ${overflow}px`).toBeLessThanOrEqual(0);
     }
   }

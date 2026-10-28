@@ -2,7 +2,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AccountMenu } from "./AccountButton";
 import WhatsAppButton from "./WhatsAppButton";
+import { setLangAction } from "@/app/lang/actions";
 import { currentUser } from "@/lib/auth";
+import { t, type Lang } from "@/lib/i18n";
+import { getLang } from "@/lib/lang";
 import { actionsFor, navFor } from "@/lib/nav";
 import { WORKSPACE } from "@/lib/roles";
 import type { User } from "@/lib/users";
@@ -23,11 +26,11 @@ export function SiteHeader() {
 }
 
 async function SignedBar() {
-  const user = await currentUser();
-  return <Bar user={user} />;
+  const [user, lang] = await Promise.all([currentUser(), getLang()]);
+  return <Bar user={user} lang={lang} />;
 }
 
-function Bar({ user }: { user: User | null }) {
+function Bar({ user, lang = "en" }: { user: User | null; lang?: Lang }) {
   const role = user?.role ?? null;
   const items = navFor(role);
   const { find, track } = actionsFor(role);
@@ -40,7 +43,7 @@ function Bar({ user }: { user: User | null }) {
       </Link>
 
       <details className={styles.mobileMenu}>
-        <summary>Menu</summary>
+        <summary>{t(lang, "Menu")}</summary>
         <nav className={styles.mobileLinks} aria-label="Menu">
           {items.map((item) => (
             <div key={item.label} className={styles.mobileGroup}>
@@ -52,9 +55,9 @@ function Bar({ user }: { user: User | null }) {
               ))}
             </div>
           ))}
-          {find && <Link href="/points">Find an Iza point</Link>}
-          {track && <Link href="/track">Track a parcel</Link>}
-          {!user && <Link href="/signin">Sign in</Link>}
+          {find && <Link href="/points">{t(lang, "Find an Iza point")}</Link>}
+          {track && <Link href="/track">{t(lang, "Track a parcel")}</Link>}
+          {!user && <Link href="/signin">{t(lang, "Sign in")}</Link>}
         </nav>
       </details>
 
@@ -80,22 +83,28 @@ function Bar({ user }: { user: User | null }) {
       <div className={styles.navActions}>
         {find && (
           <Link href="/points" className={styles.findLink}>
-            Find an Iza point
+            {t(lang, "Find an Iza point")}
           </Link>
         )}
+        <form action={setLangAction} className="langSwitch">
+          <input type="hidden" name="lang" value={lang === "xh" ? "en" : "xh"} />
+          <button type="submit" className="linkBtn" lang={lang === "xh" ? "en" : "xh"}>
+            {lang === "xh" ? "English" : "isiXhosa"}
+          </button>
+        </form>
         {track && (
           <Link href="/track" className={`${styles.trackBlock} ${isWorker ? styles.hideSmall : ""}`}>
-            Track
+            {t(lang, "Track")}
           </Link>
         )}
         {!user && (
           <Link href="/signin" className={styles.signBlock}>
-            Sign in
+            {t(lang, "Sign in")}
           </Link>
         )}
         {isWorker && (
           <Link href={WORKSPACE[user.role].href} className={styles.signBlock}>
-            Dashboard
+            {t(lang, "Dashboard")}
           </Link>
         )}
         {user && (

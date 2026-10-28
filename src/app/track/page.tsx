@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import CodeForm from "@/components/CodeForm";
 import Shell from "@/components/Shell";
 import { currentUser } from "@/lib/auth";
+import { t, type Lang } from "@/lib/i18n";
+import { getLang } from "@/lib/lang";
 import { statusOf, type Parcel } from "@/lib/parcels";
 import { listParcels, listParcelsFor, listParcelsToPhone } from "@/lib/store";
 
@@ -11,31 +13,40 @@ export const metadata = { title: "Track a parcel · Iza" };
 export default function TrackPage() {
   return (
     <Shell title="Track" subtitle="Where is my parcel?">
-      <h1 style={{ fontSize: 26 }}>Where&apos;s my parcel?</h1>
-      <p className="muted" style={{ margin: 0 }}>
-        Type the code from your message.
-      </p>
-      <CodeForm cta="Track" />
-
-      <h2 className="section-title">Your parcels</h2>
       <Suspense fallback={<p className="muted">Loading…</p>}>
-        <ParcelList />
+        <Content />
       </Suspense>
     </Shell>
   );
 }
 
+async function Content() {
+  const lang = await getLang();
+  return (
+    <>
+      <h1 style={{ fontSize: 26 }}>{t(lang, "Where's my parcel?")}</h1>
+      <p className="muted" style={{ margin: 0 }}>
+        {t(lang, "Type the code from your message.")}
+      </p>
+      <CodeForm cta={t(lang, "Track")} />
+
+      <h2 className="section-title">{t(lang, "Your parcels")}</h2>
+      <ParcelList lang={lang} />
+    </>
+  );
+}
+
 const mergeParcels = (a: Parcel[], b: Parcel[]) => [...a, ...b.filter((p) => !a.some((x) => x.code === p.code))];
 
-async function ParcelList() {
+async function ParcelList({ lang }: { lang: Lang }) {
   const user = await currentUser();
   if (!user) {
     return (
       <p className="muted" style={{ margin: 0 }}>
         <Link href="/signin?next=/track" style={{ color: "var(--primary)", fontWeight: 700 }}>
-          Sign in
+          {t(lang, "Sign in")}
         </Link>{" "}
-        to see your parcels.
+        {t(lang, "to see your parcels.")}
       </p>
     );
   }
@@ -52,7 +63,7 @@ async function ParcelList() {
   if (mine.length === 0) {
     return (
       <p className="muted" style={{ margin: 0 }}>
-        Nothing yet. Your parcels show up here.
+        {t(lang, "Nothing yet. Your parcels show up here.")}
       </p>
     );
   }
@@ -67,12 +78,12 @@ async function ParcelList() {
           style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
         >
           <div>
-            <div style={{ fontWeight: 700 }}>For {p.to}</div>
+            <div style={{ fontWeight: 700 }}>{t(lang, "For {name}", { name: p.to })}</div>
             <div className="mono muted" style={{ fontSize: 13 }}>
               {p.code}
             </div>
           </div>
-          <span className="chip chip-honey">{statusOf(p)}</span>
+          <span className="chip chip-honey">{statusOf(p, lang)}</span>
         </Link>
       ))}
     </>

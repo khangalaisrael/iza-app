@@ -7,6 +7,8 @@ import EventFeed from "@/components/EventFeed";
 import MapView from "@/components/MapView";
 import Shell from "@/components/Shell";
 import { currentUser } from "@/lib/auth";
+import { t } from "@/lib/i18n";
+import { getLang } from "@/lib/lang";
 import { etaMinutes } from "@/lib/geo";
 import { FEE_DOOR_EXTRA, FEE_POINT, destinationOf, etaOf, runnerPositionOf, stepsOf, type Parcel } from "@/lib/parcels";
 import { getPointById, type IzaPoint } from "@/lib/pointStore";
@@ -62,14 +64,14 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
     listEvents(found.code),
     hasPhoto(found.code),
   ]);
-  const user = await currentUser();
+  const [user, lang] = await Promise.all([currentUser(), getLang()]);
   const full = canSeePrivate(user, found, point);
   const parcel = full ? found : redact(found);
 
   const here = point ? { lat: point.lat, lng: point.lng } : undefined;
   const dest = destinationOf(parcel, here);
   const runnerPos = full && parcel.stage === 3 ? runnerPositionOf(parcel) : undefined;
-  const headline = runnerPos ? `About ${etaMinutes(runnerPos, dest)} min away` : etaOf(parcel);
+  const headline = runnerPos ? t(lang, "About {min} min away", { min: etaMinutes(runnerPos, dest) }) : etaOf(parcel, lang);
   const showMap = parcel.stage >= 1 && parcel.stage < 4 && (full || parcel.choice !== "door");
   const canChoose = parcel.stage < 3;
 
@@ -77,7 +79,7 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
     <>
       <AutoRefresh seconds={parcel.stage === 3 ? 2 : 5} />
       <section className="hero">
-        <p className="greeting">Molo, {parcel.to}</p>
+        <p className="greeting">{t(lang, "Molo, {name}", { name: parcel.to })}</p>
         <h1>{headline}</h1>
         <p style={{ margin: 0 }}>
           <span className="mono">{parcel.code}</span>
@@ -86,7 +88,7 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
 
       {canChoose && (
         <section className="card">
-          <ChooseDelivery key={`${parcel.choice}-${parcel.stage}`} code={parcel.code} pointName={parcel.point} current={parcel.choice} />
+          <ChooseDelivery key={`${parcel.choice}-${parcel.stage}`} code={parcel.code} pointName={parcel.point} current={parcel.choice} lang={lang} />
         </section>
       )}
 
@@ -96,33 +98,37 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
         target="_blank"
         rel="noopener noreferrer"
       >
-        Share this on WhatsApp
+        {t(lang, "Share this on WhatsApp")}
       </a>
 
       {parcel.choice === "door" && parcel.stage >= 2 && parcel.stage < 4 && parcel.deliveryPin && (
         <section className="card stack pinCard" aria-label="Your delivery code">
-          <h2>Your delivery code</h2>
+          <h2>{t(lang, "Your delivery code")}</h2>
           <div className="bigCode mono">{parcel.deliveryPin}</div>
           <p className="muted" style={{ margin: 0 }}>
-            Tell the runner this code at your door. Don&apos;t share it before they arrive.
+            {t(lang, "Tell the runner this code at your door. Don't share it before they arrive.")}
           </p>
         </section>
       )}
 
       {full && (
         <section className="card stack" aria-label="Payment" style={{ gap: 8 }}>
-          <h2>Payment</h2>
+          <h2>{t(lang, "Payment")}</h2>
           <div className="payRow">
-            <span>Sender&apos;s fee to the Iza point (R{FEE_POINT})</span>
-            <strong>{parcel.paidAt ? "Paid" : "Not paid yet"}</strong>
+            <span>{t(lang, "Sender's fee to the Iza point (R{fee})", { fee: FEE_POINT })}</span>
+            <strong>{t(lang, parcel.paidAt ? "Paid" : "Not paid yet")}</strong>
           </div>
           {parcel.choice === "door" && (
             <div className="payRow">
-              <span>Door delivery extra (R{FEE_DOOR_EXTRA}), paid in cash to the runner</span>
-              <strong>{parcel.doorPaidAt ? "Paid" : "Pay at your door"}</strong>
+              <span>{t(lang, "Door delivery extra (R{fee}), paid in cash to the runner", { fee: FEE_DOOR_EXTRA })}</span>
+              <strong>{t(lang, parcel.doorPaidAt ? "Paid" : "Pay at your door")}</strong>
             </div>
           )}
-          {parcel.choice === "point" && <p className="muted" style={{ margin: 0 }}>Collecting at the Iza point costs nothing extra.</p>}
+          {parcel.choice === "point" && (
+            <p className="muted" style={{ margin: 0 }}>
+              {t(lang, "Collecting at the Iza point costs nothing extra.")}
+            </p>
+          )}
         </section>
       )}
 
@@ -138,7 +144,7 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
 
       {full && photo && parcel.stage >= 3 && (
         <section className="card stack" aria-label="Photo of your parcel">
-          <h2>Photo from the runner</h2>
+          <h2>{t(lang, "Photo from the runner")}</h2>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`/api/parcels/${parcel.code}/photo`} alt="Your parcel at the door" style={{ width: "100%", borderRadius: 12 }} />
         </section>
@@ -147,25 +153,25 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
       <section className="card">
         {parcel.choice === "door" && parcel.landmark && (
           <p className="muted" style={{ margin: "0 0 12px" }}>
-            Bringing it to {parcel.landmark}
+            {t(lang, "Bringing it to {place}", { place: parcel.landmark })}
           </p>
         )}
         {parcel.choice !== "door" && (
           <p className="muted" style={{ margin: "0 0 12px" }}>
-            Collect at {parcel.point}
-            {point ? `, open ${point.hours}` : ""}
+            {t(lang, "Collect at {point}", { point: parcel.point })}
+            {point ? t(lang, ", open {hours}", { hours: point.hours }) : ""}
           </p>
         )}
         {!full && (
           <p className="muted" style={{ margin: "0 0 12px" }}>
             <a href={`/signin?next=${encodeURIComponent(`/track/${parcel.code}`)}`} style={{ color: "var(--primary)", fontWeight: 700 }}>
-              Sign in
+              {t(lang, "Sign in")}
             </a>{" "}
-            to see more about this parcel.
+            {t(lang, "to see more about this parcel.")}
           </p>
         )}
         <ol className="timeline">
-          {stepsOf(parcel).map((s) => (
+          {stepsOf(parcel, lang).map((s) => (
             <li key={s.title} className={s.state}>
               <span className="dot" aria-hidden="true" />
               <div>
@@ -176,7 +182,7 @@ async function ParcelDetails({ params }: { params: PageProps<"/track/[code]">["p
           ))}
         </ol>
       </section>
-      <EventFeed events={events} />
+      <EventFeed events={events} title={t(lang, "Updates")} />
     </>
   );
 }

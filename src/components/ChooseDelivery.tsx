@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import LocationPicker, { type Coords } from "./LocationPicker";
+import { t, type Lang } from "@/lib/i18n";
 import { FEE_DOOR, FEE_DOOR_EXTRA, FEE_POINT } from "@/lib/parcels";
 
 // The customer decides: collect it at the Iza point, or have a runner bring it to the door for a little extra.
@@ -10,10 +11,12 @@ export default function ChooseDelivery({
   code,
   pointName,
   current,
+  lang = "en",
 }: {
   code: string;
   pointName: string;
   current?: "point" | "door";
+  lang?: Lang;
 }) {
   const router = useRouter();
   const [choice, setChoice] = useState<"point" | "door">(current ?? "point");
@@ -47,22 +50,22 @@ export default function ChooseDelivery({
 
   return (
     <form onSubmit={save} className="stack" noValidate>
-      <h2>How would you like it?</h2>
+      <h2>{t(lang, "How would you like it?")}</h2>
       <fieldset className="field bigChoices">
-        <legend className="visually-hidden">How would you like it?</legend>
+        <legend className="visually-hidden">{t(lang, "How would you like it?")}</legend>
         <label className="bigChoice">
           <input type="radio" name="choice" value="point" checked={choice === "point"} onChange={() => setChoice("point")} />
           <span>
-            <strong>I&apos;ll collect it</strong>
-            <small>At {pointName}. Show your code at the counter.</small>
+            <strong>{t(lang, "I'll collect it")}</strong>
+            <small>{t(lang, "At {point}. Show your code at the counter.", { point: pointName })}</small>
             <b className="price">R{FEE_POINT}</b>
           </span>
         </label>
         <label className="bigChoice">
           <input type="radio" name="choice" value="door" checked={choice === "door"} onChange={() => setChoice("door")} />
           <span>
-            <strong>Bring it to my door</strong>
-            <small>A local runner brings it. R{FEE_DOOR_EXTRA} extra.</small>
+            <strong>{t(lang, "Bring it to my door")}</strong>
+            <small>{t(lang, "A local runner brings it. R{fee} extra.", { fee: FEE_DOOR_EXTRA })}</small>
             <b className="price">R{FEE_DOOR}</b>
           </span>
         </label>
@@ -71,9 +74,9 @@ export default function ChooseDelivery({
       {choice === "door" && (
         <LocationPicker
           id="door"
-          label="Where should we bring it?"
-          hint="Describe it like you would to a friend, like the blue gate by the Engen."
-          placeholder="e.g. Blue gate opposite the Engen"
+          label={t(lang, "Where should we bring it?")}
+          hint={t(lang, "Describe it like you would to a friend, like the blue gate by the Engen.")}
+          placeholder={t(lang, "e.g. Blue gate opposite the Engen")}
           value={landmark}
           onValue={setLandmark}
           coords={spot}
@@ -89,12 +92,12 @@ export default function ChooseDelivery({
       )}
       {saved && (
         <p role="status" className="saved">
-          Saved. Thank you!
+          {t(lang, "Saved. Thank you!")}
         </p>
       )}
 
       <button className="btn btn-block" type="submit" disabled={busy}>
-        {busy ? "Saving…" : current ? "Save my choice" : "Confirm"}
+        {busy ? t(lang, "Saving…") : current ? t(lang, "Save my choice") : t(lang, "Confirm")}
       </button>
     </form>
   );

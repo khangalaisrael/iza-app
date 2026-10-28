@@ -351,3 +351,28 @@ test("the team can give a waiting job to a runner, and only the team can", async
   const res = await runner.request.patch(`/api/parcels/${code}`, { data: { action: "assign", runnerId: "x" } });
   expect(res.status()).toBe(403);
 });
+
+test("a customer can read their parcel in isiXhosa, and switch back", async ({ as, browser, baseURL }) => {
+  const business = await (await as("business")).newPage();
+  const code = await book(business, { from: "Thembi's Kitchen", to: "Thandi", phone: "086 123 4567" });
+
+  const customer = await browser.newPage({ baseURL });
+  await customer.goto(`/track/${code}`);
+  await expect(customer.getByRole("heading", { name: "How would you like it?" })).toBeVisible();
+
+  await customer.getByRole("button", { name: "isiXhosa" }).click();
+  await expect(customer.getByRole("heading", { name: "Ungathanda ukuyifumana njani?" })).toBeVisible();
+  await expect(customer.getByText("Ndiza kuyithatha")).toBeVisible();
+  await expect(customer.getByText("Molo, neighbour")).toBeVisible();
+  await expect(customer.getByText("Ibhukishiwe")).toBeVisible();
+
+  // The choice works in isiXhosa too, and the language is remembered on the next page.
+  await customer.getByText("Ndiza kuyithatha").click();
+  await customer.getByRole("button", { name: "Qinisekisa" }).click();
+  await expect(customer.getByText("Kugcinwe. Enkosi!")).toBeVisible();
+  await customer.goto("/track");
+  await expect(customer.getByRole("heading", { name: "Ikuphi iparcel yam?" })).toBeVisible();
+
+  await customer.getByRole("button", { name: "English" }).click();
+  await expect(customer.getByRole("heading", { name: "Where's my parcel?" })).toBeVisible();
+});

@@ -1481,3 +1481,14 @@ html {
 .payRow strong {
   white-space: nowrap;
 }
+
+.langSwitch {
+  display: inline-flex;
+  margin: 0;
+}
+.langSwitch .linkBtn {
+  min-height: 44px;
+  padding: 0 2px;
+  font-size: 14px;
+  font-weight: 700;
+}

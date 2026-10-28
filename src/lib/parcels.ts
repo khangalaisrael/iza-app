@@ -1,3 +1,4 @@
+import { t, type Lang } from "./i18n";
 import { encodePlusCode } from "./pluscode";
 import { FALLBACK_DESTINATION, type LatLng } from "./geo";
 
@@ -70,50 +71,51 @@ export const needsCollection = (p: Parcel) => p.stage === 0 && p.dropoff !== "se
 
 export const NO_RUNNER = "Not assigned yet";
 
-export function statusOf(p: Parcel): string {
-  if (p.stage === 2 && p.choice === "door") return "Waiting for a runner";
-  return STAGES[p.stage];
+// These three take the language the person reads, and default to English (the team's screens stay in English).
+export function statusOf(p: Parcel, lang: Lang = "en"): string {
+  if (p.stage === 2 && p.choice === "door") return t(lang, "Waiting for a runner");
+  return t(lang, STAGES[p.stage]);
 }
 
-export function etaOf(p: Parcel): string {
+export function etaOf(p: Parcel, lang: Lang = "en"): string {
   switch (p.stage) {
     case 0:
-      return "A runner will collect it today";
+      return t(lang, "A runner will collect it today");
     case 1:
-      return `On its way to ${p.point}`;
+      return t(lang, "On its way to {point}", { point: p.point });
     case 2:
-      if (p.choice === "door") return "A runner will bring it to your door";
-      if (p.choice === "point") return `Ready to collect at ${p.point}`;
-      return `It's at ${p.point}. Choose how you want it.`;
+      if (p.choice === "door") return t(lang, "A runner will bring it to your door");
+      if (p.choice === "point") return t(lang, "Ready to collect at {point}", { point: p.point });
+      return t(lang, "It's at {point}. Choose how you want it.", { point: p.point });
     case 3:
-      return "About 15 minutes";
+      return t(lang, "About 15 minutes");
     default:
-      return "Delivered. Enkosi!";
+      return t(lang, "Delivered. Enkosi!");
   }
 }
 
-function detailFor(p: Parcel, i: number): string {
+function detailFor(p: Parcel, i: number, lang: Lang): string {
   switch (i) {
     case 0:
-      return `Pickup: ${p.pickup}`;
+      return t(lang, "Pickup: {place}", { place: p.pickup });
     case 1:
-      return p.runner === NO_RUNNER || p.stage < 1 ? "A runner will collect it" : "A local runner collected it";
+      return t(lang, p.runner === NO_RUNNER || p.stage < 1 ? "A runner will collect it" : "A local runner collected it");
     case 2:
       return p.point;
     case 3:
-      return "A local runner is carrying it to you";
+      return t(lang, "A local runner is carrying it to you");
     default:
-      return p.choice === "door" ? "Show your code at the door" : "Show your code at the counter";
+      return t(lang, p.choice === "door" ? "Show your code at the door" : "Show your code at the counter");
   }
 }
 
 // The "On the way" step only exists when the customer wants it at their door.
-export function stepsOf(p: Parcel): Step[] {
+export function stepsOf(p: Parcel, lang: Lang = "en"): Step[] {
   return STAGES.map((title, i) => ({ title, i }))
     .filter(({ i }) => !(i === 3 && p.choice === "point"))
     .map(({ title, i }) => ({
-      title,
-      detail: detailFor(p, i),
+      title: t(lang, title),
+      detail: detailFor(p, i, lang),
       state: (i < p.stage || (i === p.stage && i === LAST_STAGE) ? "done" : i === p.stage ? "now" : "next") as Step["state"],
     }));
 }
