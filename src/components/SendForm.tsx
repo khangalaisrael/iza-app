@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import LocationPicker, { type Coords } from "./LocationPicker";
+import NotifyButton from "./NotifyButton";
 import { walkMinutes } from "@/lib/geo";
 import { FEE_DOOR_EXTRA, FEE_POINT } from "@/lib/parcels";
 import { whatsappLink } from "@/lib/whatsapp";
@@ -10,6 +11,16 @@ import { whatsappLink } from "@/lib/whatsapp";
 export type PointChoice = { id: string; name: string; kind: string; hours: string; lat: number; lng: number };
 
 const sizes = ["Small", "Medium", "Large"];
+
+// Opens the phone's own share sheet (SMS, Telegram, any app). Where there is none, the link is copied.
+async function shareLink(message: string, link: string) {
+  try {
+    if (navigator.share) await navigator.share({ title: "Your Izza parcel", text: message });
+    else await navigator.clipboard.writeText(link);
+  } catch {
+    // The person closed the share sheet. Nothing to do.
+  }
+}
 
 // A business books a parcel to an Izza point. The customer then chooses to collect it or have it brought to their door.
 export default function SendForm({
@@ -23,29 +34,35 @@ export default function SendForm({
   initialPointId?: string;
   fromCustomer?: boolean;
 }) {
-  const [dropoff, setDropoff] = useState<"runner" | "self">("runner");
+  // A runner always collects it from the sender, so there is nothing to ask.
+  const dropoff = "runner";
   // "shop": they choose to collect or have it brought. "door": the sender does not know where they are, so they pin it.
   const [delivery, setDelivery] = useState<"shop" | "door">("shop");
   const [from, setFrom] = useState("");
   const [pickup, setPickup] = useState<Coords | null>(null);
   const [toName, setToName] = useState("");
   const [toPhone, setToPhone] = useState("");
-  const [pointId, setPointId] = useState(
-    points.find((p) => p.id === initialPointId)?.id ?? points[0]?.id ?? "",
-  );
+  const [chosenPoint, setChosenPoint] = useState(points.find((p) => p.id === initialPointId)?.id ?? "");
+  const [hubSearch, setHubSearch] = useState("");
   const [size, setSize] = useState("Small");
   const [note, setNote] = useState("");
   const [sent, setSent] = useState<{ code: string; key: string; point: string; dropoff: string; delivery: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Once the business has shared where it is, show the closest points first.
+  // Once the sender has shared where they are, the closest points come first, and the closest is chosen for them.
   const ordered = useMemo(() => {
     if (!pickup) return points.map((p) => ({ p, minutes: null as number | null }));
     return points
       .map((p) => ({ p, minutes: walkMinutes(pickup, p) }))
       .sort((a, b) => (a.minutes as number) - (b.minutes as number));
   }, [pickup, points]);
+  const pointId = chosenPoint || ordered[0]?.p.id || "";
+  // With only a few hubs a list is quicker than a search. Past this many, a search box helps.
+  const SEARCH_FROM = 8;
+  const shown = hubSearch.trim()
+    ? ordered.filter(({ p }) => `${p.name} ${p.kind}`.toLowerCase().includes(hubSearch.trim().toLowerCase()))
+    : ordered;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -88,9 +105,7 @@ export default function SendForm({
       <div className="card pop done">
         <h1>Enkosi! It&apos;s booked.</h1>
         <p className="muted">
-          {sent.dropoff === "self"
-            ? `Bring it to ${sent.point} and show this code. The shop will confirm it.`
-            : "A runner will collect it from you."}{" "}
+          A runner will collect it from you.{" "}
           {sent.delivery === "door" ? `Now send ${toName} the link so they can pin where to bring it.` : `Now tell ${toName} their code.`}
         </p>
         {fromCustomer && <p className="muted">The Izza team has been told about your parcel.</p>}
@@ -98,6 +113,10 @@ export default function SendForm({
         <a className="btn btn-primary" href={whatsappLink(toPhone, message)} target="_blank" rel="noopener noreferrer">
           {sent.delivery === "door" ? "Send them the link on WhatsApp" : "Send the code on WhatsApp"}
         </a>
+        <NotifyButton code={sent.code} />
+        <button type="button" className="btn btn-soft" onClick={() => shareLink(message, link)}>
+          Share with {toName} another way
+        </button>
         <Link className="btn btn-soft" href={`/track/${sent.code}`}>
           See where it is
         </Link>
@@ -119,25 +138,6 @@ export default function SendForm({
         </p>
       </div>
 
-      <fieldset className="field bigChoices">
-        <legend>How will it get to the Izza point?</legend>
-        <label className="bigChoice">
-          <input type="radio" name="dropoff" value="runner" checked={dropoff === "runner"} onChange={() => setDropoff("runner")} />
-          <span>
-            <strong>Send a runner to collect it</strong>
-            <small>A runner comes to you and takes it to the point.</small>
-          </span>
-        </label>
-        <label className="bigChoice">
-          <input type="radio" name="dropoff" value="self" checked={dropoff === "self"} onChange={() => setDropoff("self")} />
-          <span>
-            <strong>I will bring it to the point</strong>
-            <small>Free of runners. The shop confirms when it arrives.</small>
-          </span>
-        </label>
-      </fieldset>
-
-      {dropoff === "runner" && (
       <section className="stack" aria-labelledby="who-sending">
         <h2 id="who-sending">Where do we collect it?</h2>
         <LocationPicker
@@ -152,7 +152,6 @@ export default function SendForm({
           canUseMyLocation
         />
       </section>
-      )}
 
       <section className="stack" aria-labelledby="who-for">
         <h2 id="who-for">Who is it for?</h2>
@@ -199,9 +198,20 @@ export default function SendForm({
       <fieldset className="field bigChoices">
         <legend>{delivery === "door" ? "Which Izza point should it pass through?" : "Which Izza point should it go to?"}</legend>
         {points.length === 0 && <p className="muted">No Izza points yet. The team is adding them.</p>}
-        {ordered.map(({ p, minutes }, i) => (
+        {points.length > SEARCH_FROM && (
+          <input
+            className="input"
+            type="search"
+            aria-label="Search Izza points"
+            placeholder="Search by name or area"
+            value={hubSearch}
+            onChange={(e) => setHubSearch(e.target.value)}
+          />
+        )}
+        {shown.length === 0 && points.length > 0 && <p className="muted">No Izza point matches that. Try another name.</p>}
+        {shown.map(({ p, minutes }, i) => (
           <label key={p.id} className="bigChoice">
-            <input type="radio" name="point" value={p.id} checked={pointId === p.id} onChange={() => setPointId(p.id)} />
+            <input type="radio" name="point" value={p.id} checked={pointId === p.id} onChange={() => setChosenPoint(p.id)} />
             <span>
               <strong>{p.name}</strong>
               <small>

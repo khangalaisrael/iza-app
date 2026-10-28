@@ -60,20 +60,23 @@ test("the website has the same menu on every page, like the design", async ({ br
   await ctx.close();
 });
 
-test("on a phone the header has tabs, and each one opens a dropdown", async ({ page }) => {
+test("on a phone the main choices are a tab bar at the bottom, and More lists the rest", async ({ page }) => {
   await page.goto("/join");
-  const menu = await topMenu(page);
-  for (const name of ["Send", "Collect", "For my business", "Why Izza"]) {
-    await expect(menu.getByText(name, { exact: true })).toBeVisible();
-  }
-  // Opening one shows its links; opening another closes the first; tapping elsewhere closes it.
-  await menu.getByText("Send", { exact: true }).click();
+  const tabs = await topMenu(page);
+  for (const name of ["Send", "Track", "Hubs", "More"]) await expect(tabs.getByText(name, { exact: true })).toBeVisible();
+
+  // The bar is pinned to the bottom of the screen, where the thumb is.
+  const box = await tabs.boundingBox();
+  const viewport = page.viewportSize()!;
+  expect(box!.y + box!.height).toBeGreaterThan(viewport.height - 4);
+
+  await tabs.getByText("More", { exact: true }).click();
+  await expect(page).toHaveURL(/\/more$/);
+  await expect(page.getByRole("heading", { name: "More", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "How sending works" })).toBeVisible();
-  await menu.getByText("Collect", { exact: true }).click();
-  await expect(page.getByRole("link", { name: "Find an Izza point" }).first()).toBeVisible();
-  await expect(page.getByRole("link", { name: "How sending works" })).toBeHidden();
-  await page.mouse.click(8, 880);
-  await expect(page.getByRole("link", { name: "Collect with my code" })).toBeHidden();
+  await expect(page.getByRole("link", { name: "Open a business account" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Privacy notice" })).toBeVisible();
+  await expect(tabs.getByRole("link", { name: "More" })).toHaveAttribute("aria-current", "page");
 });
 
 test("the website opens with a heading and a way to send and track", async ({ page }) => {
@@ -124,16 +127,12 @@ test("a customer sees the parcels addressed to their number, and nobody else's",
   await expect(customer.getByText("IZA-4830")).toHaveCount(0); // for someone else
 });
 
-test("the header is one row: the logo, the tabs and Sign in share a single bar, and it stays pinned", async ({ page }) => {
+test("the top bar is slim and the tab bar stays pinned while you scroll", async ({ page }) => {
   await page.goto("/");
   const logo = page.getByRole("link", { name: "Izza home" });
-  const tabs = page.getByRole("navigation", { name: "Menu" }).getByText("Send", { exact: true });
-  const signIn = page.getByRole("link", { name: "Sign in" }).first();
-  const [a, b, c] = await Promise.all([logo.boundingBox(), tabs.boundingBox(), signIn.boundingBox()]);
-  // All three sit on the same line, inside a bar no taller than a normal header.
-  for (const box of [a, b, c]) expect(box!.y + box!.height).toBeLessThan(90);
-  expect(Math.abs((a!.y + a!.height / 2) - (b!.y + b!.height / 2))).toBeLessThan(30);
-
+  const tabs = await topMenu(page);
+  const bar = await logo.boundingBox();
+  expect(bar!.y + bar!.height).toBeLessThan(90);
   await page.evaluate(() => window.scrollTo(0, 900));
   await page.waitForTimeout(300);
   await expect(tabs).toBeInViewport();
@@ -165,4 +164,19 @@ test("the privacy page and the staff pages each have one main heading", async ({
   const team = await (await as("admin")).newPage();
   await team.goto("/ops");
   await expect(team.getByRole("heading", { level: 1 })).toHaveCount(1);
+});
+
+test("the new Send page explains sending before asking anyone to sign in, and the hub question is gone", async ({ page, as }) => {
+  await page.goto("/send");
+  await expect(page.getByRole("heading", { name: "Send a parcel" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Create an account to send" })).toBeVisible();
+  await expect(page).toHaveURL(/\/send$/);
+
+  const business = await (await as("business")).newPage();
+  await business.goto("/send");
+  await expect(business.getByText("How will it get to the Izza point?")).toHaveCount(0);
+  await expect(business.getByText("I will bring it to the point")).toHaveCount(0);
+  await expect(business.getByRole("heading", { name: "Where do we collect it?" })).toBeVisible();
+  // Only a few hubs, so no search box.
+  await expect(business.getByLabel("Search Izza points")).toHaveCount(0);
 });

@@ -1533,3 +1533,37 @@ html {
   padding: 12px 6px;
   margin: -12px -6px;
 }
+
+/* On phones and tablets the tab bar takes the bottom of the screen, so the page and the WhatsApp button stay clear of it. */
+@media (max-width: 1080px) {
+  body {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+  .waFab {
+    bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+}
+
+/* The More page: big plain lists. */
+.moreList {
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+}
+.moreItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+.moreItem::after {
+  content: "›";
+  font-size: 22px;
+  color: var(--muted);
+}
+.moreItem:active {
+  background: var(--tint);
+}

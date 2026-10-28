@@ -2,13 +2,13 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AccountMenu } from "./AccountButton";
 import LanguageLinks from "./LanguageLinks";
-import NavStrip from "./NavStrip";
+import BottomNav from "./BottomNav";
 import WhatsAppButton from "./WhatsAppButton";
 import { currentUser } from "@/lib/auth";
 import { teamAttention } from "@/lib/store";
 import { t, type Lang } from "@/lib/i18n";
 import { getLang } from "@/lib/lang";
-import { actionsFor, navFor } from "@/lib/nav";
+import { actionsFor, navFor, tabsFor } from "@/lib/nav";
 import { WORKSPACE } from "@/lib/roles";
 import type { User } from "@/lib/users";
 import styles from "@/app/welcome/welcome.module.css";
@@ -22,9 +22,21 @@ export function SiteHeader() {
           <SignedBar />
         </Suspense>
       </header>
+      <Suspense fallback={null}>
+        <SignedTabs />
+      </Suspense>
       <WhatsAppButton />
     </>
   );
+}
+
+// The tab bar at the bottom of a phone. It only shows on small screens.
+async function SignedTabs() {
+  const user = await currentUser();
+  const role = user?.status === "active" || !user ? (user?.role ?? null) : null;
+  const waiting = user?.role === "admin" && user.status === "active" ? await teamAttention() : 0;
+  const tabs = tabsFor(role).map((t) => (t.href === "/ops" && waiting > 0 ? { ...t, badge: waiting } : t));
+  return <BottomNav tabs={tabs} />;
 }
 
 async function SignedBar() {
@@ -44,10 +56,8 @@ function Bar({ user, lang = "en", waiting = 0 }: { user: User | null; lang?: Lan
     <div className={styles.navBar}>
       <Link href="/" className={styles.logo} aria-label="Izza home">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/izza-mark.png" alt="izza" width={326} height={188} />
+        <img src="/izza-mark.png" alt="izza" width={354} height={210} />
       </Link>
-
-      <NavStrip items={items} />
 
       <nav className={styles.links} aria-label="Main">
         {items.map((item) => (
@@ -107,7 +117,7 @@ export function SiteFooter() {
         <div className={styles.footerGrid}>
           <div className={styles.footerBrand}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className={styles.footerLogo} src="/izza-logo.png" alt="izza, bringing it closer" width={326} height={231} />
+            <img className={styles.footerLogo} src="/izza-logo.png" alt="izza, bringing it closer" width={354} height={245} />
             <p>Delivered by your neighbours.</p>
             <LanguageLinks />
           </div>

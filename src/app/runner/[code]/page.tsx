@@ -36,11 +36,34 @@ async function Job({ user, params }: { user: User; params: PageProps<"/runner/[c
   const parcel = await getParcel(decodeURIComponent(code));
 
   // A runner can only open a job they have accepted. The team can open any.
+  if (parcel && user.role !== "admin" && parcel.runnerId !== user.id) {
+    // The job may be finished from their side: once they hand a parcel to the Izza point it is no longer theirs to carry, but it
+    // was theirs, so they are thanked rather than told it is not their job.
+    const mine = (await listEvents(parcel.code)).some(
+      (e) => e.actor === user.name && ["accepted", "collected", "dropped", "picked_from_point", "delivered"].includes(e.kind),
+    );
+    if (mine) {
+      const done = parcel.stage >= 4 ? "delivered" : parcel.stage >= 2 ? "at the Izza point" : "released";
+      return (
+        <section className="card stack" role="status">
+          <h1>Done. Enkosi!</h1>
+          <p className="lead">
+            {parcel.stage >= 2
+              ? `Your part of parcel ${parcel.code} is finished. It is ${done === "delivered" ? "delivered" : `at ${parcel.point}`}.`
+              : `You are no longer on parcel ${parcel.code}. It is back on the open list.`}
+          </p>
+          <Link className="btn" href="/runner">
+            Find the next job
+          </Link>
+        </section>
+      );
+    }
+  }
   if (!parcel || (user.role !== "admin" && parcel.runnerId !== user.id)) {
     return (
       <section className="card stack">
-        <h1>This isn&apos;t one of your jobs</h1>
-        <p className="lead">It may have been given back, or someone else took it. Pick another from the list.</p>
+        <h1>This job isn&apos;t on your list</h1>
+        <p className="lead">Someone else may have taken it, or it was given back. Go back to the list to take another.</p>
         <Link className="btn" href="/runner">
           See jobs
         </Link>

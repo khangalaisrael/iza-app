@@ -7,6 +7,7 @@ import ChooseDelivery from "@/components/ChooseDelivery";
 import EventFeed from "@/components/EventFeed";
 import LanguageLinks from "@/components/LanguageLinks";
 import MapView from "@/components/MapView";
+import NotifyButton from "@/components/NotifyButton";
 import Shell from "@/components/Shell";
 import { currentUser } from "@/lib/auth";
 import { t } from "@/lib/i18n";
@@ -217,6 +218,7 @@ async function ParcelDetails({
           ))}
         </ol>
       </section>
+      {(isReceiver || isSender) && !cancelled && parcel.stage < 4 && <NotifyButton code={parcel.code} accessKey={keyOk ? key : undefined} />}
       {isSender && !cancelled && found.stage === 0 && <CancelButton code={parcel.code} />}
       <EventFeed events={events} title={t(lang, "Updates")} />
       <LanguageLinks />

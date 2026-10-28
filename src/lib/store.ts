@@ -1,6 +1,7 @@
 import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { db } from "./db";
 import { notifyCustomer, notifyTeam } from "./notify";
+import { pushForEvent } from "./push";
 import { PAY_COLLECT, PAY_DELIVERY, type Choice, type Dropoff, type Parcel } from "./parcels";
 
 type Row = {
@@ -178,6 +179,7 @@ export async function addEvent(code: string, kind: string, text: string, actor: 
     actorId ?? null,
   ]);
   notifyCustomer(code, kind, text);
+  pushForEvent(code, kind, text);
   // A runner's problem, or a parcel that came back, needs the team to look at it.
   if (kind === "problem" || kind === "returned") notifyTeam(`${code}: ${text}`, "A runner reported a problem with a parcel.");
 }

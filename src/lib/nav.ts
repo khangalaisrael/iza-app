@@ -63,6 +63,30 @@ export function navFor(role: Role | null): NavItem[] {
   }
 }
 
+// The choices pinned to the bottom of a phone. Each is a place people go every day, with an icon and one word.
+// Everything else lives on the More page.
+export type TabIcon = "send" | "track" | "hub" | "jobs" | "parcels" | "team" | "point" | "more";
+export type Tab = { label: string; href: string; icon: TabIcon; badge?: number };
+
+const more: Tab = { label: "More", href: "/more", icon: "more" };
+const sendTab: Tab = { label: "Send", href: "/send", icon: "send" };
+const trackTab: Tab = { label: "Track", href: "/track", icon: "track" };
+
+export function tabsFor(role: Role | null): Tab[] {
+  switch (role) {
+    case "runner":
+      return [{ label: "My jobs", href: "/runner", icon: "jobs" }, more];
+    case "point":
+      return [{ label: "My point", href: "/point", icon: "point" }, trackTab, more];
+    case "business":
+      return [{ label: "My parcels", href: "/parcels", icon: "parcels" }, sendTab, trackTab, more];
+    case "admin":
+      return [{ label: "Team", href: "/ops", icon: "team" }, sendTab, trackTab, more];
+    default:
+      return [sendTab, trackTab, { label: "Hubs", href: "/points", icon: "hub" }, more];
+  }
+}
+
 // The two blocks at the right of the bar. Track is for people who wait for parcels; workers have their own dashboard.
 export function actionsFor(role: Role | null) {
   return {

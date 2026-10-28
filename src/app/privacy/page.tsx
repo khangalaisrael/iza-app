@@ -64,7 +64,7 @@ export default function PrivacyPage() {
           <h2>Other services that handle it</h2>
           <p style={{ margin: 0 }}>
             We use Vercel and Neon to run the website and keep the database, map and routing services (Google Maps and OpenStreetMap-based
-            routing) to show places and routes, and WhatsApp (Meta) to send parcel updates, and ntfy.sh to send alerts to the Izza team's phones (these never name a person or a parcel). These services receive only what they need to do
+            routing) to show places and routes, and WhatsApp (Meta) to send parcel updates, and your phone's own notification service (through the browser) when you ask for parcel updates, and ntfy.sh to send alerts to the Izza team's phones (these never name a person or a parcel). These services receive only what they need to do
             that job, such as a place or a phone number.
           </p>
         </section>

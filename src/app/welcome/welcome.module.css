@@ -1217,9 +1217,6 @@
 /* The header's second row on phones and tablets: tabs along the bar, each with a dropdown. */
 .navStrip {
   display: none;
-  flex: 1;
-  min-width: 0;
-  align-self: center;
 }
 .navScroll {
   display: flex;
@@ -1354,4 +1351,67 @@
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0;
+}
+
+/* The bottom tab bar: on phones and tablets, the main choices sit at the thumb, as in a phone app. */
+.bottomNav {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 45;
+  background: var(--white);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -6px 20px rgb(19 32 27 / 0.08);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.bottomTab {
+  flex: 1;
+  min-width: 0;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.bottomTab[aria-current="page"] {
+  color: var(--honey);
+}
+.bottomTab:active {
+  background: var(--tint);
+}
+.bottomIcon {
+  position: relative;
+  display: inline-flex;
+}
+.bottomBadge {
+  position: absolute;
+  top: -6px;
+  right: -12px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--honey);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 1080px) {
+  .bottomNav {
+    display: flex;
+  }
+  /* These two live on the tab bar now, so the top bar only has the logo and the account. */
+  .trackBlock {
+    display: none;
+  }
 }

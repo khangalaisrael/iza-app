@@ -71,6 +71,9 @@ test("the customer collects: the runner works the job, the shop hands it over", 
   await expect(runner.getByRole("heading", { name: "Step 2: Take it to Corner Shop" })).toBeVisible();
   await runner.getByRole("button", { name: /I've handed it to Corner Shop/ }).click();
   await expect(runner.getByRole("heading", { name: "Step 2: Take it to Corner Shop" })).toHaveCount(0);
+  // Finishing the hand-over thanks the runner. It does not tell them the job is not theirs.
+  await expect(runner.getByRole("heading", { name: "Done. Enkosi!" })).toBeVisible();
+  await expect(runner.getByRole("heading", { name: "This job isn't on your list" })).toHaveCount(0);
 
   // The customer reads the runner's updates.
   await customer.reload();
@@ -272,7 +275,7 @@ test("two runners cannot take the same job, and nobody can work a job they did n
   // And the job page itself is closed to a runner who did not take it.
   const page = await second.newPage();
   await page.goto(`/runner/${code}`);
-  await expect(page.getByRole("heading", { name: "This isn't one of your jobs" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "This job isn't on your list" })).toBeVisible();
 });
 
 test("the shop cannot hand over a parcel the customer wants at their door", async ({ as, browser, baseURL }) => {
@@ -308,11 +311,12 @@ test("a stranger sees where a parcel is, but not who it is for or where it is go
   await stranger.close();
 });
 
-test("a customer sends from home: bringing it in needs no runner, the shop confirms, the team is told", async ({ as, browser, baseURL }) => {
+test("a customer sends from home: a runner collects it, the team is told, and it ends up at the shop", async ({ as, browser, baseURL }) => {
   const customer = await (await as("customer")).newPage();
   await customer.goto("/send");
-  await customer.getByText("I will bring it to the point").click();
-  await expect(customer.getByLabel("Pick up from")).toHaveCount(0);
+  // There is no question about how it gets to the hub: a runner always collects.
+  await expect(customer.getByText("I will bring it to the point")).toHaveCount(0);
+  await customer.getByLabel("Pick up from").fill("Gogo's house, Langa");
   await customer.getByLabel("Their name").fill("Gogo Home");
   await customer.getByLabel("Their WhatsApp number").fill("087 111 2222");
   await customer.getByText("Corner Shop", { exact: true }).click();
@@ -321,24 +325,19 @@ test("a customer sends from home: bringing it in needs no runner, the shop confi
   await expect(customer.getByText(/The Izza team has been told/)).toBeVisible();
   const code = (await customer.locator(".bigCode").innerText()).trim();
 
-  // No runner job exists for it.
-  const runner = await (await as("runner")).newPage();
-  await runner.goto("/runner");
-  await expect(runner.locator("article", { hasText: code })).toHaveCount(0);
-
   // The team sees it at the top of their dashboard.
   const team = await (await as("admin")).newPage();
   await team.goto("/ops");
   await expect(team.getByText("New from a customer").first()).toBeVisible();
   await expect(team.getByRole("link", { name: code }).first()).toBeVisible();
 
-  // The shop confirms it arrived, and it is then ready to collect.
+  // A runner collects it and hands it to the shop, which then has it ready to collect.
+  const runner = await (await as("runner")).newPage();
+  await collectAndDrop(runner, code);
   const shop = await (await as("point")).newPage();
   await shop.goto("/point");
-  const card = shop.locator("div.card", { hasText: code });
-  await card.getByRole("button", { name: "I have received it" }).click();
   await expect(shop.getByRole("heading", { name: "Ready to collect" })).toBeVisible();
-  await expect(shop.locator("div.card", { hasText: code }).getByRole("button", { name: "I have received it" })).toHaveCount(0);
+  await expect(shop.locator("div.card", { hasText: code })).toBeVisible();
 
   const stranger = await browser.newPage({ baseURL });
   await stranger.goto(`/track/${code}`);
@@ -502,4 +501,41 @@ test("the sender can cancel a parcel before a runner collects it, and everyone s
   await runner.getByRole("button", { name: "I've collected it" }).click();
   const tooLate = await business.request.patch(`/api/parcels/${second}`, { data: { action: "cancel" }, headers: { origin: baseURL! } });
   expect(tooLate.status()).toBe(409);
+});
+
+test("phone notifications: only people who can see a parcel can ask for them, and a failing phone never breaks a job", async ({ as, browser, baseURL }) => {
+  const business = await (await as("business")).newPage();
+  const code = await book(business, { from: "Thembi's Kitchen", to: "Notify Nandi", phone: "084 111 2222" });
+  const origin = { origin: baseURL! };
+
+  // The site publishes its notification key, the worker file and an app manifest.
+  const guest = await browser.newPage({ baseURL });
+  const key = await (await guest.request.get("/api/push/key")).json();
+  expect(key.key).toMatch(/^[A-Za-z0-9_-]{80,}$/);
+  expect((await guest.request.get("/sw.js")).status()).toBe(200);
+  const manifest = await (await guest.request.get("/manifest.webmanifest")).json();
+  expect(manifest.short_name).toBe("Izza");
+
+  // The receiver's page offers it. The bare code does not.
+  await guest.goto(receiverUrl(code));
+  await expect(guest.getByRole("button", { name: "Get updates on this phone" })).toBeVisible();
+  const stranger = await browser.newPage({ baseURL });
+  await stranger.goto(`/track/${code}`);
+  await expect(stranger.getByRole("button", { name: "Get updates on this phone" })).toHaveCount(0);
+
+  const fake = { endpoint: "https://push.invalid/send/abc123", keys: { p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM", auth: "tBHItJI5svbpez7KI4CCXg" } };
+  const runner = await (await as("runner")).newPage();
+  const refused = await runner.request.post(`/api/parcels/${code}/push`, { data: { subscription: fake }, headers: origin });
+  expect(refused.status()).toBe(403);
+  const bad = await guest.request.post(`/api/parcels/${code}/push`, { data: { subscription: { endpoint: "http://not-https", keys: fake.keys }, key: KEYS.get(code) }, headers: origin });
+  expect(bad.status()).toBe(400);
+  const ok = await guest.request.post(`/api/parcels/${code}/push`, { data: { subscription: fake, key: KEYS.get(code), url: receiverUrl(code) }, headers: origin });
+  expect(ok.status()).toBe(200);
+  // The sender may ask too.
+  const sender = await business.request.post(`/api/parcels/${code}/push`, { data: { subscription: { ...fake, endpoint: "https://push.invalid/send/sender" } }, headers: origin });
+  expect(sender.status()).toBe(200);
+
+  // With a phone subscribed that cannot be reached, the job still goes through.
+  await collectAndDrop(runner, code);
+  await expect(runner.getByRole("heading", { name: "Done. Enkosi!" })).toBeVisible();
 });

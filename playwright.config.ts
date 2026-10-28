@@ -6,6 +6,8 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
   retries: 0,
+  // Some flows walk through several screens and roles, and a slow or nearly full disk can stretch them past the default 30 seconds.
+  timeout: 60_000,
   // The first request after a cold start boots the test database, which can take a few seconds.
   expect: { timeout: 15_000 },
   reporter: [["list"]],

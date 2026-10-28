@@ -122,6 +122,16 @@ const SCHEMA = [
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   )`,
+  // Phones that asked for notifications about a parcel (the website's own notifications, no account needed).
+  `CREATE TABLE IF NOT EXISTS push_subscriptions (
+    endpoint TEXT NOT NULL,
+    code TEXT NOT NULL REFERENCES parcels(code) ON DELETE CASCADE,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    url TEXT NOT NULL,
+    created_at BIGINT NOT NULL,
+    PRIMARY KEY (endpoint, code)
+  )`,
   // One-time links the team gives to someone who forgot their password. Only the hash of the token is kept.
   `CREATE TABLE IF NOT EXISTS password_resets (
     token_hash TEXT PRIMARY KEY,

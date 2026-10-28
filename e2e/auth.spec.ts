@@ -12,12 +12,16 @@ async function signUp(page: Page, opts: { role: string; name: string; id: string
 }
 
 test("signed-out visitors are sent to sign in, then back where they were going", async ({ page }) => {
-  for (const path of ["/send", "/runner", "/point", "/ops"]) {
+  for (const path of ["/runner", "/point", "/ops"]) {
     await page.goto(path);
     await expect(page).toHaveURL(new RegExp(`/signin\\?next=${encodeURIComponent(path)}`));
   }
 
+  // /send explains itself to a guest first, then the sign-in brings them back to it.
   await page.goto("/send");
+  await expect(page.getByRole("heading", { name: "Send a parcel" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Create an account to send" })).toBeVisible();
+  await page.getByRole("link", { name: "I already have an account" }).click();
   await page.getByLabel("Phone number or email").fill("thembi@iza.test");
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -224,8 +228,8 @@ test("signing out ends the session", async ({ page }) => {
   await expect(page.getByLabel(/Account menu/)).toBeVisible();
   await page.getByLabel(/Account menu/).click();
   await page.getByRole("button", { name: "Sign out" }).click();
-  await page.goto("/send");
-  await expect(page).toHaveURL(/\/signin\?next=%2Fsend/);
+  await page.goto("/parcels");
+  await expect(page).toHaveURL(/\/signin\?next=%2Fparcels/);
 });
 
 test("the team can add an Izza point themselves, and it is live straight away", async ({ browser, baseURL, as }) => {
@@ -362,7 +366,7 @@ test("the Team tab shows how many things are waiting for the team", async ({ pag
 
   const team = await (await as("admin")).newPage();
   await team.goto("/ops");
-  const count = async () => Number((await team.getByLabel(/ waiting$/).first().textContent({ timeout: 2000 }).catch(() => "0")) ?? 0);
+  const count = async () => Number((await team.locator("[aria-label$=' waiting']:visible").first().textContent({ timeout: 2000 }).catch(() => "0")) ?? 0);
   const before = await count();
 
   // Wendy forgets her password and asks for a link. The team's count goes up by one.
@@ -373,13 +377,13 @@ test("the Team tab shows how many things are waiting for the team", async ({ pag
   await expect(asker.getByRole("heading", { name: "Request sent" })).toBeVisible();
 
   await team.reload();
-  await expect(team.getByLabel(/ waiting$/).first()).toBeVisible();
+  await expect(team.locator("[aria-label$=' waiting']:visible").first()).toBeVisible();
   expect(await count()).toBe(before + 1);
 
   // Nobody else sees a count.
   const business = await (await as("business")).newPage();
   await business.goto("/parcels");
-  await expect(business.getByLabel(/ waiting$/)).toHaveCount(0);
+  await expect(business.locator("[aria-label$=' waiting']:visible")).toHaveCount(0);
 });
 
 test("the team page shows how to get alerts on a phone, with a private channel that stays the same", async ({ as }) => {
@@ -413,7 +417,7 @@ test("the team can switch a person off and on again", async ({ page, as, browser
   await expect(team.locator("li", { hasText: id })).toContainText("switched off");
 
   // Their open session ends, and they cannot sign in.
-  await page.goto("/send");
+  await page.goto("/parcels");
   await expect(page).toHaveURL(/\/signin/);
   const person = await browser.newPage({ baseURL });
   await signIn(person, id, "a-good-long-password");
