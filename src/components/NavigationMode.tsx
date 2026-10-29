@@ -125,14 +125,16 @@ export default function NavigationMode({
 
   // The route: from where the runner is, or from the start we were given if the phone will not say.
   const from = pos ?? start;
-  const fromLat = from.lat;
-  const fromLng = from.lng;
+  // The request starts from where the runner is when it is sent. The phone reports a new position every second or so, and a request
+  // that was cancelled by each one would never finish on a slow connection or for a long route.
+  const fromRef = useRef(from);
+  fromRef.current = from;
   const needRoute = !route;
   useEffect(() => {
     if (!needRoute) return;
     const ctl = new AbortController();
     lastRouted.current = Date.now();
-    fetch(routeUrl(profile, { lat: fromLat, lng: fromLng }, to), { signal: ctl.signal })
+    fetch(routeUrl(profile, fromRef.current, to), { signal: ctl.signal })
       .then((r) => r.json())
       .then((d) => {
         if (!d.routes?.[0]) throw new Error("no route");
@@ -142,7 +144,7 @@ export default function NavigationMode({
       })
       .catch((e) => e.name !== "AbortError" && setFailed(true));
     return () => ctl.abort();
-  }, [needRoute, profile, fromLat, fromLng, to]);
+  }, [needRoute, profile, to]);
 
   // Where the runner is on the route, and what is ahead.
   const progress = useMemo(() => {
