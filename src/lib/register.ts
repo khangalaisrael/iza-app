@@ -18,7 +18,7 @@ export async function readBasics(form: FormData): Promise<{ ok: true; value: Bas
   return { ok: true, value: { name, identifier, password } };
 }
 
-// Makes the account. Customers start straight away. Businesses, runners and Izza points wait until the team approves them.
+// Makes the account. Customers and runners start straight away. Businesses and Izza points wait until the team approves them.
 // The few extra things each role was asked are kept with the account, so the team can see them when they decide.
 export async function register(
   role: Role,
@@ -32,7 +32,9 @@ export async function register(
       identifier: basics.identifier,
       passwordHash: await hashPassword(basics.password),
       role,
-      status: role === "customer" ? "active" : "pending",
+      // Customers and runners start straight away, so a runner can take a customer's job the moment they join. Businesses and hubs
+      // handle other people's money and premises, so the team looks at them first. The team can switch anyone off afterwards.
+      status: role === "customer" || role === "runner" ? "active" : "pending",
       pointName,
       details,
     });

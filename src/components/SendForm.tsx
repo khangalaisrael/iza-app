@@ -44,6 +44,9 @@ export default function SendForm({
   const [delivery, setDelivery] = useState<"shop" | "door">("shop");
   // Start from where they usually hand parcels over, if they have sent before. They can change it.
   const [from, setFrom] = useState(lastPickup?.text ?? "");
+  // The map pin that came with the remembered place. Once the person changes the place or picks their own pin, it is dropped, so a
+  // pin they cannot see never travels with words they have changed.
+  const [pinIsRemembered, setPinIsRemembered] = useState(lastPickup?.lat !== undefined);
   const [pickup, setPickup] = useState<Coords | null>(lastPickup?.lat !== undefined && lastPickup?.lng !== undefined ? { lat: lastPickup.lat, lng: lastPickup.lng } : null);
   const [toName, setToName] = useState("");
   const [toPhone, setToPhone] = useState("");
@@ -172,9 +175,18 @@ export default function SendForm({
           hint="A shop name, a street or a landmark."
           placeholder="e.g. Thembi's Kitchen, Langa"
           value={from}
-          onValue={setFrom}
+          onValue={(v) => {
+            if (pinIsRemembered) {
+              setPinIsRemembered(false);
+              setPickup(null);
+            }
+            setFrom(v);
+          }}
           coords={pickup}
-          onCoords={setPickup}
+          onCoords={(c) => {
+            setPinIsRemembered(false);
+            setPickup(c);
+          }}
           canUseMyLocation
         />
       </section>

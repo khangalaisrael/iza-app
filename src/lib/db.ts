@@ -62,6 +62,8 @@ const SCHEMA = [
   // A business sends, the customer chooses how to receive it, runners and Izza points do the work.
   // The few things a business or runner tells us when they apply, so the team can see them when they decide.
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS details TEXT`,
+  // Runners no longer wait for approval, so any who were waiting can start. Someone the team switched off stays switched off.
+  `UPDATE users SET status = 'active' WHERE role = 'runner' AND status = 'pending'`,
   `ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`,
   `ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('customer','business','runner','point','admin'))`,
   `CREATE TABLE IF NOT EXISTS points (

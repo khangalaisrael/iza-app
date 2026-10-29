@@ -11,7 +11,7 @@ export default function RunnerSignUp({ next }: { next: string }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(signUpRunnerAction, {});
   return (
     <form action={action} className="stack" noValidate>
-      <Heading title="Become a runner" lead="Deliver in the area you live in and get paid for every drop. The team looks at your application first." />
+      <Heading title="Become a runner" lead="Deliver in the area you live in and get paid for every drop. You can take jobs the moment you join." />
       <input type="hidden" name="next" value={next} />
       <Basics values={state.values} />
       <Text id="area" name="area" label="Where do you live?" placeholder="e.g. Langa" defaultValue={state.values?.area} />
@@ -23,7 +23,7 @@ export default function RunnerSignUp({ next }: { next: string }) {
           <small>You will need it, and a phone with WhatsApp.</small>
         </span>
       </label>
-      <Foot error={state.error} pending={pending} cta="Send my application" next={next} />
+      <Foot error={state.error} pending={pending} cta="Start as a runner" next={next} />
     </form>
   );
 }

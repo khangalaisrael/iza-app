@@ -10,9 +10,9 @@ export const metadata = {
 
 const steps = [
   { title: "Apply", text: "Fill in a short form. It takes about five minutes." },
-  { title: "We check", text: "The Izza team looks at every runner, point and business before they start." },
-  { title: "You hear from us", text: "We message you on WhatsApp when you are approved." },
-  { title: "Start", text: "Open your own screen and begin. No training course needed." },
+  { title: "Runners start at once", text: "Join as a runner and your jobs screen opens straight away. No waiting, no training course." },
+  { title: "Businesses and hubs", text: "The Izza team looks at every business and Izza point first, and messages you on WhatsApp when you are approved." },
+  { title: "Start", text: "Open your own screen and begin." },
 ];
 
 export default function JoinPage() {

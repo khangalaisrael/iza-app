@@ -80,23 +80,37 @@ test("a short password is refused", async ({ page }) => {
   await expect(page.locator("form [role=alert]")).toContainText("at least 8 characters");
 });
 
-test("a new runner waits for approval, and the team can approve them", async ({ page, as }) => {
+test("a new runner starts straight away and sees customers' orders to take", async ({ page, as }) => {
+  // A customer sends a parcel from home, and a runner is needed to collect it.
+  const customer = await (await as("customer")).newPage();
+  await customer.goto("/send");
+  await customer.getByLabel("Pick up from").fill("Gogo's house, Langa");
+  await customer.getByLabel("Their name").fill("Fresh Runner Parcel");
+  await customer.getByLabel("Their WhatsApp number").fill("087 333 4444");
+  await customer.getByText("Corner Shop", { exact: true }).click();
+  await customer.getByRole("button", { name: "Book it" }).click();
+  await expect(customer.getByText("Enkosi! It's booked.")).toBeVisible();
+  const code = (await customer.locator(".bigCode").innerText()).trim();
+
+  // Someone joins as a runner. There is no waiting for approval: their jobs screen opens at once.
   const id = `runner-${Date.now()}@iza.test`;
   await signUp(page, { role: "I want to deliver", name: "Zola Runner", id });
-  await page.getByRole("button", { name: "Send my application" }).click();
-  await expect(page).toHaveURL(/\/pending$/);
-
-  await page.goto("/runner");
-  await expect(page).toHaveURL(/\/pending$/);
-
-  const admin = await (await as("admin")).newPage();
-  await admin.goto("/ops");
-  await expect(admin.getByText("Zola Runner")).toBeVisible();
-  await admin.locator("div", { hasText: "Zola Runner" }).getByRole("button", { name: "Approve" }).last().click();
-  await expect(admin.getByRole("region", { name: "Waiting for approval" }).getByText("Zola Runner")).toHaveCount(0);
-
-  await page.goto("/runner");
+  await page.getByRole("button", { name: "Start as a runner" }).click();
+  await expect(page).toHaveURL(/\/runner$/);
   await expect(page.getByRole("heading", { name: "Jobs you can take" })).toBeVisible();
+
+  // The customer's order is there, and they can take it straight away.
+  const card = page.locator("article", { hasText: code });
+  await expect(card).toBeVisible();
+  await card.getByRole("button", { name: "Accept this job" }).click();
+  await expect(page.getByRole("heading", { name: "Step 1: Go and collect it" })).toBeVisible();
+
+  // The team still has the last word: they can switch a runner off.
+  const team = await (await as("admin")).newPage();
+  await team.goto("/ops");
+  await team.locator("details", { hasText: "Show all" }).evaluate((d) => ((d as HTMLDetailsElement).open = true));
+  await expect(team.locator("li", { hasText: id })).toContainText("Lives in Langa. Gets around: Bicycle.");
+  await expect(team.locator("li", { hasText: id }).getByRole("button", { name: "Switch off" })).toBeVisible();
 });
 
 test("a new business waits for approval, then can book parcels", async ({ page, as }) => {
@@ -472,7 +486,7 @@ test("signing up has a short page for each way of joining, and each asks only wh
   await page.getByLabel("Password").fill("a-good-long-password");
   await page.getByLabel("Where do you live?").fill("Langa");
   await page.getByLabel("How will you get around?").selectOption("On foot");
-  await page.getByRole("button", { name: "Send my application" }).click();
+  await page.getByRole("button", { name: "Start as a runner" }).click();
   await expect(page.locator("form [role=alert]")).toContainText("18 or older");
 
   // A hub starts with the person, and only then asks about the place.
@@ -490,13 +504,3 @@ test("signing up has a short page for each way of joining, and each asks only wh
   await expect(page.getByRole("heading", { name: "We couldn't find that page" })).toBeVisible();
 });
 
-test("the team sees what a runner or business said when they applied", async ({ page, as }) => {
-  const id = `details-${Date.now()}@iza.test`;
-  await signUp(page, { role: "I want to deliver", name: "Detail Runner", id });
-  await page.getByRole("button", { name: "Send my application" }).click();
-  await expect(page).toHaveURL(/\/pending$/);
-
-  const team = await (await as("admin")).newPage();
-  await team.goto("/ops");
-  await expect(team.getByText("Lives in Langa. Gets around: Bicycle.").first()).toBeVisible();
-});

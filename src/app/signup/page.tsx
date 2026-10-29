@@ -11,7 +11,7 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 const WAYS = [
   { role: "customer", title: "I'm getting a parcel", note: "Start right away" },
   { role: "business", title: "I send parcels", note: "For shops and sellers. We approve you first" },
-  { role: "runner", title: "I want to deliver", note: "Become a runner. We approve you first" },
+  { role: "runner", title: "I want to deliver", note: "Become a runner. Start right away" },
   { role: "point", title: "I'll host an Izza point", note: "A shop, salon or hall. We approve you first" },
 ] as const;
 

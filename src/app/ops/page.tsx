@@ -324,6 +324,13 @@ async function Board() {
                       <div className="muted">
                         {roleLabel[u.role as keyof typeof roleLabel] ?? u.role} · {u.identifier} · {u.status === "disabled" ? "switched off" : "active"}
                       </div>
+                      {(u.details.category || u.details.area || u.details.transport) && (
+                        <div className="muted">
+                          {u.role === "business"
+                            ? `Sells: ${u.details.category ?? "not said"}. Based in ${u.details.area ?? "not said"}.`
+                            : `Lives in ${u.details.area ?? "not said"}. Gets around: ${u.details.transport ?? "not said"}.`}
+                        </div>
+                      )}
                     </div>
                     {(
                       <form action={setUserActiveAction}>

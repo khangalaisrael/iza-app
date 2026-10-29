@@ -20,6 +20,8 @@ async function finish(user: User, form: FormData, label: string): Promise<never>
     notifyTeam(`New ${label} application from ${user.name}, waiting for approval.`, "A new application is waiting for approval.");
     redirect("/pending");
   }
+  // A runner is working from this moment, so the team hears that someone has joined, with no names on the phone alert.
+  if (user.role === "runner") notifyTeam(`${user.name} joined as a runner.`, "A new runner joined.");
   const wanted = safeNext(form.get("next"));
   redirect(wanted === "/" ? landingFor(user.role) : wanted);
 }
