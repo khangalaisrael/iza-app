@@ -38,48 +38,43 @@ test("record the pitch video", async ({ browser, baseURL }) => {
     style.textContent = ".waFab{display:none!important}";
     document.addEventListener("DOMContentLoaded", () => document.head.appendChild(style));
   });
-  const pause = (ms: number) => page.waitForTimeout(ms);
+  // Everything is held longer than a quick test would, so a viewer can read each screen.
+  const SLOW = 1.3;
+  const pause = (ms: number) => page.waitForTimeout(ms * SLOW);
   const type = async (label: string, text: string) => {
     const box = page.getByLabel(label);
     await box.click();
-    await box.pressSequentially(text, { delay: 35 });
+    await box.pressSequentially(text, { delay: 70 });
   };
 
   // 1. The sender
   await become(ctx, "business");
-  await page.goto("/");
-  await caption(page, "Izza: parcels, brought closer");
-  await pause(2200);
   await page.goto("/send");
+  await page.waitForLoadState("networkidle");
   await caption(page, "1 · The sender picks a hub");
-  await pause(600);
+  await pause(1300);
   await page.getByText("Corner Shop", { exact: true }).click();
-  await pause(500);
+  await pause(800);
   await caption(page, "2 · Says who it is for");
   await type("Their name", "Nokuthula");
   await type("Their WhatsApp number", "082 555 0100");
   await page.getByText("Bring to their door").click();
   await type("Their address or landmark", "Blue gate, 14 Mqhayi St");
-  await pause(400);
+  // Place suggestions can open over the button while someone types. Close them.
+  await page.keyboard.press("Escape");
+  await page.getByRole("heading", { name: "3 How do they get it?" }).click();
+  await page.mouse.wheel(0, 500);
+  await pause(900);
   await page.getByRole("button", { name: "Book it" }).click();
   await expect(page.getByText("Enkosi! It's booked.")).toBeVisible();
-  await caption(page, "Booked. The sender takes it to the hub");
+  await caption(page, "3 · The sender drops it at the hub");
   const code = (await page.locator(".bigCode").innerText()).trim();
   const href = decodeURIComponent((await page.getByRole("link", { name: /^Send (the code|them the link) on WhatsApp$/ }).getAttribute("href")) ?? "");
   const key = href.match(/[?]k=([A-Za-z0-9_-]+)/)?.[1];
+  await pause(2000);
+  await page.getByRole("button", { name: /^I've dropped it at / }).click();
+  await caption(page, "3 · Confirmed. It's at the hub");
   await pause(2200);
-
-  // 2. The hub
-  await become(ctx, "point");
-  await page.goto("/point");
-  await caption(page, "3 · The hub takes it in");
-  await pause(1200);
-  const card = page.locator("div.card", { hasText: code });
-  await card.scrollIntoViewIfNeeded();
-  await pause(800);
-  await card.getByRole("button", { name: /^Received, R\d+ cash taken/ }).click();
-  await caption(page, "3 · Received. Cash taken, once");
-  await pause(1800);
 
   // 3. The runner
   await become(ctx, "runner");

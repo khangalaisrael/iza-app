@@ -243,8 +243,8 @@ async function ParcelDetails({
       {(isReceiver || isSender) && !cancelled && parcel.stage < 4 && <NotifyButton code={parcel.code} accessKey={keyOk ? key : undefined} />}
       {isSender && !cancelled && found.stage === 0 && found.dropoff === "self" && (
         <section className="card stack" aria-label="Handed in">
-          <p style={{ margin: 0 }}>Has {parcel.point} got the parcel? Tell us, and a runner can carry on.</p>
-          <ReceiveButton code={parcel.code} label={`It's at ${parcel.point}`} />
+          <p style={{ margin: 0 }}>Have you taken it to {parcel.point}? Tell us, and the receiver and the runner can carry on.</p>
+          <ReceiveButton code={parcel.code} label={`I've dropped it at ${parcel.point}`} />
         </section>
       )}
       {isSender && !cancelled && found.stage === 0 && <CancelButton code={parcel.code} />}

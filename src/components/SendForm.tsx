@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { MapPin } from "@phosphor-icons/react";
 import LocationPicker, { type Coords } from "./LocationPicker";
+import HandedIn from "./HandedIn";
 import NotifyButton from "./NotifyButton";
 import { directionsUrl, openNow } from "@/lib/geo";
 import { FEE_DOOR_EXTRA, FEE_POINT } from "@/lib/parcels";
@@ -120,6 +121,7 @@ export default function SendForm({
         </p>
         <div className="bigCode mono">{sent.code}</div>
         {fromCustomer && <p className="muted">The Izza team has been told about your parcel.</p>}
+        <HandedIn code={sent.code} point={sent.point} />
 
         <a className="btn btn-primary" href={whatsappLink(toPhone, message)} target="_blank" rel="noopener noreferrer">
           {sent.delivery === "door" ? "Send them the link on WhatsApp" : "Send the code on WhatsApp"}

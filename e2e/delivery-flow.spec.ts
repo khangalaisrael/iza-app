@@ -750,8 +750,9 @@ test("a hub that forgets to tap Received does not strand a runner: the sender, o
   await expect(runner.getByRole("status", { name: "Waiting" })).toContainText("Waiting for it to reach");
 
   // The sender says it is at the hub, and the runner's steps appear.
-  await business.goto(`/track/${code}`);
-  await business.getByRole("button", { name: /^It's at / }).click();
+  // The sender does it on the screen they were just given, right after booking.
+  await business.getByRole("button", { name: /^I've dropped it at / }).click();
+  await expect(business.getByRole("status").filter({ hasText: "The receiver and the runner can see it now" })).toBeVisible();
   await runner.goto(`/runner/${code}`);
   await expect(runner.getByRole("region", { name: "Your next step" })).toBeVisible();
 
@@ -762,7 +763,7 @@ test("a hub that forgets to tap Received does not strand a runner: the sender, o
   const second = await book(business, { from: "Thembi's Kitchen", to: "Team Thandi", phone: "082 555 0043" });
   const team = await (await as("admin")).newPage();
   await team.goto(`/track/${second}`);
-  await team.getByRole("button", { name: /^It's at / }).click();
+  await team.getByRole("button", { name: /^I've dropped it at / }).click();
   await team.reload();
-  await expect(team.getByRole("button", { name: /^It's at / })).toHaveCount(0);
+  await expect(team.getByRole("button", { name: /^I've dropped it at / })).toHaveCount(0);
 });
