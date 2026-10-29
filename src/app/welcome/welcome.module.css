@@ -1436,3 +1436,12 @@
     display: none;
   }
 }
+
+/* The home hero without a map: one column, as tall as its words, not the screen. */
+.hero.heroSolo,
+.heroBand .hero.heroSolo {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  padding-top: clamp(40px, 7vw, 88px);
+  padding-bottom: clamp(40px, 7vw, 88px);
+}

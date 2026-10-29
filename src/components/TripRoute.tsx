@@ -127,7 +127,7 @@ export default function TripRoute({ to, toLabel, start, transport }: { to: LatLn
       {apiKey ? (
         <APIProvider apiKey={apiKey}>
           <div className="tripMap">
-            <Map mapId="DEMO_MAP_ID" defaultCenter={from} defaultZoom={15} gestureHandling="greedy" disableDefaultUI zoomControl>
+            <Map mapId="DEMO_MAP_ID" defaultCenter={from} defaultZoom={15} gestureHandling="cooperative" disableDefaultUI zoomControl>
               {route && <Line path={route.path} me={from} to={{ lat: toLat, lng: toLng }} />}
               <AdvancedMarker position={{ lat: toLat, lng: toLng }} title={toLabel}>
                 <Pin background="#934c1a" borderColor="#ffffff" glyphColor="#ffffff" />

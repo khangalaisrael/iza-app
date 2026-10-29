@@ -74,7 +74,7 @@ export default function MapView({ points = [], pin, runner, me, center, zoom = 1
           mapId="DEMO_MAP_ID"
           defaultCenter={me ?? center ?? pin ?? DEFAULT_CENTER}
           defaultZoom={zoom}
-          gestureHandling="greedy"
+          gestureHandling="cooperative"
           disableDefaultUI
           zoomControl
           onClick={handleClick}

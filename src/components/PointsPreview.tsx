@@ -5,7 +5,15 @@ import styles from "@/app/welcome/welcome.module.css";
 import { listApprovedPoints } from "@/lib/pointStore";
 
 // The approved Izza points, on a map and as a short list. Used on the website's front page.
-export default async function PointsPreview({ height = 380, list = true }: { height?: number; list?: boolean }) {
+export default async function PointsPreview({
+  height = 380,
+  list = true,
+  map = true,
+}: {
+  height?: number;
+  list?: boolean;
+  map?: boolean;
+}) {
   await connection(); // the list comes from the database, so it is read when someone visits, not at build
   const points = await listApprovedPoints();
   const spots = points.map(({ id, name, lat, lng }) => ({ id, name, lat, lng }));
@@ -13,8 +21,8 @@ export default async function PointsPreview({ height = 380, list = true }: { hei
   if (!list) return <MapView points={spots} height={height} />;
 
   return (
-    <div className={styles.pointsGrid}>
-      <MapView points={spots} height={height} />
+    <div className={map ? styles.pointsGrid : undefined}>
+      {map && <MapView points={spots} height={height} />}
       <div className={styles.pointList}>
         {points.slice(0, 4).map((p) => (
           <div key={p.id} className={styles.pointRow}>

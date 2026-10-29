@@ -45,7 +45,7 @@ export default function Home() {
 
       <main>
         <section className={styles.heroBand}>
-          <div className={`${styles.wrap} ${styles.hero}`}>
+          <div className={`${styles.wrap} ${styles.hero} ${styles.heroSolo}`}>
             <div className={styles.heroText}>
               <h1>Bringing it closer.</h1>
               <p>Delivery for villages and townships. No street address needed.</p>
@@ -57,12 +57,6 @@ export default function Home() {
                   Track a parcel
                 </Link>
               </div>
-            </div>
-            <div className={styles.heroMap}>
-              <Suspense fallback={null}>
-                <PointsPreview height={400} list={false} />
-              </Suspense>
-              <p className={styles.mapCaption}>Izza points near you.</p>
             </div>
           </div>
         </section>
@@ -116,8 +110,9 @@ export default function Home() {
           <div className={styles.sectionHead}>
             <h2>Izza points near you</h2>
           </div>
+          {/* A list, not a map: on a phone a map catches the thumb that was trying to scroll the page. The map is one tap away. */}
           <Suspense fallback={null}>
-            <PointsPreview />
+            <PointsPreview map={false} />
           </Suspense>
         </section>
 
