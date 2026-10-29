@@ -60,6 +60,8 @@ async function Board({ user }: { user: User }) {
   // Jobs I accepted and have not finished, and jobs nobody has taken yet.
   const mine = jobs.filter((j) => j.parcel.runnerId === user.id);
   const open = jobs.filter((j) => !j.parcel.runnerId && j.parcel.stage === 2);
+  // Door deliveries that exist but cannot be taken yet, so a runner can see work is coming and what it is waiting for.
+  const soon = all.filter((p) => p.choice === "door" && !p.cancelledAt && !p.runnerId && p.stage < 3 && !doorReady(p));
   const done = all.filter((p) => p.stage === LAST_STAGE && p.runner === user.name).length;
 
   const spots = [...mine, ...open]
@@ -150,6 +152,22 @@ async function Board({ user }: { user: User }) {
               </article>
             ))}
           </section>
+          {soon.length > 0 && (
+            <section className="stack" aria-labelledby="soon-h">
+              <h2 id="soon-h">Coming up</h2>
+              {soon.map((p) => (
+                <article key={p.code} className="card jobCard">
+                  <div className="jobHead">
+                    <span className="chip">Not ready yet</span>
+                    <span className="mono">{p.code}</span>
+                  </div>
+                  <span className="muted">
+                    {p.stage === 0 ? `Waiting to be brought to ${p.point}` : "Waiting for the customer to say where to bring it"}
+                  </span>
+                </article>
+              ))}
+            </section>
+          )}
           {isTeam && <p className="muted">You are signed in as the team, so you can work any job.</p>}
         </div>
 
