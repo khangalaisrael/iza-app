@@ -83,17 +83,17 @@ export default function MapView({ points = [], pin, runner, me, center, zoom = 1
           <Recenter to={pin} />
           {points.map((p) => (
             <AdvancedMarker key={p.id} position={p} title={p.name}>
-              <Pin background="#cd4600" borderColor="#13201b" glyphColor="#13201b" />
+              <Pin background="#934c1a" borderColor="#2b1a12" glyphColor="#2b1a12" />
             </AdvancedMarker>
           ))}
           {runner && (
             <AdvancedMarker position={runner} title="Your runner">
-              <Pin background="#13201b" borderColor="#cd4600" glyphColor="#cd4600" scale={1.2} />
+              <Pin background="#2b1a12" borderColor="#934c1a" glyphColor="#934c1a" scale={1.2} />
             </AdvancedMarker>
           )}
           {pin && (
             <AdvancedMarker position={pin} title="Your pin">
-              <Pin background="#1f7a55" borderColor="#FFFFFF" glyphColor="#FFFFFF" />
+              <Pin background="#474e30" borderColor="#FFFFFF" glyphColor="#FFFFFF" />
             </AdvancedMarker>
           )}
           {me && (

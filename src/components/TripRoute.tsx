@@ -42,7 +42,7 @@ function Line({ path, me, to }: { path: LatLng[]; me: LatLng; to: LatLng }) {
   const map = useMap();
   useEffect(() => {
     if (!map || path.length < 2) return;
-    const line = new google.maps.Polyline({ path, strokeColor: "#1f7a55", strokeWeight: 6, strokeOpacity: 0.95, map });
+    const line = new google.maps.Polyline({ path, strokeColor: "#474e30", strokeWeight: 6, strokeOpacity: 0.95, map });
     const bounds = new google.maps.LatLngBounds();
     path.forEach((p) => bounds.extend(p));
     bounds.extend(me);
@@ -130,7 +130,7 @@ export default function TripRoute({ to, toLabel, start, transport }: { to: LatLn
             <Map mapId="DEMO_MAP_ID" defaultCenter={from} defaultZoom={15} gestureHandling="greedy" disableDefaultUI zoomControl>
               {route && <Line path={route.path} me={from} to={{ lat: toLat, lng: toLng }} />}
               <AdvancedMarker position={{ lat: toLat, lng: toLng }} title={toLabel}>
-                <Pin background="#cd4600" borderColor="#ffffff" glyphColor="#ffffff" />
+                <Pin background="#934c1a" borderColor="#ffffff" glyphColor="#ffffff" />
               </AdvancedMarker>
               <AdvancedMarker position={from} title="You">
                 <div className="meDot" aria-label="You are here" />

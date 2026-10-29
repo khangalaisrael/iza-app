@@ -20,8 +20,14 @@
   top: 0;
   z-index: 40;
   background: var(--white);
-  border-bottom: 1px solid var(--line);
   color: var(--ink);
+}
+/* A thin Ndebele band under the top bar, on every page. */
+.nav::after {
+  content: "";
+  display: block;
+  height: 8px;
+  background: var(--ndebele) left center / 16px 8px repeat-x;
 }
 .navBar {
   height: 80px;
@@ -93,7 +99,7 @@
   list-style: none;
   background: var(--white);
   border-top: 5px solid var(--honey);
-  box-shadow: 0 18px 40px rgb(19 32 27 / 0.18);
+  box-shadow: 0 18px 40px rgb(43 26 18 / 0.18);
   visibility: hidden;
   opacity: 0;
   transform: translateY(-6px);
@@ -165,7 +171,7 @@
     background: var(--tint);
   }
   .trackBlock:hover {
-    background: #e85a14;
+    background: #ab6422;
   }
   .signBlock:hover {
     background: var(--primary);
@@ -314,7 +320,7 @@
   gap: 18px;
 }
 .addressCard small {
-  color: #b9cbc1;
+  color: #cfc3ad;
   font-size: 1rem;
 }
 .code {
@@ -337,7 +343,7 @@
 }
 .contrastOld {
   background: rgb(255 255 255 / 0.1);
-  color: #dcebe2;
+  color: var(--tint);
 }
 .contrastNew {
   background: var(--honey);
@@ -377,7 +383,7 @@
   color: var(--white);
 }
 .cellSend p {
-  color: #dcebe2;
+  color: var(--tint);
 }
 .cellCollect {
   background: var(--tint);
@@ -416,7 +422,7 @@
   color: var(--white);
 }
 .why .sectionHead p {
-  color: #dcebe2;
+  color: var(--tint);
 }
 .stats {
   display: grid;
@@ -450,7 +456,7 @@
 }
 .stat a {
   font-size: 0.9rem;
-  color: #b9cbc1;
+  color: #cfc3ad;
   text-decoration: underline;
   text-underline-offset: 3px;
   width: fit-content;
@@ -525,10 +531,18 @@
 
 /* Footer */
 .footer {
+  position: relative;
   background: var(--panel);
   color: var(--white);
   padding-top: 72px;
   padding-bottom: 40px;
+}
+.footer::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 12px;
+  background: var(--ndebele) left center / 24px 12px repeat-x;
 }
 .footerGrid {
   display: grid;
@@ -552,18 +566,18 @@
 .footerGrid li {
   display: inline-block;
   padding: 10px 0;
-  color: #dcebe2;
+  color: var(--tint);
 }
 .footerBrand p {
   max-width: 28ch;
-  color: #dcebe2;
+  color: var(--tint);
 }
 .legal {
   margin-top: 48px;
   padding-top: 24px;
   border-top: 1px solid rgb(255 255 255 / 0.25);
   font-size: 0.9rem;
-  color: #b9cbc1;
+  color: #cfc3ad;
 }
 
 /* Motion: the hero settles in, sections rise as they arrive.
@@ -725,7 +739,7 @@
   color: var(--muted);
 }
 .dark .needs {
-  color: #b9cbc1;
+  color: #cfc3ad;
 }
 .joinCard .btn {
   margin-top: auto;
@@ -817,7 +831,7 @@
   background: var(--white);
   border-top: 5px solid var(--honey);
   padding: 8px 12px 16px;
-  box-shadow: 0 18px 40px rgb(19 32 27 / 0.2);
+  box-shadow: 0 18px 40px rgb(43 26 18 / 0.2);
   display: flex;
   flex-direction: column;
 }
@@ -878,14 +892,21 @@
   background: var(--panel);
   color: var(--white);
   background-image:
-    radial-gradient(circle at 90% 10%, rgb(205 70 0 / 0.2), transparent 42%),
-    radial-gradient(circle at 0% 100%, rgb(31 122 85 / 0.5), transparent 50%);
+    radial-gradient(circle at 90% 10%, rgb(147 76 26 / 0.2), transparent 42%),
+    radial-gradient(circle at 0% 100%, rgb(71 78 48 / 0.5), transparent 50%);
+}
+/* The hero ends on a Ndebele band, like the border painted along the foot of a wall. */
+.heroBand::after {
+  content: "";
+  display: block;
+  height: 12px;
+  background: var(--ndebele) left center / 24px 12px repeat-x;
 }
 .heroBand .hero {
   min-height: min(calc(100dvh - 80px - 120px), 680px);
 }
 .heroBand .heroText p {
-  color: #dcebe2;
+  color: var(--tint);
 }
 .heroBand .heroText h1 {
   max-width: 15ch;
@@ -895,7 +916,7 @@
   box-shadow: inset 0 0 0 2px var(--white);
 }
 .heroBand .mapCaption {
-  color: #b9cbc1;
+  color: #cfc3ad;
 }
 .heroBand .heroMap > div:first-child {
   border-radius: 24px;
@@ -930,7 +951,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: #dcebe2;
+  color: var(--tint);
 }
 
 .howRow {
@@ -1280,7 +1301,7 @@
   padding: 8px 12px 14px;
   background: var(--white);
   border-top: 5px solid var(--honey);
-  box-shadow: 0 18px 40px rgb(19 32 27 / 0.2);
+  box-shadow: 0 18px 40px rgb(43 26 18 / 0.2);
   animation: stripIn 160ms var(--ease-out);
 }
 .stripItem {
@@ -1363,7 +1384,7 @@
   z-index: 45;
   background: var(--white);
   border-top: 1px solid var(--line);
-  box-shadow: 0 -6px 20px rgb(19 32 27 / 0.08);
+  box-shadow: 0 -6px 20px rgb(43 26 18 / 0.08);
   padding-bottom: env(safe-area-inset-bottom);
 }
 .bottomTab {

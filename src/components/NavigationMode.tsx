@@ -45,7 +45,7 @@ function Follow({ pos, on, route, to }: { pos: LatLng | null; on: boolean; route
   // The route line, drawn once for each new route.
   useEffect(() => {
     if (!map || !route || route.path.length < 2) return;
-    const line = new google.maps.Polyline({ path: route.path, strokeColor: "#1f7a55", strokeWeight: 8, strokeOpacity: 0.95, map });
+    const line = new google.maps.Polyline({ path: route.path, strokeColor: "#474e30", strokeWeight: 8, strokeOpacity: 0.95, map });
     if (lat === undefined) {
       const bounds = new google.maps.LatLngBounds();
       route.path.forEach((p) => bounds.extend(p));
@@ -198,7 +198,7 @@ export default function NavigationMode({
             <Map mapId="DEMO_MAP_ID" defaultCenter={from} defaultZoom={17} gestureHandling="greedy" disableDefaultUI onDragstart={() => setFollow(false)}>
               <Follow pos={pos} on={follow} route={route} to={to} />
               <AdvancedMarker position={to} title={toLabel}>
-                <Pin background="#cd4600" borderColor="#ffffff" glyphColor="#ffffff" scale={1.2} />
+                <Pin background="#934c1a" borderColor="#ffffff" glyphColor="#ffffff" scale={1.2} />
               </AdvancedMarker>
               {pos && (
                 <AdvancedMarker position={pos} title="You">

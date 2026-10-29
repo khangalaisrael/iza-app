@@ -1,19 +1,23 @@
+/* The earth palette from the brand board (Notion, Marketing and Brand / Design library): clay, rust, ochre, olive, bush green. */
 :root {
-  --ink: #13201b;
-  --muted: #4a5a53;
-  --panel: #0f3b2e;
-  --primary: #1f7a55;
-  --accent: #3f7a63;
-  --tint: #dcebe2;
-  --honey: #cd4600; /* the orange of the logo */
-  --accent-on-dark: #ff8a4c; /* a lighter orange for text on the dark green panels */
-  --bg: #f6f4ee;
-  --line: #e2e8e3;
-  --white: #ffffff;
-  --danger-bg: #f9dcd5;
-  --danger: #7a2414;
-  --honey-bg: #fde3d2;
-  --honey-ink: #7a2900;
+  --ink: #2b1a12; /* near-black with brown in it */
+  --muted: #6b5a4c;
+  --panel: #162a22; /* bush green, the dark panels */
+  --primary: #474e30; /* olive */
+  --accent: #756a34;
+  --tint: #ece5d3;
+  --honey: #934c1a; /* rust, the one accent for main buttons and prices */
+  --accent-on-dark: #c8913c; /* ochre, for text on the dark panels */
+  --bg: #f3eee4; /* linen */
+  --line: #e3d9c8;
+  --white: #fffcf7;
+  --danger-bg: #f5dcd2;
+  --danger: #7a2410;
+  --honey-bg: #f2e1cb;
+  --honey-ink: #5b1f0f;
+  --field-line: #d6cbb9;
+  /* An Ndebele band: an outlined ochre diamond with olive above and rust below, the way the walls are painted. Used thin. */
+  --ndebele: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='16' viewBox='0 0 32 16'%3E%3Cpath d='M0 0H16L0 8ZM32 0H16L32 8Z' fill='%23474e30'/%3E%3Cpath d='M0 16H16L0 8ZM32 16H16L32 8Z' fill='%23934c1a'/%3E%3Cpath d='M16 .8L30.4 8 16 15.2 1.6 8Z' fill='%23c8913c' stroke='%232b1a12' stroke-width='1.6'/%3E%3Cpath d='M16 4.4L23.2 8 16 11.6 8.8 8Z' fill='%23f3eee4' stroke='%232b1a12' stroke-width='1.2'/%3E%3Cpath d='M16 6.6L18.8 8 16 9.4 13.2 8Z' fill='%232b1a12'/%3E%3C/svg%3E");
 
   --font-heading: var(--font-rubik), system-ui, sans-serif;
   --font-body: var(--font-nunito), system-ui, sans-serif;
@@ -280,7 +284,7 @@ select {
 
 .input {
   min-height: 50px;
-  border: 2px solid #c9d3cc;
+  border: 2px solid var(--field-line);
   border-radius: 14px;
   padding: 0 14px;
   background: var(--white);
@@ -303,7 +307,7 @@ select {
 
 .choice span {
   min-height: 56px;
-  border: 2px solid #c9d3cc;
+  border: 2px solid var(--field-line);
   border-radius: 14px;
   background: var(--white);
   display: flex;
@@ -353,8 +357,8 @@ select {
   font-weight: 600;
   padding: 5px 10px;
   border-radius: 12px;
-  background: #e2e8e3;
-  color: #33433c;
+  background: var(--line);
+  color: var(--muted);
 }
 
 .chip-honey {
@@ -364,7 +368,7 @@ select {
 
 .chip-primary {
   background: var(--tint);
-  color: #155c40;
+  color: var(--primary);
 }
 
 /* Tracking timeline */
@@ -577,7 +581,7 @@ select {
   background: var(--white);
   border-radius: 16px;
   padding: 14px;
-  box-shadow: 0 10px 30px rgb(19 32 27 / 0.18);
+  box-shadow: 0 10px 30px rgb(43 26 18 / 0.18);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1074,7 +1078,7 @@ body {
   padding: 6px;
   background: var(--white);
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgb(19 32 27 / 0.2);
+  box-shadow: 0 10px 30px rgb(43 26 18 / 0.2);
   max-height: 280px;
   overflow: auto;
 }
@@ -1207,7 +1211,7 @@ select.input {
   color: #fff;
 }
 .btn-honey:not(:disabled):hover {
-  background: #e85a14;
+  background: #ab6422;
 }
 
 /* Pages inside the website frame: a readable column under the top bar */
@@ -1266,7 +1270,7 @@ select.input {
   color: var(--white);
 }
 .kpiHot span {
-  color: #dcebe2;
+  color: var(--tint);
 }
 .kpiHot strong {
   color: var(--accent-on-dark);
@@ -1458,7 +1462,7 @@ html {
   background: #25d366;
   color: #0b2b16;
   font-weight: 800;
-  box-shadow: 0 8px 24px rgb(19 32 27 / 0.28);
+  box-shadow: 0 8px 24px rgb(43 26 18 / 0.28);
   transition: transform 160ms var(--ease-out);
 }
 .waFab:active {
@@ -1734,7 +1738,7 @@ html {
   background: var(--panel);
   color: #fff;
   border-radius: 0 0 24px 24px;
-  box-shadow: 0 10px 30px rgb(19 32 27 / 0.3);
+  box-shadow: 0 10px 30px rgb(43 26 18 / 0.3);
 }
 .navTop > div {
   display: grid;
@@ -1761,7 +1765,7 @@ html {
   padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
   background: var(--white);
   border-radius: 24px 24px 0 0;
-  box-shadow: 0 -10px 30px rgb(19 32 27 / 0.2);
+  box-shadow: 0 -10px 30px rgb(43 26 18 / 0.2);
 }
 .navStats {
   display: grid;
@@ -1799,7 +1803,7 @@ html {
   border-radius: 50%;
   background: #fff;
   color: var(--primary);
-  box-shadow: 0 2px 10px rgb(19 32 27 / 0.4);
+  box-shadow: 0 2px 10px rgb(43 26 18 / 0.4);
 }
 
 /* Collecting a parcel: the code, the place, whether it is open, and a way there. */
@@ -1831,8 +1835,8 @@ html {
   font-weight: 800;
 }
 .openChip.yes {
-  background: #d8f3e3;
-  color: #0b5a34;
+  background: #e6e4d0;
+  color: var(--primary);
 }
 .openChip.no {
   background: var(--honey-bg);
@@ -1874,7 +1878,7 @@ html {
   border-radius: 14px;
   background: var(--ink);
   color: #fff;
-  box-shadow: 0 8px 24px rgb(19 32 27 / 0.3);
+  box-shadow: 0 8px 24px rgb(43 26 18 / 0.3);
 }
 @media (min-width: 1081px) {
   .offlineBar {
@@ -1991,7 +1995,7 @@ html {
 .wayOption.on {
   border-color: var(--primary);
   background: var(--tint);
-  box-shadow: 0 0 0 3px rgb(31 122 85 / 0.18);
+  box-shadow: 0 0 0 3px rgb(71 78 48 / 0.18);
 }
 .wayOption:focus-within {
   outline: 3px solid var(--honey);
