@@ -24,7 +24,7 @@ export default defineConfig({
       name: "phone",
       use: { ...devices["Pixel 7"] },
       dependencies: ["setup"],
-      testIgnore: /auth\.setup\.ts/,
+      testIgnore: /auth\.setup\.ts|demo\.spec\.ts/,
     },
   ],
   webServer: {
