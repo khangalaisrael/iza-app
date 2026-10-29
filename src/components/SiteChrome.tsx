@@ -165,7 +165,7 @@ export function SiteFooter() {
             </ul>
           </div>
         </div>
-        <p className={styles.legal}>&copy; 2026 The Izza Collective, UCT MakersForge</p>
+        <p className={styles.legal}>&copy; 2026</p>
       </div>
     </footer>
   );
