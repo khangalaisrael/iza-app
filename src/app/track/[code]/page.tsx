@@ -16,7 +16,7 @@ import { currentUser } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import { getLang } from "@/lib/lang";
 import { etaMinutes } from "@/lib/geo";
-import { FEE_DOOR_EXTRA, FEE_POINT, awaitingAddress, destinationOf, etaOf, runnerPositionOf, stepsOf, type Parcel } from "@/lib/parcels";
+import { FEE_DOOR_EXTRA, FEE_POINT, destinationOf, etaOf, runnerPositionOf, stepsOf, type Parcel } from "@/lib/parcels";
 import { getPointById, type IzaPoint } from "@/lib/pointStore";
 import { ageText } from "@/lib/rules";
 import { getParcel, hasPhoto, keyMatches, listEvents } from "@/lib/store";
@@ -134,18 +134,6 @@ async function ParcelDetails({
       )}
 
       {isReceiver && !cancelled && parcel.stage === 2 && parcel.choice === "point" && point && <CollectCard code={parcel.code} point={point} now={now} />}
-
-      {canChoose && parcel.choice === "door" && !awaitingAddress(parcel) && parcel.landmark && (
-        <p className="lead" style={{ margin: 0 }}>
-          The sender says it is going to <strong>{parcel.landmark}</strong>. If that is not right, change it below.
-        </p>
-      )}
-
-      {canChoose && awaitingAddress(parcel) && (
-        <p className="lead" style={{ margin: 0 }}>
-          {t(lang, "This parcel is being brought to your door. Tell us exactly where you are.")}
-        </p>
-      )}
 
       {canChoose && (
         <section className="card">

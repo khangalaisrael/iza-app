@@ -6,7 +6,7 @@ import ChimeOnChange from "@/components/ChimeOnChange";
 import FindMeMap from "@/components/FindMeMap";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
-import { LAST_STAGE, doorReady, type Parcel } from "@/lib/parcels";
+import { LAST_STAGE, doorOpen, waitingOn, type Parcel } from "@/lib/parcels";
 import { listApprovedPoints, type IzaPoint } from "@/lib/pointStore";
 import { listParcels, runnerEarnings } from "@/lib/store";
 import type { User } from "@/lib/users";
@@ -31,7 +31,7 @@ type Job = { parcel: Parcel; kind: "collect" | "deliver"; from: string; to: stri
 // hub is finished the same way.) Runners no longer collect from senders: the sender takes the parcel to the hub.
 function jobFor(p: Parcel): Job | null {
   if (p.stage === 1 && p.runnerId) return { parcel: p, kind: "collect", from: p.pickup, to: p.point };
-  if (doorReady(p) || p.stage === 3) {
+  if (doorOpen(p) || p.stage === 3) {
     return { parcel: p, kind: "deliver", from: p.point, to: p.landmark || "The customer's door" };
   }
   return null;
@@ -39,6 +39,9 @@ function jobFor(p: Parcel): Job | null {
 
 // What the runner should do next on a job they have taken.
 function nextStep(j: Job): string {
+  const waiting = waitingOn(j.parcel);
+  if (waiting === "hub") return `Wait for it to reach ${j.parcel.point}`;
+  if (waiting === "address") return "Wait for the customer's address";
   switch (j.parcel.stage) {
     case 0:
       return `Go and collect it from ${j.from}`;
@@ -59,9 +62,7 @@ async function Board({ user }: { user: User }) {
   const jobs = all.map(jobFor).filter((j): j is Job => j !== null);
   // Jobs I accepted and have not finished, and jobs nobody has taken yet.
   const mine = jobs.filter((j) => j.parcel.runnerId === user.id);
-  const open = jobs.filter((j) => !j.parcel.runnerId && j.parcel.stage === 2);
-  // Door deliveries that exist but cannot be taken yet, so a runner can see work is coming and what it is waiting for.
-  const soon = all.filter((p) => p.choice === "door" && !p.cancelledAt && !p.runnerId && p.stage < 3 && !doorReady(p));
+  const open = jobs.filter((j) => !j.parcel.runnerId && doorOpen(j.parcel));
   const done = all.filter((p) => p.stage === LAST_STAGE && p.runner === user.name).length;
 
   const spots = [...mine, ...open]
@@ -147,27 +148,16 @@ async function Board({ user }: { user: User }) {
                     <strong>{j.to}</strong>
                   </div>
                   {j.parcel.size && <span className="muted">Size: {j.parcel.size}</span>}
+                  {waitingOn(j.parcel) && (
+                    <span className="muted">
+                      {waitingOn(j.parcel) === "hub" ? "Not at the hub yet. You can take it now and wait." : "Waiting for the customer's address. You can take it now and wait."}
+                    </span>
+                  )}
                 </div>
                 <AcceptButton code={j.parcel.code} label={j.kind === "collect" ? "Accept this job" : "Accept this delivery"} />
               </article>
             ))}
           </section>
-          {soon.length > 0 && (
-            <section className="stack" aria-labelledby="soon-h">
-              <h2 id="soon-h">Coming up</h2>
-              {soon.map((p) => (
-                <article key={p.code} className="card jobCard">
-                  <div className="jobHead">
-                    <span className="chip">Not ready yet</span>
-                    <span className="mono">{p.code}</span>
-                  </div>
-                  <span className="muted">
-                    {p.stage === 0 ? `Waiting to be brought to ${p.point}` : "Waiting for the customer to say where to bring it"}
-                  </span>
-                </article>
-              ))}
-            </section>
-          )}
           {isTeam && <p className="muted">You are signed in as the team, so you can work any job.</p>}
         </div>
 

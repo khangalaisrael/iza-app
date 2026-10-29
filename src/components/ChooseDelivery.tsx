@@ -35,6 +35,13 @@ export default function ChooseDelivery({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  // Once they have answered, the form folds away into one line that says what will happen. A "Change" button opens it again.
+  const answered = current === "point" || (current === "door" && (!!givenLandmark || lat !== undefined));
+  const [hasAnswer, setHasAnswer] = useState(answered);
+  const [editing, setEditing] = useState(!answered);
+  // The sender chose the door but the address is missing: ask only for the address, not the whole choice again.
+  const [mode, setMode] = useState<"choose" | "address">(current === "door" && !answered ? "address" : "choose");
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -49,12 +56,99 @@ export default function ChooseDelivery({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong.");
       setSaved(true);
+      // A door delivery without an address is not finished: stay on the address question.
+      const finished = choice === "point" || !!landmark.trim() || !!spot;
+      if (finished) {
+        setHasAnswer(true);
+        setEditing(false);
+      } else {
+        setMode("address");
+      }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setBusy(false);
     }
+  }
+
+  if (!editing) {
+    const place = landmark.trim() || (spot ? t(lang, "Pinned location") : "");
+    return (
+      <div className="confirmed" role="status">
+        <strong>
+          <span aria-hidden="true">✓ </span>
+          {choice === "door" ? t(lang, "Coming to your door") : t(lang, "You'll collect it at {point}", { point: pointName })}
+        </strong>
+        {choice === "door" && place && <span>{place}</span>}
+        {saved ? (
+          <span className="saved">{t(lang, "Saved. Thank you!")}</span>
+        ) : (
+          choice === "door" &&
+          !!givenLandmark && <span className="muted">{t(lang, "The sender gave this address. Tap Change if it is not right.")}</span>
+        )}
+        <button
+          type="button"
+          className="linkBtn"
+          onClick={() => {
+            setEditing(true);
+            setMode("choose");
+            setSaved(false);
+          }}
+        >
+          {t(lang, "Change")}
+        </button>
+      </div>
+    );
+  }
+
+  const picker = (
+    <LocationPicker
+      id="door"
+      label={t(lang, "Where should we bring it?")}
+      hint={t(lang, "Type it like you would to a friend, drop a pin, or use your location.")}
+      placeholder={t(lang, "e.g. Blue gate opposite the Engen")}
+      value={landmark}
+      onValue={setLandmark}
+      coords={spot}
+      onCoords={setSpot}
+      canUseMyLocation
+    />
+  );
+
+  const errorAndSaved = (
+    <>
+      {error && (
+        <p role="alert" className="problem">
+          {error}
+        </p>
+      )}
+    </>
+  );
+
+  if (mode === "address") {
+    return (
+      <form onSubmit={save} className="stack" noValidate>
+        <p className="lead" style={{ margin: 0 }}>
+          {t(lang, "This parcel is being brought to your door. Tell us exactly where you are.")}
+        </p>
+        {picker}
+        {errorAndSaved}
+        <button className="btn btn-block" type="submit" disabled={busy}>
+          {busy ? t(lang, "Saving…") : t(lang, "Save my choice")}
+        </button>
+        <button
+          type="button"
+          className="linkBtn"
+          onClick={() => {
+            setChoice("point");
+            setMode("choose");
+          }}
+        >
+          {t(lang, "I'll collect it instead")}
+        </button>
+      </form>
+    );
   }
 
   return (
@@ -80,34 +174,17 @@ export default function ChooseDelivery({
         </label>
       </fieldset>
 
-      {choice === "door" && (
-        <LocationPicker
-          id="door"
-          label={t(lang, "Where should we bring it?")}
-          hint={t(lang, "Describe it like you would to a friend, like the blue gate by the Engen.")}
-          placeholder={t(lang, "e.g. Blue gate opposite the Engen")}
-          value={landmark}
-          onValue={setLandmark}
-          coords={spot}
-          onCoords={setSpot}
-          canUseMyLocation
-        />
-      )}
-
-      {error && (
-        <p role="alert" className="problem">
-          {error}
-        </p>
-      )}
-      {saved && (
-        <p role="status" className="saved">
-          {t(lang, "Saved. Thank you!")}
-        </p>
-      )}
+      {choice === "door" && picker}
+      {errorAndSaved}
 
       <button className="btn btn-block" type="submit" disabled={busy}>
         {busy ? t(lang, "Saving…") : current ? t(lang, "Save my choice") : t(lang, "Confirm")}
       </button>
+      {hasAnswer && (
+        <button type="button" className="linkBtn" onClick={() => setEditing(false)}>
+          {t(lang, "Cancel")}
+        </button>
+      )}
     </form>
   );
 }

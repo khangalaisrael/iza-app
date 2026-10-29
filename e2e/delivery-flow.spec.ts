@@ -398,7 +398,7 @@ test("a customer can read their parcel in isiXhosa", async ({ as, browser, baseU
 
 });
 
-test("the sender does not know where they are: the receiver pins their address, and only then can a runner take it", async ({ as, browser, baseURL }) => {
+test("the sender does not know where they are: a runner takes it at once, waits for the receiver's address, and then the steps start", async ({ as, browser, baseURL }) => {
   const business = await (await as("business")).newPage();
   const code = await book(business, { from: "Thembi's Kitchen", to: "Nokuthula", phone: "087 222 3333", toDoor: true });
   await expect(business.getByRole("link", { name: "Send them the link on WhatsApp" })).toHaveAttribute("href", /wa\.me\/27872223333\?text=.*pin/);
@@ -413,22 +413,25 @@ test("the sender does not know where they are: the receiver pins their address, 
   const runner = await (await as("runner")).newPage();
   await handToHub(runner, code);
   await runner.goto("/runner");
-  // It is listed under "Coming up", but with nothing to accept.
-  const waiting = runner.locator("article", { hasText: code });
-  await expect(waiting.getByText("Waiting for the customer to say where to bring it")).toBeVisible();
-  await expect(waiting.getByRole("button", { name: /Accept/ })).toHaveCount(0);
-  const refused = await runner.request.patch(`/api/parcels/${code}`, { data: { action: "accept" }, headers: { origin: baseURL! } });
-  expect(refused.status()).toBe(409);
+  // The runner can take the job straight away and wait for the address.
+  const open = runner.locator("article", { hasText: code });
+  await expect(open.getByText("Waiting for the customer's address")).toBeVisible();
+  await open.getByRole("button", { name: "Accept this delivery" }).click();
+  await runner.goto(`/runner/${code}`);
+  await expect(runner.getByRole("status", { name: "Waiting" })).toContainText("Waiting for the customer's address");
+  await expect(runner.getByRole("button", { name: "I've collected it" })).toHaveCount(0);
+  // Nothing can be collected until the address is there.
+  const early = await runner.request.patch(`/api/parcels/${code}`, { data: { action: "pickup_from_point" }, headers: { origin: baseURL! } });
+  expect(early.status()).toBe(409);
 
-  // They pin where they are, and now the delivery is open.
+  // They pin where they are, and the runner's steps start by themselves.
   await receiver.reload();
   await receiver.getByLabel("Where should we bring it?").fill("House with the red door, 12 Mxolisi St");
   await receiver.getByRole("button", { name: "Save my choice" }).click();
   await expect(receiver.getByText("Saved. Thank you!")).toBeVisible();
-  await runner.goto("/runner");
-  const card = runner.locator("article", { hasText: code });
-  await expect(card.getByText("Deliver to a door")).toBeVisible();
-  await expect(card.getByText("House with the red door")).toBeVisible();
+  await runner.goto(`/runner/${code}`);
+  await expect(runner.getByRole("region", { name: "Your next step" })).toBeVisible();
+  await expect(runner.getByRole("status", { name: "Waiting" })).toHaveCount(0);
 });
 
 test("the short code alone shows where a parcel is, but not the delivery code, and nobody can choose without the receiver's key", async ({ as, browser, baseURL }) => {
@@ -715,8 +718,17 @@ test("the sender knows where it is going: they add the address, the receiver onl
   const receiver = await browser.newPage({ baseURL });
   await receiver.goto(receiverUrl(code));
   await expect(receiver.getByText("Tell us exactly where you are.")).toHaveCount(0);
-  await expect(receiver.getByText("The sender says it is going to")).toContainText("Blue gate, 14 Mqhayi St, Langa");
+  // It is one folded line that says what will happen, with a way to change it, not a form and a repeated sentence.
+  const summary = receiver.getByRole("status").filter({ hasText: "Coming to your door" });
+  await expect(summary).toContainText("Blue gate, 14 Mqhayi St, Langa");
+  await expect(receiver.getByLabel("Where should we bring it?")).toHaveCount(0);
+  await summary.getByRole("button", { name: "Change" }).click();
   await expect(receiver.getByLabel("Where should we bring it?")).toHaveValue("Blue gate, 14 Mqhayi St, Langa");
+  await receiver.getByLabel("Where should we bring it?").fill("Green gate, 20 Mqhayi St, Langa");
+  await receiver.getByRole("button", { name: "Save my choice" }).click();
+  await expect(receiver.getByText("Saved. Thank you!")).toBeVisible();
+  await expect(receiver.getByRole("status").filter({ hasText: "Coming to your door" })).toContainText("Green gate, 20 Mqhayi St, Langa");
+  await expect(receiver.getByLabel("Where should we bring it?")).toHaveCount(0);
 
   // Nobody has to pin anything, so once it reaches the hub a runner can take the delivery straight away.
   const runner = await (await as("runner")).newPage();
@@ -724,5 +736,5 @@ test("the sender knows where it is going: they add the address, the receiver onl
   await runner.goto("/runner");
   const card = runner.locator("article", { hasText: code });
   await expect(card.getByText("Deliver to a door")).toBeVisible();
-  await expect(card.getByText("Blue gate, 14 Mqhayi St, Langa")).toBeVisible();
+  await expect(card.getByText("Green gate, 20 Mqhayi St, Langa")).toBeVisible();
 });

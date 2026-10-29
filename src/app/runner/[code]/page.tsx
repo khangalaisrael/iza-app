@@ -6,8 +6,9 @@ import EventFeed from "@/components/EventFeed";
 import JobPanel, { type Dest, type JobLinks } from "@/components/JobPanel";
 import LocationShare from "@/components/LocationShare";
 import PortalShell from "@/components/PortalShell";
+import WaitingJob from "@/components/WaitingJob";
 import RequireRole from "@/components/RequireRole";
-import { FEE_DOOR_EXTRA } from "@/lib/parcels";
+import { FEE_DOOR_EXTRA, waitingOn } from "@/lib/parcels";
 import { DEFAULT_CENTER } from "@/lib/points";
 import { getPointById } from "@/lib/pointStore";
 import { getParcel, hasPhoto, listEvents } from "@/lib/store";
@@ -153,6 +154,12 @@ async function Job({ user, params }: { user: User; params: PageProps<"/runner/[c
             Find the next job
           </Link>
         </section>
+      ) : waitingOn(parcel) && parcel.runnerId === user.id ? (
+        <WaitingJob
+          code={parcel.code}
+          title={waitingOn(parcel) === "hub" ? `Waiting for it to reach ${parcel.point}` : "Waiting for the customer's address"}
+          detail={waitingOn(parcel) === "hub" ? "The sender is bringing it to the hub. You will be able to collect it there." : "The customer is choosing where to be found. When they send it, your steps start."}
+        />
       ) : (
         <JobPanel
           code={parcel.code}

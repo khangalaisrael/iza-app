@@ -82,6 +82,17 @@ export const awaitingAddress = (p: Parcel) => p.choice === "door" && !p.landmark
 // A door delivery a runner can take: it is waiting at the Izza point and the receiver has said where to bring it.
 export const doorReady = (p: Parcel) => p.stage === 2 && p.choice === "door" && !awaitingAddress(p);
 
+// A door delivery a runner can take as soon as the sender chose the door, even before it reaches the hub or the receiver has said where
+// they are. The runner then waits for those, and the steps start when the job is ready.
+export const doorOpen = (p: Parcel) => !p.cancelledAt && p.choice === "door" && (p.stage === 2 || (p.stage === 0 && p.dropoff === "self"));
+
+// What a taken or open door delivery is still waiting for, or null when the runner can go.
+export function waitingOn(p: Parcel): "hub" | "address" | null {
+  if (p.stage === 0) return "hub";
+  if (p.stage === 2 && awaitingAddress(p)) return "address";
+  return null;
+}
+
 // These three take the language the person reads, and default to English (the team's screens stay in English).
 export function statusOf(p: Parcel, lang: Lang = "en"): string {
   if (p.cancelledAt) return t(lang, "Cancelled");
