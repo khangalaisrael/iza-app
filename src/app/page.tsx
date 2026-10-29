@@ -58,8 +58,6 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-            {/* An Ndebele wall beside the words on a computer. Only decoration, so screen readers skip it; phones don't show it. */}
-            <div className={styles.heroWall} aria-hidden="true" />
           </div>
         </section>
 
