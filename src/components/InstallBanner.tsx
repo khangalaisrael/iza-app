@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { INSTALL_COPY, installDevice, type InstallDevice } from "@/lib/installDevice";
 
 type InstallPrompt = Event & {
   prompt: () => Promise<void>;
@@ -26,13 +27,18 @@ function onInstalled(changed: () => void) {
   return () => window.removeEventListener("appinstalled", changed);
 }
 
-// "Add Izza to your home screen", the same idea as AMNA's. Android and computers install in one tap when the browser offers it;
-// an iPhone can't be asked, so the card shows the two taps instead. Hidden once installed, or once someone closes it.
+const noChange = () => () => {};
+const thisDevice = (): InstallDevice => installDevice(navigator.userAgent, navigator.maxTouchPoints ?? 0);
+
+// "Add Izza to your home screen", the same idea as AMNA's, worded for the device in hand: Add to Dock on a Mac with Safari,
+// Share then Add to Home Screen on an iPhone or iPad, one tap where the browser offers its own install box (Chrome, Edge,
+// Android). Hidden once installed, once someone closes it, and on computer browsers that can't install at all.
 export default function InstallBanner() {
   const offer = useSyncExternalStore(onInstalled, worthOffering, () => false);
+  const device = useSyncExternalStore(noChange, thisDevice, (): InstallDevice => "computer");
   const [closed, setClosed] = useState(false);
   const [prompt, setPrompt] = useState<InstallPrompt | null>(null);
-  const [iosSteps, setIosSteps] = useState(false);
+  const [showSteps, setShowSteps] = useState(false);
 
   useEffect(() => {
     const onPrompt = (e: Event) => {
@@ -43,7 +49,8 @@ export default function InstallBanner() {
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
   }, []);
 
-  if (!offer || closed) return null;
+  const { title, steps } = INSTALL_COPY[device];
+  if (!offer || closed || (!prompt && !steps)) return null;
 
   function close() {
     try {
@@ -61,25 +68,19 @@ export default function InstallBanner() {
       setPrompt(null);
       if (outcome === "accepted") setClosed(true);
     } else {
-      setIosSteps(true);
+      setShowSteps(true);
     }
   }
 
   return (
-    <aside className="installCard" aria-label="Add Izza to your home screen">
+    <aside className="installCard" aria-label={title}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/icons/icon-192.png" alt="" width={44} height={44} />
       <div className="installText">
-        <strong>Add Izza to your home screen</strong>
-        {iosSteps ? (
-          <span>
-            Tap <b>Share</b> at the bottom of Safari, then <b>Add to Home Screen</b>.
-          </span>
-        ) : (
-          <span>Open it in one tap, like an app.</span>
-        )}
+        <strong>{title}</strong>
+        <span>{showSteps && steps ? steps : "Open it in one tap, like an app."}</span>
       </div>
-      {!iosSteps && (
+      {!showSteps && (
         <button type="button" className="btn btn-soft installAdd" onClick={add}>
           Add
         </button>
