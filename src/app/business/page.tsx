@@ -9,9 +9,8 @@ export const metadata = {
 };
 
 const steps = [
-  { title: "You book it", text: "Tell us who it is for and which Izza point is closest to them. They get a code on WhatsApp." },
-  { title: "We collect", text: "A local runner picks it up from you at the time that suits you. Nothing to drop off." },
-  { title: "It waits at the point", text: "A trusted shop in their neighbourhood holds it safely." },
+  { title: "Pick a hub", text: "Choose the Izza point closest to your customer, and tell us who it is for. They get a code on WhatsApp." },
+  { title: "Take it there", text: "Bring the parcel to that Izza point. A trusted shop in their neighbourhood holds it safely." },
   { title: "They choose", text: `They collect it with their code (R${FEE_POINT}), or have it brought to their door (R${FEE_DOOR}).` },
 ];
 

@@ -13,17 +13,24 @@ export default function ChooseDelivery({
   current,
   lang = "en",
   accessKey,
+  landmark: givenLandmark,
+  lat,
+  lng,
 }: {
   code: string;
   pointName: string;
   current?: "point" | "door";
   lang?: Lang;
   accessKey?: string; // from the receiver's link
+  // The address the sender gave, or the receiver saved earlier, so they only have to check it.
+  landmark?: string;
+  lat?: number;
+  lng?: number;
 }) {
   const router = useRouter();
   const [choice, setChoice] = useState<"point" | "door">(current ?? "point");
-  const [landmark, setLandmark] = useState("");
-  const [spot, setSpot] = useState<Coords | null>(null);
+  const [landmark, setLandmark] = useState(givenLandmark && givenLandmark !== "Pinned location" ? givenLandmark : "");
+  const [spot, setSpot] = useState<Coords | null>(lat !== undefined && lng !== undefined ? { lat, lng } : null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);

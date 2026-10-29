@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { MapPin } from "@phosphor-icons/react";
 import LocationPicker, { type Coords } from "./LocationPicker";
 import NotifyButton from "./NotifyButton";
-import { walkMinutes } from "@/lib/geo";
+import { directionsUrl, openNow } from "@/lib/geo";
 import { FEE_DOOR_EXTRA, FEE_POINT } from "@/lib/parcels";
 import { whatsappLink } from "@/lib/whatsapp";
 
-export type PointChoice = { id: string; name: string; kind: string; hours: string; lat: number; lng: number };
+export type PointChoice = { id: string; name: string; kind: string; address: string; hours: string; lat: number; lng: number };
 
 const sizes = ["Small", "Medium", "Large"];
 
@@ -22,55 +23,38 @@ async function shareLink(message: string, link: string) {
   }
 }
 
-// A business books a parcel to an Izza point. The customer then chooses to collect it or have it brought to their door.
+// How it works: the sender picks an Izza point, says who it is for and how they get it, and takes the parcel to that point.
+// Izza's work starts at the point: it holds the parcel, and delivers to the door if the receiver wants that.
 export default function SendForm({
   points,
   siteUrl,
   initialPointId,
   fromCustomer = false,
   recent = [],
-  lastPickup,
 }: {
   points: PointChoice[];
   siteUrl: string;
   initialPointId?: string;
   fromCustomer?: boolean;
   recent?: { name: string; phone: string }[];
-  lastPickup?: { text: string; lat?: number; lng?: number };
 }) {
-  // "runner": a runner collects it from the sender. "self": the sender brings it to the hub themselves, so no runner is needed.
-  const [dropoff, setDropoff] = useState<"runner" | "self">("runner");
-  // "shop": they choose to collect or have it brought. "door": the sender does not know where they are, so they pin it.
-  const [delivery, setDelivery] = useState<"shop" | "door">("shop");
-  // Start from where they usually hand parcels over, if they have sent before. They can change it.
-  const [from, setFrom] = useState(lastPickup?.text ?? "");
-  // The map pin that came with the remembered place. Once the person changes the place or picks their own pin, it is dropped, so a
-  // pin they cannot see never travels with words they have changed.
-  const [pinIsRemembered, setPinIsRemembered] = useState(lastPickup?.lat !== undefined);
-  const [pickup, setPickup] = useState<Coords | null>(lastPickup?.lat !== undefined && lastPickup?.lng !== undefined ? { lat: lastPickup.lat, lng: lastPickup.lng } : null);
+  const [pointId, setPointId] = useState(points.find((p) => p.id === initialPointId)?.id ?? (points.length === 1 ? points[0].id : ""));
+  const [search, setSearch] = useState("");
   const [toName, setToName] = useState("");
   const [toPhone, setToPhone] = useState("");
-  const [chosenPoint, setChosenPoint] = useState(points.find((p) => p.id === initialPointId)?.id ?? "");
-  const [hubSearch, setHubSearch] = useState("");
+  // "shop": they collect it at the hub. "door": a runner brings it to them, and the sender can add the address if they know it.
+  const [delivery, setDelivery] = useState<"shop" | "door">("shop");
+  const [toPlace, setToPlace] = useState("");
+  const [toPin, setToPin] = useState<Coords | null>(null);
   const [size, setSize] = useState("Small");
   const [note, setNote] = useState("");
-  const [sent, setSent] = useState<{ code: string; key: string; point: string; dropoff: string; delivery: string } | null>(null);
+  const [sent, setSent] = useState<{ code: string; key: string; point: string; delivery: string; knownAddress?: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Once the sender has shared where they are, the closest points come first, and the closest is chosen for them.
-  const ordered = useMemo(() => {
-    if (!pickup) return points.map((p) => ({ p, minutes: null as number | null }));
-    return points
-      .map((p) => ({ p, minutes: walkMinutes(pickup, p) }))
-      .sort((a, b) => (a.minutes as number) - (b.minutes as number));
-  }, [pickup, points]);
-  const pointId = chosenPoint || ordered[0]?.p.id || "";
   // With only a few hubs a list is quicker than a search. Past this many, a search box helps.
   const SEARCH_FROM = 8;
-  const shown = hubSearch.trim()
-    ? ordered.filter(({ p }) => `${p.name} ${p.kind}`.toLowerCase().includes(hubSearch.trim().toLowerCase()))
-    : ordered;
+  const shown = search.trim() ? points.filter((p) => `${p.name} ${p.kind} ${p.address}`.toLowerCase().includes(search.trim().toLowerCase())) : points;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -81,16 +65,13 @@ export default function SendForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          from,
-          pickupLat: pickup?.lat,
-          pickupLng: pickup?.lng,
           toName,
           toPhone,
           pointId,
           size,
           note,
-          dropoff,
           delivery,
+          ...(delivery === "door" && { toLandmark: toPlace, toLat: toPin?.lat, toLng: toPin?.lng }),
         }),
       });
       const data = await res.json();
@@ -104,22 +85,42 @@ export default function SendForm({
   }
 
   if (sent) {
+    const hub = points.find((p) => p.name === sent.point);
+    const open = hub ? openNow(hub.hours) : null;
     const link = `${siteUrl}/track/${sent.code}?k=${sent.key}`;
     const message =
-      sent.delivery === "door"
-        ? `Molo ${toName}! A parcel is coming to your door. Your Izza code is ${sent.code}. Please open this link and pin exactly where you are, so we can bring it: ${link}`
-        : `Molo ${toName}! A parcel is waiting for you at ${sent.point}. Your Izza code is ${sent.code}. Choose to collect it or have it brought to your door: ${link}`;
+      sent.delivery === "door" && sent.knownAddress
+        ? `Molo ${toName}! A parcel is coming to ${toPlace || "the place you were told about"}. Your Izza code is ${sent.code}. Please open this link to check the address, and change it if it is wrong: ${link}`
+        : sent.delivery === "door"
+          ? `Molo ${toName}! A parcel is coming to your door. Your Izza code is ${sent.code}. Please open this link and pin exactly where you are, so we can bring it: ${link}`
+          : `Molo ${toName}! A parcel is waiting for you at ${sent.point}. Your Izza code is ${sent.code}. Choose to collect it or have it brought to your door: ${link}`;
     return (
       <div className="card pop done">
         <h1>Enkosi! It&apos;s booked.</h1>
-        <p className="muted">
-          {sent.dropoff === "self"
-            ? `Take it to ${sent.point} and pay R${FEE_POINT} cash there. Show this code.`
-            : "A runner will collect it from you."}{" "}
-          {sent.delivery === "door" ? `Now send ${toName} the link so they can pin where to bring it.` : `Now tell ${toName} their code.`}
+
+        <div className="hubCard" aria-label="Where to take it">
+          <span className="hubCardLabel">Take it to</span>
+          <strong>{sent.point}</strong>
+          {hub && (
+            <>
+              <span>{hub.address}</span>
+              <span>
+                Open {hub.hours}
+                {open !== null && <b className={open ? "openChip yes" : "openChip no"}>{open ? "Open now" : "Closed now"}</b>}
+              </span>
+              <a className="btn btn-soft" href={directionsUrl(hub)} target="_blank" rel="noopener noreferrer">
+                <MapPin size={20} weight="bold" aria-hidden="true" /> Directions
+              </a>
+            </>
+          )}
+        </div>
+
+        <p className="muted" style={{ margin: 0 }}>
+          Write this code on the parcel, and pay R{FEE_POINT} cash at the hub.
         </p>
-        {fromCustomer && <p className="muted">The Izza team has been told about your parcel.</p>}
         <div className="bigCode mono">{sent.code}</div>
+        {fromCustomer && <p className="muted">The Izza team has been told about your parcel.</p>}
+
         <a className="btn btn-primary" href={whatsappLink(toPhone, message)} target="_blank" rel="noopener noreferrer">
           {sent.delivery === "door" ? "Send them the link on WhatsApp" : "Send the code on WhatsApp"}
         </a>
@@ -139,81 +140,58 @@ export default function SendForm({
 
   return (
     <form onSubmit={onSubmit} className="stack" noValidate>
-      <div>
-        <h1>{fromCustomer ? "Send a parcel from home" : "Send a parcel"}</h1>
-        <p className="lead">
-          {fromCustomer
-            ? "It goes to an Izza point. The person it is for chooses to collect it or have it brought to their door."
-            : "It goes to an Izza point near your customer. They choose how they want it."}
-        </p>
-      </div>
+      <h1>Send a parcel</h1>
 
-      <fieldset className="field bigChoices">
-        <legend>Who takes it to the hub?</legend>
-        <label className="bigChoice">
-          <input type="radio" name="dropoff" value="runner" checked={dropoff === "runner"} onChange={() => setDropoff("runner")} />
-          <span>
-            <strong>A runner collects it from me</strong>
-            <small>You pay the runner R{FEE_POINT} cash when they collect it.</small>
-          </span>
-        </label>
-        <label className="bigChoice">
-          <input type="radio" name="dropoff" value="self" checked={dropoff === "self"} onChange={() => setDropoff("self")} />
-          <span>
-            <strong>I will take it to the hub myself</strong>
-            <small>No runner. You pay the hub R{FEE_POINT} cash when you hand it in.</small>
-          </span>
-        </label>
-      </fieldset>
-
-      {dropoff === "runner" && (
-      <section className="stack" aria-labelledby="who-sending">
-        <h2 id="who-sending">Where do we collect it?</h2>
-        <LocationPicker
-          id="from"
-          label="Pick up from"
-          hint="A shop name, a street or a landmark."
-          placeholder="e.g. Thembi's Kitchen, Langa"
-          value={from}
-          onValue={(v) => {
-            if (pinIsRemembered) {
-              setPinIsRemembered(false);
-              setPickup(null);
-            }
-            setFrom(v);
-          }}
-          coords={pickup}
-          onCoords={(c) => {
-            setPinIsRemembered(false);
-            setPickup(c);
-          }}
-          canUseMyLocation
-        />
+      <section className="stack" aria-labelledby="s-hub">
+        <h2 id="s-hub" className="stepLabel">
+          <span className="stepNum">1</span> Pick a hub
+        </h2>
+        <fieldset className="field bigChoices" style={{ border: 0, padding: 0 }}>
+          <legend className="visually-hidden">Izza point</legend>
+          {points.length === 0 && <p className="muted">No Izza points yet. The team is adding them.</p>}
+          {points.length > SEARCH_FROM && (
+            <input className="input" type="search" aria-label="Search Izza points" placeholder="Search by name or area" value={search} onChange={(e) => setSearch(e.target.value)} />
+          )}
+          {shown.length === 0 && points.length > 0 && <p className="muted">No Izza point matches that. Try another name.</p>}
+          {shown.map((p) => {
+            const open = openNow(p.hours);
+            return (
+              <label key={p.id} className="bigChoice">
+                <input type="radio" name="point" value={p.id} checked={pointId === p.id} onChange={() => setPointId(p.id)} />
+                <span>
+                  <strong>{p.name}</strong>
+                  <small>
+                    {p.address}
+                    {open !== null && <b className={open ? "openChip yes" : "openChip no"}>{open ? "Open" : "Closed"}</b>}
+                  </small>
+                </span>
+              </label>
+            );
+          })}
+        </fieldset>
       </section>
-      )}
 
-      <section className="stack" aria-labelledby="who-for">
-        <h2 id="who-for">Who is it for?</h2>
+      <section className="stack" aria-labelledby="s-who">
+        <h2 id="s-who" className="stepLabel">
+          <span className="stepNum">2</span> Who is it for?
+        </h2>
         <div className="card stack">
           {recent.length > 0 && (
-            <div className="field">
-              <span className="muted">Send to someone again</span>
-              <div className="recentRow">
-                {recent.map((r) => (
-                  <button
-                    key={r.phone}
-                    type="button"
-                    className="recentChip"
-                    onClick={() => {
-                      setToName(r.name);
-                      setToPhone(r.phone);
-                    }}
-                  >
-                    {r.name}
-                    <small>{r.phone}</small>
-                  </button>
-                ))}
-              </div>
+            <div className="recentRow" aria-label="People you sent to before">
+              {recent.map((r) => (
+                <button
+                  key={r.phone}
+                  type="button"
+                  className="recentChip"
+                  onClick={() => {
+                    setToName(r.name);
+                    setToPhone(r.phone);
+                  }}
+                >
+                  {r.name}
+                  <small>{r.phone}</small>
+                </button>
+              ))}
             </div>
           )}
           <div className="field">
@@ -222,7 +200,6 @@ export default function SendForm({
           </div>
           <div className="field">
             <label htmlFor="toPhone">Their WhatsApp number</label>
-            <small className="muted">We send them the delivery code.</small>
             <input
               id="toPhone"
               className="input"
@@ -237,78 +214,61 @@ export default function SendForm({
         </div>
       </section>
 
-      <fieldset className="field bigChoices">
-        <legend>Do you know where they are?</legend>
-        <label className="bigChoice">
-          <input type="radio" name="delivery" value="shop" checked={delivery === "shop"} onChange={() => setDelivery("shop")} />
-          <span>
-            <strong>They choose</strong>
-            <small>It waits at an Izza point. They collect it there, or pay R{FEE_DOOR_EXTRA} extra to have it brought to them.</small>
-          </span>
-        </label>
-        <label className="bigChoice">
-          <input type="radio" name="delivery" value="door" checked={delivery === "door"} onChange={() => setDelivery("door")} />
-          <span>
-            <strong>Bring it to their door</strong>
-            <small>I do not know exactly where they are. They pin their own address, and they pay R{FEE_DOOR_EXTRA} extra to the runner.</small>
-          </span>
-        </label>
-      </fieldset>
-
-      <fieldset className="field bigChoices">
-        <legend>{delivery === "door" ? "Which Izza point should it pass through?" : "Which Izza point should it go to?"}</legend>
-        {points.length === 0 && <p className="muted">No Izza points yet. The team is adding them.</p>}
-        {points.length > SEARCH_FROM && (
-          <input
-            className="input"
-            type="search"
-            aria-label="Search Izza points"
-            placeholder="Search by name or area"
-            value={hubSearch}
-            onChange={(e) => setHubSearch(e.target.value)}
+      <section className="stack" aria-labelledby="s-how">
+        <h2 id="s-how" className="stepLabel">
+          <span className="stepNum">3</span> How do they get it?
+        </h2>
+        <div className="twoWay" role="radiogroup" aria-label="How they get it">
+          <label className={delivery === "shop" ? "wayOption on" : "wayOption"}>
+            <input type="radio" name="delivery" value="shop" checked={delivery === "shop"} onChange={() => setDelivery("shop")} />
+            <strong>They collect</strong>
+            <small>Free</small>
+          </label>
+          <label className={delivery === "door" ? "wayOption on" : "wayOption"}>
+            <input type="radio" name="delivery" value="door" checked={delivery === "door"} onChange={() => setDelivery("door")} />
+            <strong>Bring to their door</strong>
+            <small>R{FEE_DOOR_EXTRA} extra</small>
+          </label>
+        </div>
+        {delivery === "door" && (
+          <LocationPicker
+            id="toAddress"
+            label="Their address or landmark"
+            hint="Optional. If you leave it empty, they add it themselves."
+            placeholder="e.g. Blue gate opposite the Engen, Langa"
+            value={toPlace}
+            onValue={setToPlace}
+            coords={toPin}
+            onCoords={setToPin}
           />
         )}
-        {shown.length === 0 && points.length > 0 && <p className="muted">No Izza point matches that. Try another name.</p>}
-        {shown.map(({ p, minutes }, i) => (
-          <label key={p.id} className="bigChoice">
-            <input type="radio" name="point" value={p.id} checked={pointId === p.id} onChange={() => setChosenPoint(p.id)} />
-            <span>
-              <strong>{p.name}</strong>
-              <small>
-                {p.kind}, open {p.hours}
-                {minutes !== null && ` · ${minutes} min from you${i === 0 ? ", closest" : ""}`}
-              </small>
-            </span>
-          </label>
-        ))}
-      </fieldset>
+      </section>
 
-      <fieldset className="field">
-        <legend>How big is it?</legend>
-        <div className="pills">
-          {sizes.map((s) => (
-            <label key={s} className="pill">
-              <input type="radio" name="size" value={s} checked={size === s} onChange={() => setSize(s)} />
-              <span>{s}</span>
-            </label>
-          ))}
+      <details className="moreDetails">
+        <summary>Add details (optional)</summary>
+        <div className="stack" style={{ paddingTop: 10 }}>
+          <fieldset className="field" style={{ border: 0, padding: 0 }}>
+            <legend>How big is it?</legend>
+            <div className="pills">
+              {sizes.map((s) => (
+                <label key={s} className="pill">
+                  <input type="radio" name="size" value={s} checked={size === s} onChange={() => setSize(s)} />
+                  <span>{s}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div className="field">
+            <label htmlFor="note">A note for the hub</label>
+            <input id="note" className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Fragile" />
+          </div>
         </div>
-      </fieldset>
-
-      <div className="field">
-        <label htmlFor="note">A note for the team (optional)</label>
-        <input id="note" className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Ask for Thembi at the back door" />
-      </div>
+      </details>
 
       <div className="total" aria-live="polite">
-        <span>{dropoff === "self" ? "You pay the hub, in cash" : "You pay the runner, in cash"}</span>
+        <span>You pay the hub, in cash</span>
         <strong>R{FEE_POINT}</strong>
       </div>
-      <p className="muted" style={{ margin: 0 }}>
-        {dropoff === "self"
-          ? `If they collect it at the hub, no runner is needed at all. If they want it at their door, they pay R${FEE_DOOR_EXTRA} extra.`
-          : `If your customer wants it brought to their door, they pay R${FEE_DOOR_EXTRA} extra.`}
-      </p>
 
       {error && (
         <p role="alert" className="problem">

@@ -3,48 +3,46 @@ import { authFile, expect, test, topMenu } from "./fixtures";
 // Somewhere in Langa, close to the Fresh Cuts Barber Izza point.
 const NEAR_BARBER = { latitude: -33.9426, longitude: 18.5319 };
 
-test("a business shares its location, and the runner gets directions inside the page", async ({ browser, baseURL, as }) => {
-  const sender = await browser.newContext({
-    baseURL,
-    storageState: authFile("business"),
-    geolocation: { latitude: -33.9441, longitude: 18.5298 },
-    permissions: ["geolocation"],
-  });
-  const page = await sender.newPage();
-  await page.goto("/send");
-  await page.getByRole("button", { name: "Use my location" }).click();
-  await expect(page.getByText("Location saved.")).toBeVisible();
-  await page.getByLabel("Their name").fill("Location Test");
-  await page.getByLabel("Their WhatsApp number").fill("086 222 3333");
-  await page.getByRole("button", { name: "Book it" }).click();
-  await expect(page.getByText("Enkosi! It's booked.")).toBeVisible();
-  const code = (await page.locator(".bigCode").innerText()).trim();
+test("the runner gets directions inside the page for a door delivery from a hub", async ({ as, baseURL }) => {
+  const business = await (await as("business")).newPage();
+  await business.goto("/send");
+  await business.getByText("Corner Shop", { exact: true }).click();
+  await business.getByLabel("Their name").fill("Location Test");
+  await business.getByLabel("Their WhatsApp number").fill("086 222 3333");
+  await business.getByText("Bring to their door").click();
+  await business.getByLabel("Their address or landmark").fill("Blue gate, Main Rd");
+  await business.getByRole("button", { name: "Book it" }).click();
+  await expect(business.getByText("Enkosi! It's booked.")).toBeVisible();
+  const code = (await business.locator(".bigCode").innerText()).trim();
+
+  // The hub takes it in, and the delivery is open to a runner.
+  const hub = await as("point");
+  const received = await hub.request.patch(`/api/parcels/${code}`, { data: { action: "receive", paid: true }, headers: { origin: baseURL! } });
+  expect(received.ok()).toBeTruthy();
 
   const runner = await (await as("runner")).newPage();
   await runner.goto("/runner");
-  await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this job" }).click();
+  await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this delivery" }).click();
   const directions = runner.getByRole("region", { name: /Directions to/ });
   await expect(directions).toBeVisible();
   await expect(directions.getByText("Going to")).toBeVisible();
-  await sender.close();
 });
 
-test("a booking needs a pickup place or location, a name, a number and a point, and says so plainly", async ({ as }) => {
+test("a booking needs a name, a number and a hub, and says so plainly", async ({ as }) => {
   const page = await (await as("business")).newPage();
   await page.goto("/send");
-  await page.getByLabel("Pick up from").fill("");
-  await page.getByRole("button", { name: "Book it" }).click();
-  await expect(page.locator("form [role=alert]")).toContainText("where to collect it");
-  await page.getByLabel("Pick up from").fill("Somewhere");
   await page.getByRole("button", { name: "Book it" }).click();
   await expect(page.locator("form [role=alert]")).toContainText("who the parcel is for");
   await page.getByLabel("Their name").fill("Someone");
   await page.getByLabel("Their WhatsApp number").fill("12");
   await page.getByRole("button", { name: "Book it" }).click();
   await expect(page.locator("form [role=alert]")).toContainText("WhatsApp number");
+  await page.getByLabel("Their WhatsApp number").fill("082 345 6789");
+  await page.getByRole("button", { name: "Book it" }).click();
+  await expect(page.locator("form [role=alert]")).toContainText("Choose which Izza point");
 });
 
-test("typing a place shows suggestions, and choosing one saves its location", async ({ as }) => {
+test("typing their address shows suggestions, and choosing one saves its location", async ({ as }) => {
   const page = await (await as("business")).newPage();
   // Pretend to be Google, so the test does not depend on the internet.
   await page.route("https://places.googleapis.com/v1/places:autocomplete", (route) =>
@@ -57,11 +55,12 @@ test("typing a place shows suggestions, and choosing one saves its location", as
   );
 
   await page.goto("/send");
-  await page.getByLabel("Pick up from").fill("Langa");
+  await page.getByText("Bring to their door").click();
+  await page.getByLabel("Their address or landmark").fill("Langa");
   const option = page.getByRole("option", { name: "Langa, Cape Town, South Africa" });
   await expect(option).toBeVisible();
   await option.click();
-  await expect(page.getByLabel("Pick up from")).toHaveValue("Langa, Cape Town, South Africa");
+  await expect(page.getByLabel("Their address or landmark")).toHaveValue("Langa, Cape Town, South Africa");
   await expect(page.getByText("Location saved.")).toBeVisible();
 });
 

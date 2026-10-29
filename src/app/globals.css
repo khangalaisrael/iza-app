@@ -1908,3 +1908,125 @@ html {
   color: var(--muted);
   font-weight: 600;
 }
+
+/* The team's running commentary, folded away when something needs a decision first. */
+.activity > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+}
+.activity > summary::-webkit-details-marker {
+  display: none;
+}
+.activity > summary h2 {
+  margin: 0;
+}
+.activity[open] > summary {
+  margin-bottom: 6px;
+}
+
+/* The Send screen: three numbered steps, short words. */
+.stepLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.stepNum {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--honey);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 15px;
+}
+.threeSteps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  font-size: 19px;
+  font-weight: 700;
+}
+.threeSteps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.twoWay {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.wayOption {
+  display: grid;
+  gap: 2px;
+  align-content: center;
+  min-height: 84px;
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-radius: 20px;
+  background: var(--white);
+  cursor: pointer;
+}
+.wayOption input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.wayOption small {
+  color: var(--muted);
+  font-weight: 700;
+}
+.wayOption.on {
+  border-color: var(--primary);
+  background: var(--tint);
+  box-shadow: 0 0 0 3px rgb(31 122 85 / 0.18);
+}
+.wayOption:focus-within {
+  outline: 3px solid var(--honey);
+  outline-offset: 2px;
+}
+.moreDetails > summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--primary);
+}
+.hubCard {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--tint);
+  text-align: left;
+}
+.hubCard strong {
+  font-size: 22px;
+}
+.hubCardLabel {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.hubCard .btn {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}

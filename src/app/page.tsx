@@ -39,8 +39,7 @@ const facts = [
 ];
 
 const steps = [
-  { title: "A business sends it", text: "A seller books a parcel and picks the Izza point closest to the customer. The customer gets a code on WhatsApp." },
-  { title: "A runner collects it", text: "A local runner we have approved picks it up from the business and brings it to the Izza point." },
+  { title: "A business sends it", text: "A seller picks the Izza point closest to the customer and takes the parcel there. The customer gets a code on WhatsApp." },
   { title: "It waits at the point", text: "A shop, salon or hall on your street keeps it safe until you decide what happens next." },
   { title: "You choose", text: `Collect it yourself, or ask for it at your door. A runner brings it, and you give them your 4-digit code.` },
 ];
@@ -55,7 +54,7 @@ const who = [
 const safe = [
   { icon: UserCheck, title: "Every partner is approved", text: "Runners, Izza points and businesses are checked by our team before they start." },
   { icon: Key, title: "A code to hand over", text: "A parcel only changes hands when the right code is given. No code, no parcel." },
-  { icon: Eye, title: "You can see every step", text: "From picked up to delivered, each update appears on your tracking page." },
+  { icon: Eye, title: "You can see every step", text: "From booked to delivered, each update appears on your tracking page." },
   { icon: ShieldCheck, title: "Your details stay private", text: "A runner sees only what the job needs. Strangers see where a parcel is, not who it is for." },
 ];
 
@@ -73,7 +72,7 @@ const faqs = [
   },
   {
     q: "I run a business. How can Izza help?",
-    a: "You book a parcel and a local runner collects it from you. We hold it at an Izza point near your customer, and they choose to collect it or have it brought to their door. You see every step on your dashboard.",
+    a: "You pick an Izza point near your customer and take the parcel there. We hold it, and they choose to collect it or have it brought to their door. You see every step on your dashboard.",
   },
   {
     q: "Can my shop or salon become an Izza point?",
@@ -81,7 +80,7 @@ const faqs = [
   },
   {
     q: "How do I become a runner?",
-    a: "Apply on the site. Once the team approves you, you can see open jobs in your area, accept one, and update the customer as you go.",
+    a: "Sign up on the site and you can start straight away. You see open deliveries from the hubs, accept one, and update the customer as you go.",
   },
   {
     q: "Do I need to download an app?",

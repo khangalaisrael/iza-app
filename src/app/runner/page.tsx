@@ -6,7 +6,7 @@ import ChimeOnChange from "@/components/ChimeOnChange";
 import FindMeMap from "@/components/FindMeMap";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
-import { LAST_STAGE, doorReady, needsCollection, type Parcel } from "@/lib/parcels";
+import { LAST_STAGE, doorReady, type Parcel } from "@/lib/parcels";
 import { listApprovedPoints, type IzaPoint } from "@/lib/pointStore";
 import { listParcels, runnerEarnings } from "@/lib/store";
 import type { User } from "@/lib/users";
@@ -27,9 +27,10 @@ export default function RunnerPage() {
 
 type Job = { parcel: Parcel; kind: "collect" | "deliver"; from: string; to: string };
 
-// A job is bringing a door delivery from the Izza point to the customer, or, when a sender asked for a runner, collecting from them first.
+// A runner's job is bringing a door delivery from an Izza point to the customer. (A parcel an older runner was already carrying to a
+// hub is finished the same way.) Runners no longer collect from senders: the sender takes the parcel to the hub.
 function jobFor(p: Parcel): Job | null {
-  if (needsCollection(p) || p.stage === 1) return { parcel: p, kind: "collect", from: p.pickup, to: p.point };
+  if (p.stage === 1 && p.runnerId) return { parcel: p, kind: "collect", from: p.pickup, to: p.point };
   if (doorReady(p) || p.stage === 3) {
     return { parcel: p, kind: "deliver", from: p.point, to: p.landmark || "The customer's door" };
   }
@@ -58,16 +59,13 @@ async function Board({ user }: { user: User }) {
   const jobs = all.map(jobFor).filter((j): j is Job => j !== null);
   // Jobs I accepted and have not finished, and jobs nobody has taken yet.
   const mine = jobs.filter((j) => j.parcel.runnerId === user.id);
-  const open = jobs.filter((j) => !j.parcel.runnerId && (needsCollection(j.parcel) || j.parcel.stage === 2));
+  const open = jobs.filter((j) => !j.parcel.runnerId && j.parcel.stage === 2);
   const done = all.filter((p) => p.stage === LAST_STAGE && p.runner === user.name).length;
 
   const spots = [...mine, ...open]
     .flatMap((j) => {
       const pt = j.parcel.pointId ? byId.get(j.parcel.pointId) : undefined;
       const list: { id: string; name: string; lat: number; lng: number }[] = [];
-      if (j.parcel.stage === 0 && j.parcel.pickupLat !== undefined && j.parcel.pickupLng !== undefined) {
-        list.push({ id: `${j.parcel.code}-a`, name: j.from, lat: j.parcel.pickupLat, lng: j.parcel.pickupLng });
-      }
       if (pt) list.push({ id: `${j.parcel.code}-p`, name: pt.name, lat: pt.lat, lng: pt.lng });
       return list;
     });
@@ -111,7 +109,7 @@ async function Board({ user }: { user: User }) {
               <article key={j.parcel.code} className="card jobCard">
                 <div className="jobHead">
                   <span className={j.kind === "collect" ? "chip chip-honey" : "chip chip-primary"}>
-                    {j.kind === "collect" ? "Collect from a sender" : "Deliver to a door"}
+                    {j.kind === "collect" ? "Take to the hub" : "Deliver to a door"}
                   </span>
                   <span className="mono">{j.parcel.code}</span>
                 </div>
@@ -128,7 +126,7 @@ async function Board({ user }: { user: User }) {
 
           <section className="stack" aria-labelledby="open-h">
             <h2 id="open-h">Jobs you can take</h2>
-            {open.length === 0 && <p className="muted">No open jobs right now. This page updates by itself.</p>}
+            {open.length === 0 && <p className="muted">No open jobs right now. A job appears here when a hub has a parcel to bring to someone's door. This page updates by itself.</p>}
             {open.map((j) => (
               <article key={j.parcel.code} className="card jobCard">
                 <div className="jobHead">

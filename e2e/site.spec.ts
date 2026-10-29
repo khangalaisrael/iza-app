@@ -167,17 +167,21 @@ test("the privacy page and the staff pages each have one main heading", async ({
   await expect(team.getByRole("heading", { level: 1 })).toHaveCount(1);
 });
 
-test("the new Send page explains sending before asking anyone to sign in, and the hub question is gone", async ({ page, as }) => {
+test("the Send page explains sending in three steps before asking anyone to sign in, and the form is three short steps", async ({ page, as }) => {
   await page.goto("/send");
   await expect(page.getByRole("heading", { name: "Send a parcel" })).toBeVisible();
+  await expect(page.getByText("Pick a hub").first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Create an account to send" })).toBeVisible();
   await expect(page).toHaveURL(/\/send$/);
 
   const business = await (await as("business")).newPage();
   await business.goto("/send");
-  await expect(business.getByText("How will it get to the Izza point?")).toHaveCount(0);
-  await expect(business.getByText("I will bring it to the point")).toHaveCount(0);
-  await expect(business.getByRole("heading", { name: "Where do we collect it?" })).toBeVisible();
+  // Pick a hub, say who it is for, say how they get it. Nothing about pickups or runners.
+  await expect(business.getByRole("heading", { name: "Pick a hub" })).toBeVisible();
+  await expect(business.getByRole("heading", { name: "Who is it for?" })).toBeVisible();
+  await expect(business.getByRole("heading", { name: "How do they get it?" })).toBeVisible();
+  await expect(business.getByText("Who takes it to the hub?")).toHaveCount(0);
+  await expect(business.getByLabel("Pick up from")).toHaveCount(0);
   // Only a few hubs, so no search box.
   await expect(business.getByLabel("Search Izza points")).toHaveCount(0);
 });

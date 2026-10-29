@@ -21,6 +21,7 @@ const xh: Record<string, string> = {
   "Tell us where to bring it": "Sixelele apho sifanele ukuyizisa khona",
   "This parcel is being brought to your door. Tell us exactly where you are.": "Le parcel iza kuzisiwa emnyango wakho. Sixelele ngqo apho ukhoyo.",
   "Pickup: {place}": "Ithathwa ku-{place}",
+  "Waiting to be brought to {point}": "Silindele ukuyiziswa ku-{point}",
   "A runner will collect it": "Umthumeli uza kuyithatha",
   "A local runner collected it": "Umthumeli wasekhaya uyithathile",
   "A local runner is carrying it to you": "Umthumeli wasekhaya uyiphethe eyiza kuwe",

@@ -64,7 +64,7 @@ export default function JoinPage() {
           <section className={styles.joinCard}>
             <h2>Send parcels</h2>
             <ul className={styles.checks}>
-              {["We collect from you every day", "Your customer chooses to collect or have it at the door", "See every parcel, with a code for each one"].map((t) => (
+              {["Pick a hub close to your customer", "They collect it, or we bring it to their door", "See every parcel, with a code for each one"].map((t) => (
                 <li key={t}>
                   <Check size={22} weight="bold" aria-hidden="true" />
                   {t}

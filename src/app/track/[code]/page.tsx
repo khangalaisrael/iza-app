@@ -135,6 +135,12 @@ async function ParcelDetails({
 
       {isReceiver && !cancelled && parcel.stage === 2 && parcel.choice === "point" && point && <CollectCard code={parcel.code} point={point} now={now} />}
 
+      {canChoose && parcel.choice === "door" && !awaitingAddress(parcel) && parcel.landmark && (
+        <p className="lead" style={{ margin: 0 }}>
+          The sender says it is going to <strong>{parcel.landmark}</strong>. If that is not right, change it below.
+        </p>
+      )}
+
       {canChoose && awaitingAddress(parcel) && (
         <p className="lead" style={{ margin: 0 }}>
           {t(lang, "This parcel is being brought to your door. Tell us exactly where you are.")}
@@ -143,7 +149,7 @@ async function ParcelDetails({
 
       {canChoose && (
         <section className="card">
-          <ChooseDelivery key={parcel.stage} code={parcel.code} pointName={parcel.point} current={parcel.choice} lang={lang} accessKey={keyOk ? key : undefined} />
+          <ChooseDelivery key={parcel.stage} code={parcel.code} pointName={parcel.point} current={parcel.choice} lang={lang} accessKey={keyOk ? key : undefined} landmark={parcel.choice === "door" ? parcel.landmark : undefined} lat={parcel.choice === "door" ? parcel.lat : undefined} lng={parcel.choice === "door" ? parcel.lng : undefined} />
         </section>
       )}
 

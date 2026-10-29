@@ -70,7 +70,9 @@ export type Parcel = {
 export type Dropoff = "self" | "runner";
 
 // A parcel is a runner's collection job only when the sender asked for a runner.
-export const needsCollection = (p: Parcel) => p.stage === 0 && p.dropoff !== "self" && !p.cancelledAt;
+// Izza does not collect from senders. The sender takes the parcel to the hub they chose, and Izza's work starts there, so no parcel is
+// ever a runner's collection job. (This stays as a function so the places that ask are easy to find.)
+export const needsCollection = (_p: Parcel) => false;
 
 export const NO_RUNNER = "Not assigned yet";
 
@@ -92,7 +94,7 @@ export function etaOf(p: Parcel, lang: Lang = "en"): string {
   if (p.cancelledAt) return t(lang, "This parcel was cancelled");
   switch (p.stage) {
     case 0:
-      return t(lang, "A runner will collect it today");
+      return t(lang, "Waiting to be brought to {point}", { point: p.point });
     case 1:
       return t(lang, "On its way to {point}", { point: p.point });
     case 2:
@@ -110,7 +112,7 @@ export function etaOf(p: Parcel, lang: Lang = "en"): string {
 function detailFor(p: Parcel, i: number, lang: Lang): string {
   switch (i) {
     case 0:
-      return t(lang, "Pickup: {place}", { place: p.pickup });
+      return t(lang, "Waiting to be brought to {point}", { point: p.point });
     case 1:
       return t(lang, p.runner === NO_RUNNER || p.stage < 1 ? "A runner will collect it" : "A local runner collected it");
     case 2:
@@ -125,7 +127,7 @@ function detailFor(p: Parcel, i: number, lang: Lang): string {
 // The "On the way" step only exists when the customer wants it at their door.
 export function stepsOf(p: Parcel, lang: Lang = "en"): Step[] {
   return STAGES.map((title, i) => ({ title, i }))
-    .filter(({ i }) => !(i === 3 && p.choice === "point"))
+    .filter(({ i }) => i !== 1 && !(i === 3 && p.choice === "point"))
     .map(({ title, i }) => ({
       stage: i,
       title: t(lang, title),

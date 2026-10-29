@@ -27,18 +27,20 @@ async function Content({ searchParams }: { searchParams: PageProps<"/send">["sea
       <>
         <section className="stack">
           <h1>Send a parcel</h1>
-          <p className="lead">Send to anyone in the neighbourhood. A runner collects it from you and takes it to an Izza point close to them.</p>
-          <ol style={{ margin: 0, paddingLeft: 22, display: "grid", gap: 10 }}>
+          <ol className="threeSteps">
             <li>
-              <strong>Tell us where to collect it</strong> and who it is for.
+              <span className="stepNum">1</span> Pick a hub
             </li>
             <li>
-              <strong>A runner collects it</strong> and brings it to the Izza point. You pay R{FEE_POINT} in cash.
+              <span className="stepNum">2</span> Say who it is for
             </li>
             <li>
-              <strong>They choose</strong> to collect it at the shop, or pay R{FEE_DOOR_EXTRA} extra to have it brought to their door.
+              <span className="stepNum">3</span> Take it to the hub
             </li>
           </ol>
+          <p className="muted" style={{ margin: 0 }}>
+            You pay R{FEE_POINT} at the hub. They collect it free, or pay R{FEE_DOOR_EXTRA} extra to have it brought to their door.
+          </p>
         </section>
         <section className="card stack" aria-label="Sign up to send">
           <h2>First, a quick account</h2>
@@ -72,9 +74,9 @@ async function Content({ searchParams }: { searchParams: PageProps<"/send">["sea
   }
 
   const { point } = await searchParams;
-  const points = (await listApprovedPoints()).map(({ id, name, kind, hours, lat, lng }) => ({ id, name, kind, hours, lat, lng }));
+  const points = (await listApprovedPoints()).map(({ id, name, kind, address, hours, lat, lng }) => ({ id, name, kind, address, hours, lat, lng }));
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://izza-app.vercel.app";
-  const { receivers, lastPickup } = await recentSending(user.id);
+  const { receivers } = await recentSending(user.id);
   return (
     <SendForm
       points={points}
@@ -82,7 +84,6 @@ async function Content({ searchParams }: { searchParams: PageProps<"/send">["sea
       initialPointId={Array.isArray(point) ? point[0] : point}
       fromCustomer={user.role === "customer"}
       recent={receivers}
-      lastPickup={lastPickup}
     />
   );
 }

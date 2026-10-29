@@ -7,16 +7,15 @@ import { notifyTeam } from "@/lib/notify";
 import { normalizeIdentifier } from "@/lib/users";
 
 type Body = {
-  from?: string; // where the runner collects it, in words
-  pickupLat?: number; // and as coordinates, from the sender's location or a map pin
-  pickupLng?: number;
   toName?: string; // who it is for
   toPhone?: string; // their WhatsApp number
-  pointId?: string; // the Izza point it goes to
+  pointId?: string; // the Izza point the sender chose, and will take the parcel to
   size?: string;
   note?: string;
-  delivery?: string; // "door": the sender does not know where the receiver is, so the receiver pins it. Otherwise the receiver chooses.
-  dropoff?: string; // "self": the sender brings it to the hub. "runner": a runner collects it from them.
+  toLandmark?: string; // where it is going, when the sender knows. Otherwise the receiver pins it.
+  toLat?: number;
+  toLng?: number;
+  delivery?: string; // "door": a runner brings it to their door. Otherwise they collect it at the hub.
 };
 
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -35,17 +34,7 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json().catch(() => null)) as Body | null;
-  const hasPickupPin = inRange(body?.pickupLat, 90) && inRange(body?.pickupLng, 180);
-
-  const dropoff = body?.dropoff === "self" ? "self" : "runner";
   const fromCustomer = user.role === "customer";
-
-  // A runner needs to know where to go. If the sender brings it to the hub, no place is needed.
-  const from =
-    dropoff === "self"
-      ? "Brought to the hub by the sender"
-      : text(body?.from, 120) || (hasPickupPin ? "Pinned location" : "");
-  if (!from) return bad("Tell us where to collect it: type the place, or share your location.");
 
   const toName = text(body?.toName, 60);
   if (toName.length < 2) return bad("Tell us who the parcel is for.");
@@ -55,6 +44,10 @@ export async function POST(request: Request) {
 
   // "To their door": the receiver is asked to pin their own address, so the sender never needs to know it.
   const toDoor = body?.delivery === "door";
+  // The sender may know where it is going. If they say, it is saved, and the receiver only checks it. If not, the receiver pins it.
+  const toLandmark = toDoor ? text(body?.toLandmark, 200) : "";
+  const toPinned = toDoor && inRange(body?.toLat, 90) && inRange(body?.toLng, 180);
+  const knownAddress = !!toLandmark || toPinned;
 
   const point = body?.pointId ? await getPointById(text(body.pointId, 80)) : undefined;
   if (!point || point.status !== "approved") return bad("Choose which Izza point it should go to.");
@@ -63,8 +56,9 @@ export async function POST(request: Request) {
     code: await newParcelCode(),
     to: toName,
     recipientPhone: phone,
-    pickup: from,
-    landmark: "",
+    pickup: "Brought to the hub by the sender",
+    landmark: toLandmark || (toPinned ? "Pinned location" : ""),
+    ...(toPinned && { lat: body!.toLat, lng: body!.toLng, plusCode: encodePlusCode(body!.toLat!, body!.toLng!) }),
     runner: NO_RUNNER,
     stage: 0,
     point: point.name,
@@ -74,24 +68,18 @@ export async function POST(request: Request) {
     size: ["Small", "Medium", "Large"].includes(text(body?.size, 10)) ? text(body?.size, 10) : "Small",
     ...(text(body?.note, 200) && { note: text(body?.note, 200) }),
     ownerId: user.id,
-    dropoff,
+    // The sender takes it to the hub. Izza does not collect from senders.
+    dropoff: "self",
     senderKind: fromCustomer ? "customer" : "business",
     deliveryPin: newDeliveryPin(),
     accessKey: newAccessKey(),
-    ...(dropoff === "runner" && hasPickupPin && {
-      pickupLat: body!.pickupLat,
-      pickupLng: body!.pickupLng,
-      pickupPlusCode: encodePlusCode(body!.pickupLat!, body!.pickupLng!),
-    }),
   };
 
   await saveParcel(parcel);
   await addEvent(
     parcel.code,
     "booked",
-    dropoff === "self"
-      ? `Booked. Waiting for it to be brought to ${point.name}.${toDoor ? " It will be taken to the receiver's door once they pin their address." : ""}`
-      : `Booked. A runner will collect it and take it to ${point.name}.${toDoor ? " It will be taken to the receiver's door once they pin their address." : ""}`,
+    `Booked. Waiting for it to be brought to ${point.name}.${toDoor ? (knownAddress ? " It will then be taken to the address the sender gave." : " It will then be taken to the receiver's door once they pin their address.") : ""}`,
     user.name,
   );
   // The team is told about every parcel a customer sends to the hub. It shows at the top of their dashboard.
@@ -99,5 +87,5 @@ export async function POST(request: Request) {
     await addEvent(parcel.code, "sent_by_customer", `A customer sent a parcel to ${point.name}. The team has been told.`, user.name);
     notifyTeam(`${user.name} sent parcel ${parcel.code} to ${point.name}.`, "A customer sent a parcel.");
   }
-  return Response.json({ code: parcel.code, key: parcel.accessKey, point: point.name, phone, dropoff, delivery: toDoor ? "door" : "shop" }, { status: 201 });
+  return Response.json({ code: parcel.code, key: parcel.accessKey, point: point.name, phone, dropoff: "self", delivery: toDoor ? "door" : "shop", knownAddress }, { status: 201 });
 }

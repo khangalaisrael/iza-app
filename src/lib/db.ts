@@ -154,6 +154,9 @@ const SCHEMA = [
     at BIGINT NOT NULL,
     taken_by TEXT
   )`,
+  // Izza no longer collects from senders: a parcel that was waiting for a runner pickup is now waiting to be brought to its hub.
+  `UPDATE parcels SET dropoff = 'self', runner_id = NULL, runner = 'Not assigned yet', pickup = 'Brought to the hub by the sender'
+     WHERE stage = 0 AND (dropoff IS NULL OR dropoff <> 'self')`,
 ];
 
 type G = typeof globalThis & { __izaDb?: Promise<Db> };

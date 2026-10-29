@@ -81,7 +81,7 @@ async function Board({ user }: { user: User }) {
           <ParcelList title="Ready to collect" parcels={ready} empty="Nothing waiting for collection." now={now} remind />
         </div>
         <div className="stack">
-          <ParcelList title="Being brought in" parcels={bringingIn} empty="Nobody is bringing a parcel in." now={now} receive hint="Take the R12 cash, then tap Received." />
+          <ParcelList title="Being brought in" parcels={bringingIn} empty="Nobody is bringing a parcel in." now={now} receive hint="When the sender hands it in, tap Received." />
           <ParcelList title="Coming to you" parcels={arriving} empty="Nothing on its way here." now={now} />
           <ParcelList title="Going out to a door" parcels={forDoor} empty="No door deliveries waiting for a runner." now={now} />
         </div>
@@ -125,7 +125,13 @@ function ParcelList({
               </div>
               <span className="chip chip-primary">{statusOf(p)}</span>
             </div>
-            {p.paidAt ? (
+            {receive ? (
+              // A parcel being handed in: one tap says it arrived and, if the sender has not paid, that the cash was taken.
+              <>
+                {p.paidAt ? <span className="chip">Sender paid R{FEE_POINT}</span> : <span className="muted">Sender pays R{FEE_POINT} cash</span>}
+                <ReceiveButton code={p.code} fee={p.paidAt ? undefined : FEE_POINT} />
+              </>
+            ) : p.paidAt ? (
               <span className="chip">Sender paid R{FEE_POINT}</span>
             ) : (
               <>
@@ -133,7 +139,6 @@ function ParcelList({
                 <MarkPaidButton code={p.code} />
               </>
             )}
-            {receive && <ReceiveButton code={p.code} />}
             {remind && p.recipientPhone && waited > RULES.remindAtPointMs && (
               <a
                 className="btn btn-soft"

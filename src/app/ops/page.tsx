@@ -14,7 +14,7 @@ import ResetRequestRow from "@/components/ResetRequestRow";
 import { listResetRequests } from "@/lib/reset";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
-import { FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, awaitingAddress, doorReady, needsCollection, statusOf, type Parcel } from "@/lib/parcels";
+import { FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, awaitingAddress, doorReady, statusOf, type Parcel } from "@/lib/parcels";
 import { listPendingPoints } from "@/lib/pointStore";
 import { RULES, ageText } from "@/lib/rules";
 import { listParcels, recentEvents, runnerEarnings } from "@/lib/store";
@@ -58,7 +58,7 @@ async function Board() {
   // People waiting for approval already have their own list above, so they are left out here.
   const everyone = people.filter((u) => u.status !== "pending");
   const live = all.filter((p) => p.stage < LAST_STAGE && !p.cancelledAt);
-  const waitingForRunner = live.filter((p) => !p.runnerId && (needsCollection(p) || doorReady(p)));
+  const waitingForRunner = live.filter((p) => !p.runnerId && doorReady(p));
   const atPoints = live.filter((p) => p.stage === 2);
   const out = live.filter((p) => p.stage === 3);
   const deliveredToday = all.filter((p) => p.stage === LAST_STAGE && now - (p.updatedAt ?? 0) < DAY).length;
@@ -79,7 +79,7 @@ async function Board() {
     const age = now - (p.updatedAt ?? now);
     const to = p.recipientPhone;
     if (waitingForRunner.includes(p) && age > RULES.jobWaitingMs) {
-      alerts.push({ code: p.code, level: "high", rule: "Needs a runner", detail: p.stage === 0 ? `Collect from ${p.pickup}` : `Take to ${p.landmark || "the customer"}`, age, action: "assign", parcel: p });
+      alerts.push({ code: p.code, level: "high", rule: "Needs a runner", detail: `Take to ${p.landmark || "the customer"}`, age, action: "assign", parcel: p });
     }
     if (p.stage === 0 && p.dropoff === "self" && age > RULES.selfDropMs) {
       alerts.push({ code: p.code, level: "high", rule: "Not brought in yet", detail: `The sender said they would bring it to ${p.point}`, age, parcel: p });
@@ -94,7 +94,7 @@ async function Board() {
       alerts.push({ code: p.code, level: "high", rule: "Trip looks stalled", detail: `${p.runner} has been on the way a long time`, age, parcel: p });
     }
     if (p.senderKind === "customer" && p.stage === 0) {
-      alerts.push({ code: p.code, level: "info", rule: "New from a customer", detail: `Sent to ${p.point}${p.dropoff === "self" ? ", they will bring it in" : ", a runner is needed"}`, age, parcel: p });
+      alerts.push({ code: p.code, level: "info", rule: "New from a customer", detail: `Sent to ${p.point}, they will bring it in`, age, parcel: p });
     }
   }
   const seen = new Set(alerts.filter((a) => a.rule !== "New from a customer").map((a) => a.code));
@@ -133,11 +133,68 @@ async function Board() {
     { label: "Cash not recorded", value: `R${owed}`, hot: owed > 0 },
   ];
 
+  // Anything that needs a decision goes to the top of the page, and the running commentary tucks away until it is asked for.
+  const waiting = pending.length + resetRequests.length;
+  const approvalsCard = (
+        <section className="card stack" style={{ gap: 10 }} aria-labelledby="approvals">
+          <h2 id="approvals">Waiting for approval</h2>
+          {pending.length === 0 && <p className="muted" style={{ margin: 0 }}>No one is waiting.</p>}
+          {pending.map((u) => (
+            <div key={u.id} className="approveRow">
+              <div>
+                <strong>{u.name}</strong>
+                <div className="muted">
+                  {roleLabel[u.role]} · {u.identifier}
+                </div>
+                {(u.details.category || u.details.area || u.details.transport) && (
+                  <div className="muted">
+                    {u.role === "business"
+                      ? `Sells: ${u.details.category ?? "not said"}. Based in ${u.details.area ?? "not said"}.`
+                      : `Lives in ${u.details.area ?? "not said"}. Gets around: ${u.details.transport ?? "not said"}.`}
+                  </div>
+                )}
+                {u.role === "point" && placeOf.get(u.id) && (
+                  <div className="muted">
+                    {placeOf.get(u.id)!.name}, {placeOf.get(u.id)!.kind}. {placeOf.get(u.id)!.address}. Open {placeOf.get(u.id)!.hours}.
+                  </div>
+                )}
+              </div>
+              <form action={approveUserAction} style={{ display: "flex", gap: 8 }}>
+                <input type="hidden" name="id" value={u.id} />
+                <button className="btn btn-primary" name="decision" value="approve" type="submit" style={{ minHeight: 44 }}>
+                  Approve
+                </button>
+                <button className="btn btn-soft" name="decision" value="reject" type="submit" style={{ minHeight: 44 }}>
+                  Reject
+                </button>
+              </form>
+            </div>
+          ))}
+        </section>
+  );
+
   return (
     <>
       <AutoRefresh seconds={5} />
       <h1 className="visually-hidden">Team dashboard</h1>
       <ChimeOnChange value={alerts.length + resetRequests.length + pending.length + pendingPoints.length} />
+      {waiting > 0 && (
+        <div className="stack" role="region" aria-label="Needs your decision">
+          {pending.length > 0 && approvalsCard}
+          {resetRequests.length > 0 && (
+            <section className="card stack" style={{ gap: 10 }} aria-labelledby="resetwaiting">
+              <h2 id="resetwaiting">
+                Waiting for a password link <span className="chip chip-honey">{resetRequests.length}</span>
+              </h2>
+            {resetRequests.map((q) => (
+              <ResetRequestRow key={q.userId} name={q.name} identifier={q.identifier} role={roleLabel[q.role as keyof typeof roleLabel] ?? q.role} ago={ageText(now - q.at)} />
+            ))}
+
+            </section>
+          )}
+        </div>
+      )}
+
       <div className="kpiGrid">
         {stats.map((s) => (
           <div key={s.label} className={s.hot ? "card kpi kpiHot" : "card kpi"}>
@@ -227,8 +284,11 @@ async function Board() {
             </div>
           </section>
 
-          <section className="card stack" style={{ gap: 6 }} aria-labelledby="activity">
-            <h2 id="activity">Latest activity</h2>
+          <details className="card stack activity" open={waiting === 0}>
+            <summary>
+              <h2 id="activity">Latest activity</h2>
+              {waiting > 0 && <span className="muted">Tap to open</span>}
+            </summary>
             {feed.map((e) => (
               <div key={e.id} className="feedItem">
                 <span className="feedTime">{ageText(now - e.at)}</span>
@@ -241,45 +301,11 @@ async function Board() {
               </div>
             ))}
             {feed.length === 0 && <p className="muted" style={{ margin: 0 }}>Nothing yet.</p>}
-          </section>
+          </details>
         </div>
 
         <div className="stack">
-          <section className="card stack" style={{ gap: 10 }} aria-labelledby="approvals">
-            <h2 id="approvals">Waiting for approval</h2>
-            {pending.length === 0 && <p className="muted" style={{ margin: 0 }}>No one is waiting.</p>}
-            {pending.map((u) => (
-              <div key={u.id} className="approveRow">
-                <div>
-                  <strong>{u.name}</strong>
-                  <div className="muted">
-                    {roleLabel[u.role]} · {u.identifier}
-                  </div>
-                  {(u.details.category || u.details.area || u.details.transport) && (
-                    <div className="muted">
-                      {u.role === "business"
-                        ? `Sells: ${u.details.category ?? "not said"}. Based in ${u.details.area ?? "not said"}.`
-                        : `Lives in ${u.details.area ?? "not said"}. Gets around: ${u.details.transport ?? "not said"}.`}
-                    </div>
-                  )}
-                  {u.role === "point" && placeOf.get(u.id) && (
-                    <div className="muted">
-                      {placeOf.get(u.id)!.name}, {placeOf.get(u.id)!.kind}. {placeOf.get(u.id)!.address}. Open {placeOf.get(u.id)!.hours}.
-                    </div>
-                  )}
-                </div>
-                <form action={approveUserAction} style={{ display: "flex", gap: 8 }}>
-                  <input type="hidden" name="id" value={u.id} />
-                  <button className="btn btn-primary" name="decision" value="approve" type="submit" style={{ minHeight: 44 }}>
-                    Approve
-                  </button>
-                  <button className="btn btn-soft" name="decision" value="reject" type="submit" style={{ minHeight: 44 }}>
-                    Reject
-                  </button>
-                </form>
-              </div>
-            ))}
-          </section>
+          {pending.length === 0 && approvalsCard}
 
           <section className="card stack" style={{ gap: 6 }} aria-labelledby="roster">
             <h2 id="roster">Runners</h2>
@@ -303,9 +329,6 @@ async function Board() {
 
           <section className="card stack" style={{ gap: 10 }} aria-labelledby="reset">
             <h2 id="reset">Forgot a password? {resetRequests.length > 0 && <span className="chip chip-honey">{resetRequests.length}</span>}</h2>
-            {resetRequests.map((q) => (
-              <ResetRequestRow key={q.userId} name={q.name} identifier={q.identifier} role={roleLabel[q.role as keyof typeof roleLabel] ?? q.role} ago={ageText(now - q.at)} />
-            ))}
             {resetRequests.length === 0 && <p className="muted" style={{ margin: 0 }}>Nobody has asked yet.</p>}
             <p className="muted" style={{ margin: 0 }}>Or make a link yourself for someone who messaged you. Check it really is them first.</p>
             <ResetLinkForm />

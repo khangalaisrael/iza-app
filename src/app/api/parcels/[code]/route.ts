@@ -15,6 +15,7 @@ type Body = {
   reason?: string;
   pin?: string;
   runnerId?: string;
+  paid?: boolean; // the hub took the sender's cash as it received the parcel
   what?: string;
   key?: string; // the secret from the receiver's link
 };
@@ -73,7 +74,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/parcels/[c
   if (user.status !== "active") return deny("Your account is waiting for approval.", 403);
 
   if (action === "collect") return collect(parcel, user);
-  if (action === "receive") return receive(parcel, user);
+  if (action === "receive") return receive(parcel, user, body);
   if (action === "assign") return assign(parcel, user, body);
   if (action === "mark_paid") return markPaid(parcel, user, body);
   if (action === "cancel") return cancel(parcel, user);
@@ -82,13 +83,16 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/parcels/[c
 }
 
 // The Izza point confirms that the sender brought the parcel in.
-async function receive(parcel: Parcel, user: User) {
+async function receive(parcel: Parcel, user: User, body: Body | null) {
   const point = parcel.pointId ? await getPointById(parcel.pointId) : undefined;
   const isItsPoint = user.role === "point" && !!point && point.ownerId === user.id;
   if (!isItsPoint && user.role !== "admin") return deny("Only the Izza point this parcel was sent to can confirm it.", 403);
   if (parcel.stage !== 0 || parcel.dropoff !== "self") return deny("That parcel isn't waiting to be brought in.", 409);
-  await saveParcel({ ...parcel, stage: 2 });
+  // One tap can say both things: it arrived, and the sender's R12 was taken in cash.
+  const takeCash = body?.paid === true && !parcel.paidAt;
+  await saveParcel({ ...parcel, stage: 2, ...(takeCash && { paidAt: Date.now(), paidBy: user.name }) });
   await addEvent(parcel.code, "received", `Received at ${parcel.point}. Ready for you.`, point?.name ?? user.name);
+  if (takeCash) await addEvent(parcel.code, "paid", `Sender's fee received (R${FEE_POINT}).`, user.name);
   return ok();
 }
 

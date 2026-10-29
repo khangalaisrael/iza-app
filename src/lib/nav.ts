@@ -30,8 +30,16 @@ const business: NavItem = {
     { label: "Why businesses use Izza", href: "/business" },
     { label: "Open a business account", href: "/signup?as=business" },
     { label: "Your dashboard", href: "/signin?next=%2Fparcels" },
-    { label: "Host an Izza point", href: "/signup?as=point" },
+  ],
+};
+
+const join: NavItem = {
+  label: "Join us",
+  href: "/join",
+  children: [
     { label: "Become a runner", href: "/signup?as=runner" },
+    { label: "Host an Izza point", href: "/signup?as=point" },
+    { label: "See all the ways to join", href: "/join" },
   ],
 };
 
@@ -57,9 +65,9 @@ export function navFor(role: Role | null): NavItem[] {
     case "admin":
       return [{ label: "Team", href: "/ops" }, send, collect, why];
     case "customer":
-      return [send, collect, why];
+      return [send, collect, join, why];
     default:
-      return [send, collect, business, why];
+      return [send, collect, business, join, why];
   }
 }
 

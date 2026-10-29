@@ -1,5 +1,5 @@
-import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import type { BrowserContext, Page } from "@playwright/test";
+import { authFile, expect, test, type Role } from "./fixtures";
 
 const CODE = /^IZA-[2-9A-HJ-NP-Z]{6}$/;
 
@@ -31,14 +31,15 @@ async function expectTrackerAligned(page: Page) {
 }
 
 // A business books a parcel to Corner Shop for someone, and gets the code back.
-async function book(page: Page, opts: { from: string; to: string; phone: string; point?: string; toDoor?: boolean; toHub?: boolean }) {
+async function book(page: Page, opts: { from?: string; to: string; phone: string; point?: string; toDoor?: boolean; toAddress?: string }) {
   await page.goto("/send");
-  if (opts.toDoor) await page.getByText("Bring it to their door").click();
-  if (opts.toHub) await page.getByText("I will take it to the hub myself").click();
-  else await page.getByLabel("Pick up from").fill(opts.from);
+  await page.getByText(opts.point ?? "Corner Shop", { exact: true }).click();
   await page.getByLabel("Their name").fill(opts.to);
   await page.getByLabel("Their WhatsApp number").fill(opts.phone);
-  await page.getByText(opts.point ?? "Corner Shop", { exact: true }).click();
+  if (opts.toDoor) {
+    await page.getByText("Bring to their door").click();
+    if (opts.toAddress) await page.getByLabel("Their address or landmark").fill(opts.toAddress);
+  }
   await page.getByRole("button", { name: "Book it" }).click();
   await expect(page.getByText("Enkosi! It's booked.")).toBeVisible();
   const code = (await page.locator(".bigCode").innerText()).trim();
@@ -60,18 +61,27 @@ async function chooseDoor(page: Page, code: string, landmark: string) {
   await expect(page.getByText("Saved. Thank you!")).toBeVisible();
 }
 
-// A runner accepts the collection job, collects it, and hands it to the point.
-async function collectAndDrop(runner: Page, code: string) {
-  await runner.goto("/runner");
-  await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this job" }).click();
-  await expect(runner).toHaveURL(new RegExp(`/runner/${code}$`));
-  await runner.getByRole("button", { name: "I've collected it" }).click();
-  await runner.getByRole("button", { name: /I've handed it to Corner Shop/ }).click();
+// A parcel for a door, with the address given, already handed in at the hub. This is the only kind of job a runner has.
+async function doorParcelAtHub(as: (role: Role) => Promise<BrowserContext>, opts: { to: string; phone: string; address?: string }) {
+  const business = await (await as("business")).newPage();
+  const code = await book(business, { to: opts.to, phone: opts.phone, toDoor: true, toAddress: opts.address ?? "Blue gate, Main Rd" });
+  await handToHub(business, code);
+  return code;
 }
 
-test("the customer collects: the runner works the job, the shop hands it over", async ({ as, browser, baseURL }) => {
+// The sender has taken the parcel to the hub, and the hub has confirmed it and taken the sender's cash. (This is the hub's own tap on its
+// screen, done here as a request so every test does not repeat it.)
+async function handToHub(runner: Page, code: string) {
+  const base = "http://localhost:3100";
+  const hub = await runner.context().browser()!.newContext({ baseURL: base, storageState: authFile("point") });
+  const res = await hub.request.patch(`/api/parcels/${code}`, { data: { action: "receive", paid: true }, headers: { origin: base } });
+  expect(res.ok(), "the hub confirms the parcel").toBeTruthy();
+  await hub.close();
+}
+
+test("the customer collects at the hub: the hub receives it, the customer sees how to collect, the shop hands it over", async ({ as, browser, baseURL }) => {
   const business = await (await as("business")).newPage();
-  const code = await book(business, { from: "Thembi's Kitchen", to: "Nomvula", phone: "082 111 2222" });
+  const code = await book(business, { to: "Nomvula", phone: "082 111 2222" });
   await expect(business.getByRole("link", { name: "Send the code on WhatsApp" })).toHaveAttribute("href", /wa\.me\/27821112222\?text=.*IZA-/);
 
   const customer = await browser.newPage({ baseURL });
@@ -81,30 +91,11 @@ test("the customer collects: the runner works the job, the shop hands it over", 
   await customer.getByRole("button", { name: "Confirm" }).click();
   await expect(customer.getByText("Saved. Thank you!")).toBeVisible();
 
-  // The runner sees an open job, accepts it, and works through the steps. Each one tells the customer.
+  // The sender takes it to the hub. The customer sees it arrive, with everything they need to collect it.
   const runner = await (await as("runner")).newPage();
-  await runner.goto("/runner");
-  const card = runner.locator("article", { hasText: code });
-  await expect(card.getByText("Collect from a sender")).toBeVisible();
-  await card.getByRole("button", { name: "Accept this job" }).click();
-  await expect(runner.getByRole("heading", { name: "Step 1: Go and collect it" })).toBeVisible();
-  await runner.getByRole("button", { name: "I'm on my way" }).click();
-  await expect(runner.getByText("The customer has been told.")).toBeVisible();
-  await runner.getByRole("button", { name: "I've arrived" }).click();
-  await runner.getByRole("button", { name: "I've collected it" }).click();
-  await expect(runner.getByRole("heading", { name: "Step 2: Take it to Corner Shop" })).toBeVisible();
-  await runner.getByRole("button", { name: /I've handed it to Corner Shop/ }).click();
-  await expect(runner.getByRole("heading", { name: "Step 2: Take it to Corner Shop" })).toHaveCount(0);
-  // Finishing the hand-over thanks the runner. It does not tell them the job is not theirs.
-  await expect(runner.getByRole("heading", { name: "Done. Enkosi!" })).toBeVisible();
-  await expect(runner.getByRole("heading", { name: "This job isn't on your list" })).toHaveCount(0);
-
-  // The customer reads the runner's updates.
+  await handToHub(runner, code);
   await customer.reload();
-  await expect(customer.getByLabel("Updates").getByText(/is on the way to collect it/)).toBeVisible();
-  await expect(customer.getByLabel("Updates").getByText(/Dropped at Corner Shop/)).toBeVisible();
-
-  // Collecting is the moment that matters, so it has its own card: the code, the place, and a way there.
+  await expect(customer.getByLabel("Updates").getByText(/Received at Corner Shop/)).toBeVisible();
   const collectCard = customer.getByRole("region", { name: "Collect your parcel" });
   await expect(collectCard).toContainText(code);
   await expect(collectCard).toContainText("Corner Shop");
@@ -113,7 +104,7 @@ test("the customer collects: the runner works the job, the shop hands it over", 
   // The map waits to be asked for, so the page costs almost no data until it is wanted.
   await expect(customer.getByRole("button", { name: /Show the map/ })).toBeVisible();
 
-  // The collection job is finished, and a collect-at-the-point parcel is not a delivery job.
+  // A collect-at-the-hub parcel is never a runner's job.
   await runner.goto("/runner");
   await expect(runner.locator("article", { hasText: code })).toHaveCount(0);
 
@@ -142,7 +133,7 @@ test("door delivery: a second job, finished only with the customer's 4-digit cod
   await expect(customer.getByText("Saved. Thank you!")).toBeVisible();
 
   const runner = await (await as("runner")).newPage();
-  await collectAndDrop(runner, code);
+  await handToHub(runner, code);
 
   // Now a delivery job: from the point to the customer's door.
   await runner.goto("/runner");
@@ -181,26 +172,16 @@ test("door delivery: a second job, finished only with the customer's 4-digit cod
 
 test("the sender's R12 is recorded at the hub, and the customer's R8 only when they chose a door", async ({ as, browser, baseURL }) => {
   const business = await (await as("business")).newPage();
-  const code = await book(business, { from: "Thembi's Kitchen", to: "Buhle", phone: "084 555 6666" });
+  const code = await book(business, { to: "Buhle", phone: "084 555 6666", toDoor: true, toAddress: "Green gate next to the creche" });
+  const customer = await browser.newPage({ baseURL }); // a stranger, who has only the short code
 
-  const customer = await browser.newPage({ baseURL });
-  await chooseDoor(customer, code, "Green gate next to the creche");
-
-  const runner = await (await as("runner")).newPage();
-  await collectAndDrop(runner, code);
-
-  // The runner's finished collection counts towards what they have earned (R5 each).
-  await runner.goto("/runner");
-  await expect(runner.locator(".stat", { hasText: "Earned" })).toContainText(/R\d+/);
-  await expect(runner.locator(".stat", { hasText: "Earned" })).not.toContainText("0 collected");
-
-  // The hub records the business's R12. It cannot be recorded twice.
+  // The sender hands it in, and the hub takes the R12 in one tap. It cannot be recorded twice.
   const shop = await (await as("point")).newPage();
   await shop.goto("/point");
   const card = shop.locator(".card", { hasText: code });
-  await expect(card.getByText("Sender owes R12")).toBeVisible();
-  await card.getByRole("button", { name: "Cash received" }).click();
-  await expect(card.getByText("Sender paid R12")).toBeVisible();
+  await expect(card.getByText("Sender pays R12 cash")).toBeVisible();
+  await card.getByRole("button", { name: "Received, R12 cash taken" }).click();
+  await expect(shop.locator(".card", { hasText: code })).toContainText("Sender paid R12");
 
   // The sender sees it as paid on the tracking page; a stranger sees no payment details at all.
   await business.goto(`/track/${code}`);
@@ -210,6 +191,7 @@ test("the sender's R12 is recorded at the hub, and the customer's R8 only when t
   await expect(customer.getByRole("heading", { name: "Payment" })).toHaveCount(0);
 
   // The door customer pays the R8 extra to the runner on the trip.
+  const runner = await (await as("runner")).newPage();
   await runner.goto("/runner");
   await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this delivery" }).click();
   await runner.getByRole("button", { name: /I've collected it from Corner Shop/ }).click();
@@ -239,7 +221,7 @@ test("the team pays a runner what they are owed, and only the team can", async (
   const business = await (await as("business")).newPage();
   const code = await book(business, { from: "Thembi's Kitchen", to: "Mandla", phone: "085 777 8888" });
   const runner = await (await as("runner")).newPage();
-  await collectAndDrop(runner, code);
+  await handToHub(runner, code);
 
   await runner.goto("/runner");
   await expect(runner.locator(".stat", { hasText: "Earned" })).toContainText(/still owed R[1-9]\d*/);
@@ -261,7 +243,7 @@ test("a failed delivery goes back to the Izza point and the customer is told to 
   await chooseDoor(customer, code, "Green gate");
 
   const runner = await (await as("runner")).newPage();
-  await collectAndDrop(runner, code);
+  await handToHub(runner, code);
   await runner.goto("/runner");
   await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this delivery" }).click();
   await runner.getByRole("button", { name: /I've collected it from Corner Shop/ }).click();
@@ -282,27 +264,25 @@ test("a failed delivery goes back to the Izza point and the customer is told to 
 });
 
 test("a runner can give a job back, and it is open again for someone else", async ({ as }) => {
-  const business = await (await as("business")).newPage();
-  const code = await book(business, { from: "Give Back Cakes", to: "Give Back", phone: "085 666 7777" });
+  const code = await doorParcelAtHub(as, { to: "Give Back", phone: "085 666 7777" });
 
   const runner = await (await as("runner")).newPage();
   await runner.goto("/runner");
-  await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this job" }).click();
+  await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this delivery" }).click();
   await runner.getByRole("button", { name: "I can't do this job. Give it back." }).click();
   await expect(runner).toHaveURL(/\/runner$/);
-  await expect(runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this job" })).toBeVisible();
+  await expect(runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this delivery" })).toBeVisible();
 });
 
 test("two runners cannot take the same job, and nobody can work a job they did not accept", async ({ as }) => {
-  const business = await (await as("business")).newPage();
-  const code = await book(business, { from: "Race Bakery", to: "Race", phone: "086 888 9999" });
+  const code = await doorParcelAtHub(as, { to: "Race", phone: "086 888 9999" });
 
   const first = await as("admin");
   expect((await first.request.patch(`/api/parcels/${code}`, { data: { action: "accept" } })).status()).toBe(200);
 
   const second = await as("runner");
   expect((await second.request.patch(`/api/parcels/${code}`, { data: { action: "accept" } })).status()).toBe(409);
-  for (const action of ["collected", "dropped", "release", "pickup_from_point"]) {
+  for (const action of ["pickup_from_point", "deliver", "release", "return_to_point"]) {
     expect((await second.request.patch(`/api/parcels/${code}`, { data: { action } })).status(), action).toBe(403);
   }
   // And the job page itself is closed to a runner who did not take it.
@@ -318,7 +298,7 @@ test("the shop cannot hand over a parcel the customer wants at their door", asyn
   await chooseDoor(customer, code, "Red gate");
 
   const runner = await (await as("runner")).newPage();
-  await collectAndDrop(runner, code);
+  await handToHub(runner, code);
 
   const shop = await as("point");
   const res = await shop.request.patch(`/api/parcels/${code}`, { data: { action: "collect" } });
@@ -332,27 +312,29 @@ test("an unknown parcel code says so", async ({ page }) => {
 
 test("a stranger sees where a parcel is, but not who it is for or where it is going", async ({ as, browser, baseURL }) => {
   const business = await (await as("business")).newPage();
-  const code = await book(business, { from: "Secret Bakery", to: "Private Person", phone: "085 777 8888" });
+  const code = await book(business, { to: "Private Person", phone: "085 777 8888", toDoor: true, toAddress: "Secret Street 9" });
 
   const stranger = await browser.newPage({ baseURL });
   await stranger.goto(`/track/${code}`);
-  await expect(stranger.getByText("A runner will collect it today")).toBeVisible();
+  await expect(stranger.getByRole("heading", { name: "Waiting to be brought to Corner Shop" })).toBeVisible();
   await expect(stranger.getByText("to see more about this parcel")).toBeVisible();
-  await expect(stranger.getByText("Secret Bakery")).toHaveCount(0);
+  await expect(stranger.getByText("Secret Street 9")).toHaveCount(0);
   await expect(stranger.getByText("Private Person")).toHaveCount(0);
   await expect(stranger.getByText("0857778888")).toHaveCount(0);
   await stranger.close();
 });
 
-test("a customer sends from home: a runner collects it, the team is told, and it ends up at the shop", async ({ as, browser, baseURL }) => {
+test("a customer sends from home: they pick a hub, the team is told, and it ends up at the shop", async ({ as, browser, baseURL }) => {
   const customer = await (await as("customer")).newPage();
   await customer.goto("/send");
-  // There is no question about how it gets to the hub: a runner always collects.
-  await expect(customer.getByText("I will bring it to the point")).toHaveCount(0);
-  await customer.getByLabel("Pick up from").fill("Gogo's house, Langa");
+  // Three short steps, and no question about how it gets there: the sender takes it to the hub.
+  await expect(customer.getByRole("heading", { name: "Pick a hub" })).toBeVisible();
+  await expect(customer.getByRole("heading", { name: "Who is it for?" })).toBeVisible();
+  await expect(customer.getByRole("heading", { name: "How do they get it?" })).toBeVisible();
+  await expect(customer.getByLabel("Pick up from")).toHaveCount(0);
+  await customer.getByText("Corner Shop", { exact: true }).click();
   await customer.getByLabel("Their name").fill("Gogo Home");
   await customer.getByLabel("Their WhatsApp number").fill("087 111 2222");
-  await customer.getByText("Corner Shop", { exact: true }).click();
   await customer.getByRole("button", { name: "Book it" }).click();
   await expect(customer.getByText("Enkosi! It's booked.")).toBeVisible();
   await expect(customer.getByText(/The Izza team has been told/)).toBeVisible();
@@ -364,11 +346,10 @@ test("a customer sends from home: a runner collects it, the team is told, and it
   await expect(team.getByText("New from a customer").first()).toBeVisible();
   await expect(team.getByRole("link", { name: code }).first()).toBeVisible();
 
-  // A runner collects it and hands it to the shop, which then has it ready to collect.
-  const runner = await (await as("runner")).newPage();
-  await collectAndDrop(runner, code);
+  // The hub takes it in, and it is ready to collect.
   const shop = await (await as("point")).newPage();
   await shop.goto("/point");
+  await shop.locator("div.card", { hasText: code }).getByRole("button", { name: "Received, R12 cash taken" }).click();
   await expect(shop.getByRole("heading", { name: "Ready to collect" })).toBeVisible();
   await expect(shop.locator("div.card", { hasText: code })).toBeVisible();
 
@@ -378,8 +359,7 @@ test("a customer sends from home: a runner collects it, the team is told, and it
 });
 
 test("the team can give a waiting job to a runner, and only the team can", async ({ as }) => {
-  const business = await (await as("business")).newPage();
-  const code = await book(business, { from: "Assign Bakery", to: "Assign Me", phone: "088 222 3333" });
+  const code = await doorParcelAtHub(as, { to: "Assign Me", phone: "088 222 3333" });
 
   const team = await as("admin");
   const page = await team.newPage();
@@ -431,7 +411,7 @@ test("the sender does not know where they are: the receiver pins their address, 
 
   // It reaches the Izza point, but a runner cannot take a delivery nobody has an address for.
   const runner = await (await as("runner")).newPage();
-  await collectAndDrop(runner, code);
+  await handToHub(runner, code);
   await runner.goto("/runner");
   await expect(runner.locator("article", { hasText: code })).toHaveCount(0);
   const refused = await runner.request.patch(`/api/parcels/${code}`, { data: { action: "accept" }, headers: { origin: baseURL! } });
@@ -457,7 +437,7 @@ test("the short code alone shows where a parcel is, but not the delivery code, a
   await chooseDoor(receiver, code, "Yellow house on the corner");
 
   const runner = await (await as("runner")).newPage();
-  await collectAndDrop(runner, code);
+  await handToHub(runner, code);
   await runner.goto("/runner");
   await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this delivery" }).click();
   await runner.getByRole("button", { name: /I've collected it from Corner Shop/ }).click();
@@ -481,30 +461,14 @@ test("the short code alone shows where a parcel is, but not the delivery code, a
   expect([401, 403]).toContain(photoNoKey.status());
 });
 
-test("a runner records the sender's R12 at the pickup, and the hub then sees it as paid", async ({ as }) => {
-  const business = await (await as("business")).newPage();
-  const code = await book(business, { from: "Thembi's Kitchen", to: "Aphiwe", phone: "082 000 1111" });
 
-  const runner = await (await as("runner")).newPage();
-  await runner.goto("/runner");
-  await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this job" }).click();
-  await runner.getByRole("button", { name: "Sender paid R12 cash" }).click();
-  await expect(runner.getByText("Sender's R12 received.")).toBeVisible();
-  await runner.getByRole("button", { name: "I've collected it" }).click();
-  await runner.getByRole("button", { name: /I've handed it to Corner Shop/ }).click();
+test("the sender can cancel a parcel until the hub has it, and everyone sees it is cancelled", async ({ as, browser, baseURL }) => {
+  const business = await (await as("business")).newPage();
+  const code = await book(business, { to: "Cancelled Cathy", phone: "083 999 0000" });
 
   const shop = await (await as("point")).newPage();
   await shop.goto("/point");
-  await expect(shop.locator(".card", { hasText: code })).toContainText("Sender paid R12");
-});
-
-test("the sender can cancel a parcel before a runner collects it, and everyone sees it is cancelled", async ({ as, browser, baseURL }) => {
-  const business = await (await as("business")).newPage();
-  const code = await book(business, { from: "Thembi's Kitchen", to: "Cancelled Cathy", phone: "083 999 0000" });
-
-  const runner = await (await as("runner")).newPage();
-  await runner.goto("/runner");
-  await expect(runner.locator("article", { hasText: code })).toHaveCount(1);
+  await expect(shop.locator("div.card", { hasText: code })).toBeVisible();
 
   await business.goto(`/track/${code}`);
   await business.getByRole("button", { name: "Cancel this parcel" }).click();
@@ -512,11 +476,9 @@ test("the sender can cancel a parcel before a runner collects it, and everyone s
   await expect(business.getByRole("heading", { name: "Cancelled", exact: true })).toBeVisible();
   await expect(business.getByRole("button", { name: "Cancel this parcel" })).toHaveCount(0);
 
-  // The runner no longer sees the job and cannot take it. The receiver and the business list show it as cancelled.
-  await runner.goto("/runner");
-  await expect(runner.locator("article", { hasText: code })).toHaveCount(0);
-  const take = await runner.request.patch(`/api/parcels/${code}`, { data: { action: "accept" }, headers: { origin: baseURL! } });
-  expect(take.status()).toBe(409);
+  // The hub is no longer waiting for it. The receiver and the business list show it as cancelled.
+  await shop.reload();
+  await expect(shop.locator("div.card", { hasText: code })).toHaveCount(0);
   const receiver = await browser.newPage({ baseURL });
   await receiver.goto(receiverUrl(code));
   await expect(receiver.getByRole("heading", { name: "Cancelled", exact: true })).toBeVisible();
@@ -524,14 +486,12 @@ test("the sender can cancel a parcel before a runner collects it, and everyone s
   await business.goto("/parcels");
   await expect(business.getByRole("heading", { name: "Finished" })).toBeVisible();
 
-  // Only the sender or the team can cancel, and not once a runner has the parcel.
+  // Only the sender or the team can cancel, and not once the hub has the parcel.
   const other = await (await as("customer")).newPage();
   const forbidden = await other.request.patch(`/api/parcels/${code}`, { data: { action: "cancel" }, headers: { origin: baseURL! } });
   expect([403, 409]).toContain(forbidden.status());
-  const second = await book(business, { from: "Thembi's Kitchen", to: "Late Lerato", phone: "083 999 0001" });
-  await runner.goto("/runner");
-  await runner.locator("article", { hasText: second }).getByRole("button", { name: "Accept this job" }).click();
-  await runner.getByRole("button", { name: "I've collected it" }).click();
+  const second = await book(business, { to: "Late Lerato", phone: "083 999 0001" });
+  await handToHub(business, second);
   const tooLate = await business.request.patch(`/api/parcels/${second}`, { data: { action: "cancel" }, headers: { origin: baseURL! } });
   expect(tooLate.status()).toBe(409);
 });
@@ -568,9 +528,10 @@ test("phone notifications: only people who can see a parcel can ask for them, an
   const sender = await business.request.post(`/api/parcels/${code}/push`, { data: { subscription: { ...fake, endpoint: "https://push.invalid/send/sender" } }, headers: origin });
   expect(sender.status()).toBe(200);
 
-  // With a phone subscribed that cannot be reached, the job still goes through.
-  await collectAndDrop(runner, code);
-  await expect(runner.getByRole("heading", { name: "Done. Enkosi!" })).toBeVisible();
+  // With a phone subscribed that cannot be reached, the hub can still take the parcel in.
+  await handToHub(runner, code);
+  await guest.reload();
+  await expect(guest.getByLabel("Updates").getByText(/Received at Corner Shop/)).toBeVisible();
 });
 
 test("the tracker draws every circle exactly on its line, with the time of each finished step", async ({ as, browser, baseURL }) => {
@@ -626,7 +587,7 @@ test("live location starts by itself on the delivery leg, and the runner can nav
       },
     }),
   );
-  await collectAndDrop(runner, code);
+  await handToHub(runner, code);
   await runner.goto("/runner");
   await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this delivery" }).click();
   await runner.getByRole("button", { name: /I've collected it from Corner Shop/ }).click();
@@ -640,7 +601,7 @@ test("live location starts by itself on the delivery leg, and the runner can nav
   await expect(receiver.getByText("Your runner is live on the map.")).toBeVisible();
   // While the runner is on the way the map is the point, so it loads without being asked.
   await expect(receiver.getByRole("button", { name: /Show the map/ })).toHaveCount(0);
-  await expect(receiver.locator(".trStep.tr-done")).toHaveCount(3);
+  await expect(receiver.locator(".trStep.tr-done")).toHaveCount(2);
   await expectTrackerAligned(receiver);
 
   // Full-screen navigation: the next turn, then closer, then arrival.
@@ -660,25 +621,28 @@ test("live location starts by itself on the delivery leg, and the runner can nav
   await expect(nav).toHaveCount(0);
 });
 
-test("send straight to the hub: no runner, the sender pays the hub in cash, and the receiver collects there", async ({ as, browser, baseURL }) => {
+test("the whole simple path: pick a hub, take it there, the hub takes the cash once, and the receiver collects with no runner at all", async ({ as, browser, baseURL }) => {
   const business = await (await as("business")).newPage();
-  const code = await book(business, { from: "", to: "Hub Hlengiwe", phone: "082 555 0003", toHub: true });
-  await expect(business.getByText(/Take it to Corner Shop and pay R12 cash there/)).toBeVisible();
+  const code = await book(business, { to: "Hub Hlengiwe", phone: "082 555 0003" });
+
+  // The confirmation says where to take it and what to do there. There is no question about a pickup, and no runner.
+  await expect(business.getByLabel("Where to take it")).toContainText("Corner Shop");
+  await expect(business.getByRole("link", { name: "Directions" })).toBeVisible();
+  await expect(business.getByText(/Write this code on the parcel, and pay R12 cash at the hub/)).toBeVisible();
 
   // No runner job exists for it.
   const runner = await (await as("runner")).newPage();
   await runner.goto("/runner");
   await expect(runner.locator("article", { hasText: code })).toHaveCount(0);
 
-  // The hub takes the cash and confirms it arrived.
+  // The sender hands it in. One tap at the hub says it arrived and the cash was taken.
   const shop = await (await as("point")).newPage();
   await shop.goto("/point");
   const card = shop.locator("div.card", { hasText: code });
-  await expect(card.getByText("Sender owes R12")).toBeVisible();
-  await card.getByRole("button", { name: "Cash received" }).click();
-  await expect(card.getByText("Sender paid R12")).toBeVisible();
-  await card.getByRole("button", { name: "I have received it" }).click();
+  await expect(card.getByText("Sender pays R12 cash")).toBeVisible();
+  await card.getByRole("button", { name: "Received, R12 cash taken" }).click();
   await expect(shop.getByRole("heading", { name: "Ready to collect" })).toBeVisible();
+  await expect(shop.locator("div.card", { hasText: code })).toContainText("Sender paid R12");
 
   // The receiver chooses to collect there, and the hub hands it over. A runner was never needed.
   const receiver = await browser.newPage({ baseURL });
@@ -699,9 +663,8 @@ test("a chime is meant to play when a new job turns up for a runner, and sound c
   await runner.waitForTimeout(500);
   expect(await runner.evaluate(() => (window as unknown as { __izzaChimes?: number }).__izzaChimes ?? 0)).toBe(0);
 
-  // A business books a parcel. The runner's page refreshes itself and sees a new open job.
-  const business = await (await as("business")).newPage();
-  await book(business, { from: "Thembi's Kitchen", to: "Chime Chipo", phone: "082 555 0004" });
+  // A door parcel reaches a hub. The runner's page refreshes itself and sees a new open job.
+  await doorParcelAtHub(as, { to: "Chime Chipo", phone: "082 555 0004" });
   await runner.waitForFunction(() => ((window as unknown as { __izzaChimes?: number }).__izzaChimes ?? 0) >= 1, null, { timeout: 30000 });
 
   // The More page has a switch for it, and it is remembered.
@@ -713,13 +676,11 @@ test("a chime is meant to play when a new job turns up for a runner, and sound c
   await expect(runner.getByRole("button", { name: /^Sound is off/ })).toBeVisible();
 });
 
-test("Send remembers who you sent to and where you hand parcels over", async ({ as }) => {
+test("Send remembers the people you sent to, one tap to fill them in", async ({ as }) => {
   const business = await (await as("business")).newPage();
-  await book(business, { from: "Thembi's Stall, Gugulethu", to: "Recent Rita", phone: "082 555 0009" });
+  await book(business, { to: "Recent Rita", phone: "082 555 0009" });
 
   await business.goto("/send");
-  // The usual pickup place is already filled in, and the last customer is one tap away.
-  await expect(business.getByLabel("Pick up from")).toHaveValue("Thembi's Stall, Gugulethu");
   const chip = business.getByRole("button", { name: /Recent Rita/ });
   await expect(chip).toBeVisible();
   await chip.click();
@@ -737,4 +698,28 @@ test("when the signal drops the page says so in plain words, and recovers by its
   await ctx.setOffline(false);
   await expect(page.getByText("No signal.")).toHaveCount(0);
   await ctx.close();
+});
+
+test("the sender knows where it is going: they add the address, the receiver only checks it, and a runner can take it", async ({ as, browser, baseURL }) => {
+  const business = await (await as("business")).newPage();
+  const code = await book(business, { from: "Thembi's Kitchen", to: "Known Khaya", phone: "082 555 0010", toDoor: true, toAddress: "Blue gate, 14 Mqhayi St, Langa" });
+  // The message the sender sends asks the receiver to check the address, not to pin one.
+  const href = decodeURIComponent((await business.getByRole("link", { name: /^Send them the link on WhatsApp$/ }).getAttribute("href")) ?? "");
+  expect(href).toContain("Blue gate, 14 Mqhayi St, Langa");
+  expect(href).toContain("check the address");
+
+  // The receiver sees the address already filled in, and is not asked to pin one.
+  const receiver = await browser.newPage({ baseURL });
+  await receiver.goto(receiverUrl(code));
+  await expect(receiver.getByText("Tell us exactly where you are.")).toHaveCount(0);
+  await expect(receiver.getByText("The sender says it is going to")).toContainText("Blue gate, 14 Mqhayi St, Langa");
+  await expect(receiver.getByLabel("Where should we bring it?")).toHaveValue("Blue gate, 14 Mqhayi St, Langa");
+
+  // Nobody has to pin anything, so once it reaches the hub a runner can take the delivery straight away.
+  const runner = await (await as("runner")).newPage();
+  await handToHub(runner, code);
+  await runner.goto("/runner");
+  const card = runner.locator("article", { hasText: code });
+  await expect(card.getByText("Deliver to a door")).toBeVisible();
+  await expect(card.getByText("Blue gate, 14 Mqhayi St, Langa")).toBeVisible();
 });

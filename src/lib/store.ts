@@ -141,12 +141,9 @@ export async function listParcelsFor(ownerId: string): Promise<Parcel[]> {
   return rows.map(fromRow);
 }
 
-// The people someone has sent to before, newest first, and where they usually hand parcels over. The Send form uses these so a
-// business that sends to the same customers every week does not have to type them again.
-export async function recentSending(ownerId: string): Promise<{
-  receivers: { name: string; phone: string }[];
-  lastPickup?: { text: string; lat?: number; lng?: number };
-}> {
+// The people someone has sent to before, newest first. The Send form shows them so a business that sends to the same customers
+// every week does not have to type them again.
+export async function recentSending(ownerId: string): Promise<{ receivers: { name: string; phone: string }[] }> {
   const d = await db();
   const people = await d.query<{ name: string; phone: string; at: number }>(
     `SELECT DISTINCT ON (recipient_phone) to_name AS name, recipient_phone AS phone, created_at AS at
@@ -158,16 +155,7 @@ export async function recentSending(ownerId: string): Promise<{
     .sort((a, b) => b.at - a.at)
     .slice(0, 5)
     .map(({ name, phone }) => ({ name, phone }));
-  const [last] = await d.query<{ pickup: string; pickup_lat: number | null; pickup_lng: number | null }>(
-    `SELECT pickup, pickup_lat, pickup_lng FROM parcels
-     WHERE owner_id = $1 AND (dropoff IS NULL OR dropoff = 'runner') AND pickup <> ''
-     ORDER BY created_at DESC LIMIT 1`,
-    [ownerId],
-  );
-  return {
-    receivers,
-    ...(last && { lastPickup: { text: last.pickup, ...(last.pickup_lat !== null && last.pickup_lng !== null && { lat: last.pickup_lat, lng: last.pickup_lng }) } }),
-  };
+  return { receivers };
 }
 
 // A customer sees what is addressed to their WhatsApp number.

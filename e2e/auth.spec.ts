@@ -80,17 +80,20 @@ test("a short password is refused", async ({ page }) => {
   await expect(page.locator("form [role=alert]")).toContainText("at least 8 characters");
 });
 
-test("a new runner starts straight away and sees customers' orders to take", async ({ page, as }) => {
-  // A customer sends a parcel from home, and a runner is needed to collect it.
+test("a new runner starts straight away and sees customers' orders to take", async ({ page, as, baseURL }) => {
+  // A customer sends a parcel to a hub, for a door. The hub takes it in, and it is ready for a runner.
   const customer = await (await as("customer")).newPage();
   await customer.goto("/send");
-  await customer.getByLabel("Pick up from").fill("Gogo's house, Langa");
+  await customer.getByText("Corner Shop", { exact: true }).click();
   await customer.getByLabel("Their name").fill("Fresh Runner Parcel");
   await customer.getByLabel("Their WhatsApp number").fill("087 333 4444");
-  await customer.getByText("Corner Shop", { exact: true }).click();
+  await customer.getByText("Bring to their door").click();
+  await customer.getByLabel("Their address or landmark").fill("Blue gate, Main Rd");
   await customer.getByRole("button", { name: "Book it" }).click();
   await expect(customer.getByText("Enkosi! It's booked.")).toBeVisible();
   const code = (await customer.locator(".bigCode").innerText()).trim();
+  const hub = await as("point");
+  expect((await hub.request.patch(`/api/parcels/${code}`, { data: { action: "receive", paid: true }, headers: { origin: baseURL! } })).ok()).toBeTruthy();
 
   // Someone joins as a runner. There is no waiting for approval: their jobs screen opens at once.
   const id = `runner-${Date.now()}@iza.test`;
@@ -102,8 +105,8 @@ test("a new runner starts straight away and sees customers' orders to take", asy
   // The customer's order is there, and they can take it straight away.
   const card = page.locator("article", { hasText: code });
   await expect(card).toBeVisible();
-  await card.getByRole("button", { name: "Accept this job" }).click();
-  await expect(page.getByRole("heading", { name: "Step 1: Go and collect it" })).toBeVisible();
+  await card.getByRole("button", { name: "Accept this delivery" }).click();
+  await expect(page.getByRole("button", { name: /I've collected it from Corner Shop/ })).toBeVisible();
 
   // The team still has the last word: they can switch a runner off.
   const team = await (await as("admin")).newPage();
@@ -208,7 +211,7 @@ test("people can only open the screens for their own role", async ({ as }) => {
   }
   // A customer can send a parcel from home to the hub.
   await customer.goto("/send");
-  await expect(customer.getByRole("heading", { name: "Send a parcel from home" })).toBeVisible();
+  await expect(customer.getByRole("heading", { name: "Send a parcel" })).toBeVisible();
 
   // A runner who tries anywhere else is brought back to their jobs.
   const runner = await (await as("runner")).newPage();
@@ -363,7 +366,8 @@ test("someone who forgot their password asks on the sign-in page, the team sends
   // The team sees only the real account on their list, and makes the link in one tap.
   const team = await (await as("admin")).newPage();
   await team.goto("/ops");
-  const row = team.locator("div.stack", { hasText: id }).last();
+  // The request is at the top of the page now, in the block for anything that needs a decision.
+  const row = team.getByRole("region", { name: "Needs your decision" }).locator("div.stack", { hasText: id }).last();
   await expect(team.getByText("nobody-here@iza.test")).toHaveCount(0);
   await row.getByRole("button", { name: "Make reset link" }).click();
   const link = await team.getByLabel("Reset link for Lost Pass").inputValue();
@@ -504,3 +508,22 @@ test("signing up has a short page for each way of joining, and each asks only wh
   await expect(page.getByRole("heading", { name: "We couldn't find that page" })).toBeVisible();
 });
 
+
+test("on the team page, anything that needs a decision is on top and the latest activity is folded away", async ({ page, as }) => {
+  await signUp(page, { role: "I send parcels", name: `Top Cakes ${Date.now().toString().slice(-5)}`, id: `top-${Date.now()}@iza.test` });
+  await page.getByRole("button", { name: "Send my application" }).click();
+  await expect(page).toHaveURL(/\/pending$/);
+
+  const team = await (await as("admin")).newPage();
+  await team.goto("/ops");
+  const decide = team.getByRole("region", { name: "Needs your decision" });
+  await expect(decide).toBeVisible();
+  await expect(decide.getByRole("button", { name: "Approve" }).first()).toBeVisible();
+  // It sits above the numbers, and the activity list is closed until someone opens it.
+  const top = (await decide.boundingBox())!;
+  const numbers = (await team.locator(".kpiGrid").boundingBox())!;
+  expect(top.y).toBeLessThan(numbers.y);
+  expect(await team.locator("details.activity").evaluate((d) => (d as HTMLDetailsElement).open)).toBe(false);
+  await team.locator("details.activity > summary").click();
+  expect(await team.locator("details.activity").evaluate((d) => (d as HTMLDetailsElement).open)).toBe(true);
+});

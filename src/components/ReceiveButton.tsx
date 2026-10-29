@@ -3,19 +3,20 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-// The Izza point confirms a sender has brought a parcel in.
-export default function ReceiveButton({ code }: { code: string }) {
+// The hub says a parcel has arrived. If the sender is still to pay, one tap also records that the cash was taken, so the hub does not
+// have to press two buttons while someone waits at the counter.
+export default function ReceiveButton({ code, fee }: { code: string; fee?: number }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function receive() {
+  async function receive(paid: boolean) {
     setBusy(true);
     setError(null);
     const res = await fetch(`/api/parcels/${encodeURIComponent(code)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "receive" }),
+      body: JSON.stringify({ action: "receive", ...(paid && { paid: true }) }),
     });
     setBusy(false);
     if (!res.ok) {
@@ -27,9 +28,20 @@ export default function ReceiveButton({ code }: { code: string }) {
 
   return (
     <>
-      <button type="button" className="btn btn-primary" disabled={busy} onClick={receive}>
-        {busy ? "Saving…" : "I have received it"}
-      </button>
+      {fee ? (
+        <>
+          <button type="button" className="btn btn-primary" disabled={busy} onClick={() => receive(true)}>
+            {busy ? "Saving…" : `Received, R${fee} cash taken`}
+          </button>
+          <button type="button" className="linkBtn" disabled={busy} onClick={() => receive(false)}>
+            Received, cash comes later
+          </button>
+        </>
+      ) : (
+        <button type="button" className="btn btn-primary" disabled={busy} onClick={() => receive(false)}>
+          {busy ? "Saving…" : "I have received it"}
+        </button>
+      )}
       {error && (
         <p role="alert" className="problem">
           {error}
