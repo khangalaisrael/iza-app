@@ -165,7 +165,7 @@ export function SiteFooter() {
             </ul>
           </div>
         </div>
-        <p className={styles.legal}>&copy; 2026</p>
+        <p className={styles.legal}>&copy; 2026 Izza</p>
       </div>
     </footer>
   );
