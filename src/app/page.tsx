@@ -89,7 +89,17 @@ export default function Home() {
           </div>
         </section>
 
-        <section className={`${styles.wrap} ${styles.section}`} id="who" style={{ paddingTop: 0 }}>
+        <section className={styles.why} aria-labelledby="why-title">
+          <div className={`${styles.wrap} ${styles.section}`}>
+            <div className={styles.sectionHead}>
+              <h2 id="why-title">Why we do this</h2>
+              <p>We believe townships deserve the same delivery as everyone else.</p>
+              <p>We&apos;re starting in Mfuleni, one delivery at a time.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className={`${styles.wrap} ${styles.section}`} id="who">
           <div className={styles.sectionHead}>
             <h2>Izza is for everyone</h2>
           </div>
