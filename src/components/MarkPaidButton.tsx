@@ -12,17 +12,23 @@ export default function MarkPaidButton({ code }: { code: string }) {
   async function markPaid() {
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/parcels/${encodeURIComponent(code)}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "mark_paid", what: "send" }),
-    });
-    setBusy(false);
-    if (!res.ok) {
-      setError((await res.json().catch(() => null))?.error ?? "Something went wrong.");
-      return;
+    try {
+      const res = await fetch(`/api/parcels/${encodeURIComponent(code)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "mark_paid", what: "send" }),
+      });
+      if (!res.ok) {
+        setError((await res.json().catch(() => null))?.error ?? "Something went wrong.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      // No signal: say so, and let the button be pressed again.
+      setError("No signal. Check your connection and try again.");
+    } finally {
+      setBusy(false);
     }
-    router.refresh();
   }
 
   return (
