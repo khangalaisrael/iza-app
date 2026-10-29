@@ -32,7 +32,7 @@ const ICON: Record<Turn, typeof ArrowUp> = {
 };
 
 // Keeps the map on the runner as they move, until they drag it away. "Recenter" brings it back.
-function Follow({ pos, on, route, to }: { pos: LatLng | null; on: boolean; route: NavRoute | null; to: LatLng }) {
+function Follow({ pos, on, route, to, overview }: { pos: LatLng | null; on: boolean; route: NavRoute | null; to: LatLng; overview: boolean }) {
   const map = useMap();
   const lat = pos?.lat;
   const lng = pos?.lng;
@@ -41,6 +41,15 @@ function Follow({ pos, on, route, to }: { pos: LatLng | null; on: boolean; route
     map.panTo({ lat, lng });
     if ((map.getZoom() ?? 0) < 17) map.setZoom(17);
   }, [map, lat, lng, on]);
+
+  // The whole trip: zoomed out to fit the road from here to the destination, so the runner sees how far there is to go.
+  useEffect(() => {
+    if (!map || !overview || !route || route.path.length < 2) return;
+    const bounds = new google.maps.LatLngBounds();
+    route.path.forEach((p) => bounds.extend(p));
+    bounds.extend(to);
+    map.fitBounds(bounds, { top: 130, bottom: 190, left: 40, right: 40 });
+  }, [map, overview, route, to]);
 
   // The route line, drawn once for each new route.
   useEffect(() => {
@@ -80,6 +89,7 @@ export default function NavigationMode({
   const [route, setRoute] = useState<NavRoute | null>(null);
   const [failed, setFailed] = useState(false);
   const [follow, setFollow] = useState(true);
+  const [overview, setOverview] = useState(false);
   const [voice, setVoice] = useState(false);
   const lastPos = useRef<LatLng | null>(null);
   const offCount = useRef(0);
@@ -198,7 +208,7 @@ export default function NavigationMode({
         {apiKey ? (
           <APIProvider apiKey={apiKey}>
             <Map mapId="DEMO_MAP_ID" defaultCenter={from} defaultZoom={17} gestureHandling="greedy" disableDefaultUI onDragstart={() => setFollow(false)}>
-              <Follow pos={pos} on={follow} route={route} to={to} />
+              <Follow pos={pos} on={follow && !overview} route={route} to={to} overview={overview} />
               <AdvancedMarker position={to} title={toLabel}>
                 <Pin background="#934c1a" borderColor="#ffffff" glyphColor="#ffffff" scale={1.2} />
               </AdvancedMarker>
@@ -268,7 +278,18 @@ export default function NavigationMode({
           )}
         </div>
         <div className="navButtons">
-          {!follow && (
+          <button
+            type="button"
+            className="btn btn-soft"
+            aria-pressed={overview}
+            onClick={() => {
+              setOverview((o) => !o);
+              setFollow(true);
+            }}
+          >
+            {overview ? "Follow me" : "Whole trip"}
+          </button>
+          {!follow && !overview && (
             <button type="button" className="btn btn-soft" onClick={() => setFollow(true)}>
               Recenter
             </button>

@@ -2,14 +2,13 @@ import { readFileSync, mkdirSync, copyFileSync } from "node:fs";
 import { devices, expect, request as pwRequest, test, type BrowserContext, type Page } from "@playwright/test";
 import { authFile, type Role } from "./fixtures";
 
-// The pitch video: one long delivery, from Woolsack Residence (the hub) to an ECD centre in Mfuleni, about 20 km away. Each part has a
-// fixed length so the story is easy to cut to: travelling on the road runs fast (4 s of navigation, 4 s of the customer's live map), the
-// delivery code is typed for real (3 s), and the photo is held for 4 s. The booking and the hub's hand-over happen before the recording.
-// One phone, one recording: the same browser swaps between the runner and the customer by swapping the saved sign-in.
+// The pitch video: one long delivery from Woolsack Residence (the hub) to Mfuleni, about 20 km away. The parts that matter are held for
+// a fixed time so the story is easy to cut to: the hub 1.5 s, typing the place 3 s, the trip on a zoomed-out map 5.5 s, typing the
+// delivery code 3 s, the photo 4 s, the updates the customer gets, and "Delivered. Enkosi!" for 2.5 s. The booking and the hub's
+// hand-over happen before the recording starts. One phone, one recording: the same browser swaps between the runner and the customer.
 
-const PHOTO = "demo/package.jpg"; // the photo the runner takes at the door, copied here before recording
+const PHOTO = "demo/package.jpg"; // the photo the runner takes, copied here before recording
 const HUB = { name: "Woolsack Residence", lat: -33.9573, lng: 18.4633 }; // near the UCT residence, on Woolsack Drive
-const ROAD_MS = 4000;
 
 type Pt = { lat: number; lng: number };
 
@@ -135,6 +134,7 @@ test("record the pitch video", async ({ browser, baseURL }) => {
   const adminApi = await api("admin");
   expect((await adminApi.patch(`/api/parcels/${code}`, { data: { action: "receive", paid: true } })).ok()).toBeTruthy();
   const runnerApi = await api("runner");
+  void runnerApi;
 
   // The recording: a phone that starts at the hub.
   const ctx = await browser.newContext({
@@ -151,33 +151,43 @@ test("record the pitch video", async ({ browser, baseURL }) => {
     document.addEventListener("DOMContentLoaded", () => document.head.appendChild(style));
   });
   const pause = (ms: number) => page.waitForTimeout(ms);
+  const customerUrl = `/track/${code}?k=${key}`;
 
-  // 1. A runner takes the job. It waits for the customer's address, and the runner can take it now.
+  // 1. The hub: where the parcel is waiting. 1.5 seconds.
+  await become(ctx, null);
+  await page.goto(customerUrl);
+  await expect(page.locator(".tracker")).toBeVisible();
+  await page.locator(".tracker").evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await caption(page, `Our delivery hub: ${HUB.name}`);
+  await pause(1500);
+
+  // 2. A runner takes the job. It waits for the customer's address, and the runner can take it now.
   await become(ctx, "runner");
   await page.goto("/runner");
   const card = page.locator("article", { hasText: code });
   await expect(card).toBeVisible();
+  await card.evaluate((el) => el.scrollIntoView({ block: "center" }));
   await caption(page, "A runner takes the job");
-  await pause(1500);
+  await pause(900);
   await card.getByRole("button", { name: "Accept this delivery" }).click();
   await expect(page.getByRole("status", { name: "Waiting" })).toBeVisible();
   await caption(page, "It waits for the customer's address");
-  await pause(1500);
+  await pause(1100);
 
-  // 2. The customer types where they are: Mfuleni, far from the hub.
+  // 3. The customer types where they are: Mfuleni. 3 seconds of typing.
   await become(ctx, null);
-  await page.goto(`/track/${code}?k=${key}`);
+  await page.goto(customerUrl);
   await expect(page.getByText("Tell us exactly where you are.")).toBeVisible();
   await caption(page, `${HUB.name}  →  Mfuleni`);
   const where = page.getByLabel("Where should we bring it?");
   await where.click();
-  await where.pressSequentially("Mfuleni", { delay: 160 });
+  await where.pressSequentially("Mfuleni", { delay: 430 });
   const suggestion = page.getByRole("listbox", { name: "Suggested places" }).getByRole("option").first();
   await expect(suggestion).toBeVisible();
-  await pause(900);
+  await pause(500);
   await suggestion.click();
   await expect(page.getByText("Location saved.")).toBeVisible();
-  await pause(1500);
+  await pause(900);
   const saved = page.waitForRequest((r) => r.method() === "PATCH" && r.url().includes(`/api/parcels/${code}`) && (r.postData() ?? "").includes("choose"));
   await page.getByRole("button", { name: "Save my choice" }).click();
   const sent = JSON.parse((await saved).postData() ?? "{}");
@@ -186,100 +196,92 @@ test("record the pitch video", async ({ browser, baseURL }) => {
   await expect(page.getByText("Saved. Thank you!")).toBeVisible();
   const pin = (await page.locator(".pinCard .bigCode").innerText()).trim();
   await caption(page, "Saved. The runner can see where to go");
-  await pause(1500);
+  await pause(900);
 
   // The road the runner takes, from the real routing service the app uses.
   const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${HUB.lng},${HUB.lat};${door.lng},${door.lat}?overview=full&geometries=geojson`);
   const road: Pt[] = (await res.json()).routes[0].geometry.coordinates.map(([lng, lat]: number[]) => ({ lat, lng }));
-  const drive = along(road, 200);
+  const drive = along(road, 300);
   const at = (p: number) => drive[Math.min(drive.length - 1, Math.round(p * (drive.length - 1)))];
 
-  // 3. The runner collects it and photographs it.
+  // 4. The runner collects it, photographs it, and sets off.
   await become(ctx, "runner");
   await page.goto(`/runner/${code}`);
   await expect(page.getByRole("region", { name: "Your next step" })).toBeVisible();
   await caption(page, "The runner collects it at the hub");
-  await pause(1500);
+  await pause(900);
   await page.getByRole("button", { name: /I've collected it from/ }).click();
-  await caption(page, "The runner photographs the parcel");
+  await caption(page, "And photographs the parcel");
   await expect(page.getByRole("button", { name: /Take a photo of the parcel/ })).toBeVisible();
-  await pause(800);
+  await pause(500);
   await page.getByLabel("Photo of the parcel").setInputFiles(PHOTO);
   await expect(page.getByRole("button", { name: /Photo saved/ })).toBeVisible();
-  await pause(700);
-
-  // 4. The customer sees the photo, held for 4 seconds.
-  await become(ctx, null);
-  await page.goto(`/track/${code}?k=${key}`);
-  await page.getByRole("heading", { name: "Photo from the runner" }).evaluate((el) => el.scrollIntoView({ block: "start" }));
-  await caption(page, "The customer sees the photo");
-  await pause(4000);
-
-  // 5. Navigation to Mfuleni: the whole drive's first stretch in 4 seconds.
-  await become(ctx, "runner");
-  await page.goto(`/runner/${code}`);
-  await page.getByRole("button", { name: "I'm on my way to the customer" }).click();
-  await caption(page, `Turn-by-turn to Mfuleni`);
-  await pause(900);
-  await page.getByRole("button", { name: "Start navigation" }).click();
-  await expect(page.getByRole("dialog", { name: "Navigation" })).toBeVisible();
-  // The route for a long trip takes a moment to arrive. The drive starts once it has.
-  await expect(page.locator(".navTop")).not.toContainText("Finding the route", { timeout: 30000 });
   await pause(600);
+  await page.getByRole("button", { name: "I'm on my way to the customer" }).click();
+  await caption(page, "Turn-by-turn to Mfuleni");
+  await pause(700);
+  await page.getByRole("button", { name: "Start navigation" }).click();
+  const nav = page.getByRole("dialog", { name: "Navigation" });
+  await expect(nav).toBeVisible();
+  // The route for a long trip takes a moment to arrive.
+  await expect(nav.locator(".navTop")).not.toContainText("Finding the route", { timeout: 30000 });
+  await pause(500);
+
+  // 5. The whole trip, zoomed out so the area can be seen. 5.5 seconds, sped up.
+  await nav.getByRole("button", { name: "Whole trip" }).click();
   await caption(page, null);
+  await pause(1200);
   await badge(page, true);
-  const split = 0.62;
-  // In hops, so the map has a moment to draw each place before the phone moves on to the next.
-  await over(ROAD_MS, async (p) => {
-    const here = at(p * split);
+  await over(5500, async (p) => {
+    const here = at(p);
     await ctx.setGeolocation({ latitude: here.lat, longitude: here.lng });
-    await pause(480);
+    await pause(70);
   });
   await badge(page, false);
-
-  // 6. The customer's live map for the rest of the road: 4 seconds.
-  await become(ctx, null);
-  await page.goto(`/track/${code}?k=${key}`);
-  await page.locator(".gm-style").first().evaluate((el) => el.scrollIntoView({ block: "center" }));
-  await caption(page, "The customer follows the runner, live");
-  await badge(page, true);
-  await over(ROAD_MS, async (p) => {
-    const here = at(split + p * (1 - split));
-    await runnerApi.patch(`/api/parcels/${code}`, { data: { action: "location", lat: here.lat, lng: here.lng } });
-    await pause(120);
-  });
-  await badge(page, false);
-
-  // 7. The customer's code, then the runner types it for real: 3 seconds.
-  await page.evaluate(() => window.scrollTo({ top: 0 }));
-  await caption(page, "The customer has a 4-digit code");
-  await pause(2200);
-  await become(ctx, "runner");
-  await ctx.setGeolocation({ latitude: door.lat, longitude: door.lng });
-  await page.goto(`/runner/${code}`);
+  await expect(nav.locator(".navTop")).toContainText("You have arrived", { timeout: 20000 });
+  await pause(500);
+  await nav.getByRole("button", { name: "Done" }).click();
   await page.getByRole("button", { name: "I've arrived at the customer" }).click();
-  await caption(page, "The runner types it to finish");
+
+  // 6. The customer's code, then the runner types it for real: 3 seconds.
+  await become(ctx, null);
+  await page.goto(customerUrl);
+  await page.locator(".pinCard").evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await caption(page, "The customer has a 4-digit code");
+  await pause(1300);
+  await become(ctx, "runner");
+  await page.goto(`/runner/${code}`);
   const box = page.getByLabel("Ask the customer for their 4-digit code");
   await box.scrollIntoViewIfNeeded();
-  await pause(500);
+  await caption(page, "The runner types it to finish");
+  await pause(300);
   await box.click();
-  await box.pressSequentially(pin, { delay: 520 });
-  await pause(400);
+  await box.pressSequentially(pin, { delay: 700 });
+  await pause(200);
   await page.getByRole("button", { name: "End trip" }).click();
   await expect(page.getByRole("heading", { name: "Done. Enkosi!" })).toBeVisible();
-  await pause(700);
 
-  // 8. Delivered, and the customer is told.
+  // 7. The picture the customer gets: the children with the muffins, for 4 seconds.
   await become(ctx, null);
-  await page.goto(`/track/${code}?k=${key}`);
+  await page.goto(customerUrl);
   await expect(page.getByRole("heading", { name: "Delivered. Enkosi!" })).toBeVisible();
-  await caption(page, "Delivered. The customer is told");
+  await page.getByRole("heading", { name: "Photo from the runner" }).evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await caption(page, "The customer sees the delivery photo");
+  await pause(4000);
+
+  // 8. The updates the customer got all the way: at the hub, on the way, arrived, delivered.
+  await page.getByLabel("Updates").evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await caption(page, "And an update at every step");
+  await pause(3500);
+
+  // 9. Delivered, and the customer is told. 2.5 seconds, and the video ends.
+  await page.evaluate(() => window.scrollTo({ top: 0 }));
+  await caption(page, null);
   await notification(page, code, "Delivered. Trip ended. Enkosi!");
-  await pause(3600);
-  await caption(page, "Izza. Bringing it closer.");
-  await pause(1800);
+  await pause(2500);
 
   const video = page.video();
   await ctx.close();
+  mkdirSync("demo", { recursive: true });
   copyFileSync(await video!.path(), "demo/izza-demo.webm");
 });
