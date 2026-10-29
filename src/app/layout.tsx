@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Nunito_Sans, Rubik } from "next/font/google";
+import { Bricolage_Grotesque, JetBrains_Mono, Nunito_Sans } from "next/font/google";
 import "./globals.css";
 import ConnectionBanner from "@/components/ConnectionBanner";
 
-const rubik = Rubik({
-  variable: "--font-rubik",
+// Headings: warm and calm. Only 500 and 600 are loaded, so a heavier weight asked for anywhere still lands on 600.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
-  weight: ["500", "700", "800"],
+  weight: ["500", "600"],
 });
 
 const nunito = Nunito_Sans({
@@ -22,15 +23,17 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Izza: bringing it closer",
-  description:
-    "Neighbourhood delivery for Cape Town. No street address needed, a landmark is enough.",
+  description: "Delivery for villages and townships. No street address needed, a landmark is enough.",
+  // What a phone uses when someone adds Izza to their home screen.
+  appleWebApp: { capable: true, title: "Izza", statusBarStyle: "default" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${rubik.variable} ${nunito.variable} ${mono.variable}`}
+      className={`${bricolage.variable} ${nunito.variable} ${mono.variable}`}
     >
       <body>
         {children}

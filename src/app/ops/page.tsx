@@ -117,7 +117,7 @@ async function Board() {
   const placeOf = new Map(pendingPoints.map((p) => [p.ownerId, p]));
   const forAssign = runners.map((r) => ({ id: r.id, name: r.name }));
 
-  // Cash the team has not seen recorded yet: senders' R12 and door customers' R8 on parcels already delivered by door.
+  // Cash the team has not seen recorded yet: senders' R20 and door customers' R15 on parcels already delivered by door.
   const owed =
     all.filter((p) => !p.paidAt && !p.cancelledAt).length * FEE_POINT +
     all.filter((p) => p.choice === "door" && p.stage === LAST_STAGE && !p.doorPaidAt).length * FEE_DOOR_EXTRA;

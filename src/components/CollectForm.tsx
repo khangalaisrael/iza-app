@@ -7,22 +7,31 @@ export default function CollectForm() {
   const router = useRouter();
   const [code, setCode] = useState("");
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const clean = code.trim().toUpperCase();
-    if (!clean) return;
-    const res = await fetch(`/api/parcels/${encodeURIComponent(clean)}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "collect" }),
-    });
-    if (res.ok) {
-      setMessage({ ok: true, text: `${clean} handed over. Enkosi!` });
-      setCode("");
-      router.refresh();
-    } else {
-      setMessage({ ok: false, text: (await res.json()).error ?? "Something went wrong." });
+    if (!clean || busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/parcels/${encodeURIComponent(clean)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "collect" }),
+      });
+      if (res.ok) {
+        setMessage({ ok: true, text: `${clean} handed over. Enkosi!` });
+        setCode("");
+        router.refresh();
+      } else {
+        setMessage({ ok: false, text: (await res.json().catch(() => null))?.error ?? "Something went wrong." });
+      }
+    } catch {
+      // No signal: say so, and keep the code typed in so it can be sent again.
+      setMessage({ ok: false, text: "No signal. Check your connection and try again." });
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -39,8 +48,8 @@ export default function CollectForm() {
           onChange={(e) => setCode(e.target.value)}
           autoComplete="off"
         />
-        <button className="btn" type="submit">
-          Hand over
+        <button className="btn" type="submit" disabled={busy}>
+          {busy ? "Saving…" : "Hand over"}
         </button>
       </div>
       {message && (

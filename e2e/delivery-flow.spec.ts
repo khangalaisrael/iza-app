@@ -170,18 +170,18 @@ test("door delivery: a second job, finished only with the customer's 4-digit cod
   await expect(customer.getByText(/wrong delivery code/)).toHaveCount(0);
 });
 
-test("the sender's R12 is recorded at the hub, and the customer's R8 only when they chose a door", async ({ as, browser, baseURL }) => {
+test("the sender's R20 is recorded at the hub, and the customer's R15 only when they chose a door", async ({ as, browser, baseURL }) => {
   const business = await (await as("business")).newPage();
   const code = await book(business, { to: "Buhle", phone: "084 555 6666", toDoor: true, toAddress: "Green gate next to the creche" });
   const customer = await browser.newPage({ baseURL }); // a stranger, who has only the short code
 
-  // The sender hands it in, and the hub takes the R12 in one tap. It cannot be recorded twice.
+  // The sender hands it in, and the hub takes the R20 in one tap. It cannot be recorded twice.
   const shop = await (await as("point")).newPage();
   await shop.goto("/point");
   const card = shop.locator(".card", { hasText: code });
-  await expect(card.getByText("Sender pays R12 cash")).toBeVisible();
-  await card.getByRole("button", { name: "Received, R12 cash taken" }).click();
-  await expect(shop.locator(".card", { hasText: code })).toContainText("Sender paid R12");
+  await expect(card.getByText("Sender pays R20 cash")).toBeVisible();
+  await card.getByRole("button", { name: "Received, R20 cash taken" }).click();
+  await expect(shop.locator(".card", { hasText: code })).toContainText("Sender paid R20");
 
   // The sender sees it as paid on the tracking page; a stranger sees no payment details at all.
   await business.goto(`/track/${code}`);
@@ -190,14 +190,14 @@ test("the sender's R12 is recorded at the hub, and the customer's R8 only when t
   await customer.goto(`/track/${code}`);
   await expect(customer.getByRole("heading", { name: "Payment" })).toHaveCount(0);
 
-  // The door customer pays the R8 extra to the runner on the trip.
+  // The door customer pays the R15 extra to the runner on the trip.
   const runner = await (await as("runner")).newPage();
   await runner.goto("/runner");
   await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this delivery" }).click();
   await runner.getByRole("button", { name: /I've collected it from Corner Shop/ }).click();
   await runner.getByRole("button", { name: "I'm on my way to the customer" }).click();
-  await runner.getByRole("button", { name: "Customer paid R8 cash" }).click();
-  await expect(runner.getByText("Door fee R8 received.")).toBeVisible();
+  await runner.getByRole("button", { name: "Customer paid R15 cash" }).click();
+  await expect(runner.getByText("Door fee R15 received.")).toBeVisible();
   await business.reload();
   await expect(business.locator(".payRow", { hasText: "Door delivery extra" })).toContainText("Paid");
 
@@ -349,7 +349,7 @@ test("a customer sends from home: they pick a hub, the team is told, and it ends
   // The hub takes it in, and it is ready to collect.
   const shop = await (await as("point")).newPage();
   await shop.goto("/point");
-  await shop.locator("div.card", { hasText: code }).getByRole("button", { name: "Received, R12 cash taken" }).click();
+  await shop.locator("div.card", { hasText: code }).getByRole("button", { name: "Received, R20 cash taken" }).click();
   await expect(shop.getByRole("heading", { name: "Ready to collect" })).toBeVisible();
   await expect(shop.locator("div.card", { hasText: code })).toBeVisible();
 
@@ -628,7 +628,7 @@ test("the whole simple path: pick a hub, take it there, the hub takes the cash o
   // The confirmation says where to take it and what to do there. There is no question about a pickup, and no runner.
   await expect(business.getByLabel("Where to take it")).toContainText("Corner Shop");
   await expect(business.getByRole("link", { name: "Directions" })).toBeVisible();
-  await expect(business.getByText(/Write this code on the parcel, and pay R12 cash at the hub/)).toBeVisible();
+  await expect(business.getByText(/Write this code on the parcel, and pay R20 cash at the hub/)).toBeVisible();
 
   // No runner job exists for it.
   const runner = await (await as("runner")).newPage();
@@ -639,10 +639,10 @@ test("the whole simple path: pick a hub, take it there, the hub takes the cash o
   const shop = await (await as("point")).newPage();
   await shop.goto("/point");
   const card = shop.locator("div.card", { hasText: code });
-  await expect(card.getByText("Sender pays R12 cash")).toBeVisible();
-  await card.getByRole("button", { name: "Received, R12 cash taken" }).click();
+  await expect(card.getByText("Sender pays R20 cash")).toBeVisible();
+  await card.getByRole("button", { name: "Received, R20 cash taken" }).click();
   await expect(shop.getByRole("heading", { name: "Ready to collect" })).toBeVisible();
-  await expect(shop.locator("div.card", { hasText: code })).toContainText("Sender paid R12");
+  await expect(shop.locator("div.card", { hasText: code })).toContainText("Sender paid R20");
 
   // The receiver chooses to collect there, and the hub hands it over. A runner was never needed.
   const receiver = await browser.newPage({ baseURL });

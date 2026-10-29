@@ -13,17 +13,23 @@ export default function CancelButton({ code }: { code: string }) {
   async function cancel() {
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/parcels/${encodeURIComponent(code)}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "cancel" }),
-    });
-    setBusy(false);
-    if (!res.ok) {
-      setError((await res.json().catch(() => null))?.error ?? "Something went wrong.");
-      return;
+    try {
+      const res = await fetch(`/api/parcels/${encodeURIComponent(code)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      if (!res.ok) {
+        setError((await res.json().catch(() => null))?.error ?? "Something went wrong.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      // No signal: say so, and let the button be pressed again.
+      setError("No signal. Check your connection and try again.");
+    } finally {
+      setBusy(false);
     }
-    router.refresh();
   }
 
   if (!asking) {
