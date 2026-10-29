@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import AutoRefresh from "@/components/AutoRefresh";
 import CancelButton from "@/components/CancelButton";
+import ReceiveButton from "@/components/ReceiveButton";
 import ChimeOnChange from "@/components/ChimeOnChange";
 import ChooseDelivery from "@/components/ChooseDelivery";
 import EventFeed from "@/components/EventFeed";
@@ -240,6 +241,12 @@ async function ParcelDetails({
         <Tracker steps={stepsOf(parcel, lang)} times={stageTimes} now={now} />
       </section>
       {(isReceiver || isSender) && !cancelled && parcel.stage < 4 && <NotifyButton code={parcel.code} accessKey={keyOk ? key : undefined} />}
+      {isSender && !cancelled && found.stage === 0 && found.dropoff === "self" && (
+        <section className="card stack" aria-label="Handed in">
+          <p style={{ margin: 0 }}>Has {parcel.point} got the parcel? Tell us, and a runner can carry on.</p>
+          <ReceiveButton code={parcel.code} label={`It's at ${parcel.point}`} />
+        </section>
+      )}
       {isSender && !cancelled && found.stage === 0 && <CancelButton code={parcel.code} />}
       <EventFeed events={events} title={t(lang, "Updates")} />
       <LanguageLinks />

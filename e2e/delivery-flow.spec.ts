@@ -738,3 +738,31 @@ test("the sender knows where it is going: they add the address, the receiver onl
   await expect(card.getByText("Deliver to a door")).toBeVisible();
   await expect(card.getByText("Green gate, 20 Mqhayi St, Langa")).toBeVisible();
 });
+
+test("a hub that forgets to tap Received does not strand a runner: the sender, or the team, can say it is there", async ({ as, baseURL }) => {
+  const business = await (await as("business")).newPage();
+  const code = await book(business, { from: "Thembi's Kitchen", to: "Stuck Sizwe", phone: "082 555 0042", toDoor: true, toAddress: "Red gate, 3 Dyani St, Langa" });
+
+  const runner = await (await as("runner")).newPage();
+  await runner.goto("/runner");
+  await runner.locator("article", { hasText: code }).getByRole("button", { name: "Accept this delivery" }).click();
+  await runner.goto(`/runner/${code}`);
+  await expect(runner.getByRole("status", { name: "Waiting" })).toContainText("Waiting for it to reach");
+
+  // The sender says it is at the hub, and the runner's steps appear.
+  await business.goto(`/track/${code}`);
+  await business.getByRole("button", { name: /^It's at / }).click();
+  await runner.goto(`/runner/${code}`);
+  await expect(runner.getByRole("region", { name: "Your next step" })).toBeVisible();
+
+  // Someone with no link to the parcel cannot say it, and the team can.
+  const other = await (await as("customer")).newPage();
+  const denied = await other.request.patch(`/api/parcels/${code}`, { data: { action: "receive" }, headers: { origin: baseURL! } });
+  expect([403, 409]).toContain(denied.status());
+  const second = await book(business, { from: "Thembi's Kitchen", to: "Team Thandi", phone: "082 555 0043" });
+  const team = await (await as("admin")).newPage();
+  await team.goto(`/track/${second}`);
+  await team.getByRole("button", { name: /^It's at / }).click();
+  await team.reload();
+  await expect(team.getByRole("button", { name: /^It's at / })).toHaveCount(0);
+});

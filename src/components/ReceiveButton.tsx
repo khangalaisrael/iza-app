@@ -5,7 +5,7 @@ import { useState } from "react";
 
 // The hub says a parcel has arrived. If the sender is still to pay, one tap also records that the cash was taken, so the hub does not
 // have to press two buttons while someone waits at the counter.
-export default function ReceiveButton({ code, fee }: { code: string; fee?: number }) {
+export default function ReceiveButton({ code, fee, label = "I have received it" }: { code: string; fee?: number; label?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export default function ReceiveButton({ code, fee }: { code: string; fee?: numbe
         </>
       ) : (
         <button type="button" className="btn btn-primary" disabled={busy} onClick={() => receive(false)}>
-          {busy ? "Saving…" : "I have received it"}
+          {busy ? "Saving…" : label}
         </button>
       )}
       {error && (

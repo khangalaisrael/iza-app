@@ -86,12 +86,14 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/parcels/[c
 async function receive(parcel: Parcel, user: User, body: Body | null) {
   const point = parcel.pointId ? await getPointById(parcel.pointId) : undefined;
   const isItsPoint = user.role === "point" && !!point && point.ownerId === user.id;
-  if (!isItsPoint && user.role !== "admin") return deny("Only the Izza point this parcel was sent to can confirm it.", 403);
+  // The sender can say they handed it in, so a hub that forgets to tap Received never leaves a runner waiting.
+  const isSender = !!parcel.ownerId && parcel.ownerId === user.id;
+  if (!isItsPoint && !isSender && user.role !== "admin") return deny("Only the sender, the team or the Izza point this parcel was sent to can confirm it.", 403);
   if (parcel.stage !== 0 || parcel.dropoff !== "self") return deny("That parcel isn't waiting to be brought in.", 409);
   // One tap can say both things: it arrived, and the sender's R20 was taken in cash.
   const takeCash = body?.paid === true && !parcel.paidAt;
   await saveParcel({ ...parcel, stage: 2, ...(takeCash && { paidAt: Date.now(), paidBy: user.name }) });
-  await addEvent(parcel.code, "received", `Received at ${parcel.point}. Ready for you.`, point?.name ?? user.name);
+  await addEvent(parcel.code, "received", `Received at ${parcel.point}. Ready for you.`, isItsPoint ? (point?.name ?? user.name) : user.name);
   if (takeCash) await addEvent(parcel.code, "paid", `Sender's fee received (R${FEE_POINT}).`, user.name);
   return ok();
 }
