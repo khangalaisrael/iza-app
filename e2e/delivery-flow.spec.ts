@@ -413,7 +413,10 @@ test("the sender does not know where they are: the receiver pins their address, 
   const runner = await (await as("runner")).newPage();
   await handToHub(runner, code);
   await runner.goto("/runner");
-  await expect(runner.locator("article", { hasText: code })).toHaveCount(0);
+  // It is listed under "Coming up", but with nothing to accept.
+  const waiting = runner.locator("article", { hasText: code });
+  await expect(waiting.getByText("Waiting for the customer to say where to bring it")).toBeVisible();
+  await expect(waiting.getByRole("button", { name: /Accept/ })).toHaveCount(0);
   const refused = await runner.request.patch(`/api/parcels/${code}`, { data: { action: "accept" }, headers: { origin: baseURL! } });
   expect(refused.status()).toBe(409);
 
