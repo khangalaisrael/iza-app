@@ -1,23 +1,23 @@
 import { spawn } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { devices, expect, request as pwRequest, test, type BrowserContext, type Page } from "@playwright/test";
+import { expect, request as pwRequest, test, type BrowserContext, type Page } from "@playwright/test";
 import { authFile, type Role } from "./fixtures";
 
-// The pitch video: one long delivery from Woolsack Residence (the hub) to Mfuleni, about 20 km away. Every part that matters is held for
-// a fixed time so the story is easy to cut to: the hub 1.5 s, typing the place 2.5 s, the trip on a zoomed-out map 6 s, typing the
-// delivery code 3 s, the photo (zooming in) 4 s, the four finished steps 2.5 s, and "Delivered. Enkosi!" zoomed in for 2 s. Between
-// them come the smaller events: the runner takes the job, collects the parcel, photographs it and sets off.
+// The pitch video, on a computer: one long delivery from Woolsack Residence (the hub) to Mfuleni, about 20 km away. It opens on the
+// customer typing the place, and every part that matters is held for a fixed time so the story is easy to cut to: typing the place
+// 2.5 s, the trip on a zoomed-out map 6 s, typing the delivery code 3 s, the photo (zooming in) 4 s, the four finished steps 2.5 s,
+// and "Delivered. Enkosi!" zoomed in for 2 s. Between them come the smaller events: the runner collects the parcel, photographs it and
+// sets off.
 //
-// It is recorded as full-resolution frames rather than with Playwright's own video, which is soft. The waits between screens (pages
-// loading, the route being fetched, the photo uploading) happen with the recording paused, so they never appear in the video. The
-// phone is then placed in the middle of a 1920 x 1080 landscape picture. The booking and the hub's hand-over happen before the
-// recording starts. One phone: the same browser swaps between the runner and the customer.
+// It is recorded as full-resolution frames (1920 x 1080) rather than with Playwright's own video, which is soft. The waits between
+// screens (pages loading, the route being fetched, the photo uploading) happen with the recording paused, so they never appear in the
+// video. The booking, the hub's hand-over and the runner taking the job happen before the recording starts. One browser: it swaps
+// between the runner and the customer.
 
 const PHOTO = "demo/package-blur.jpg"; // the photo the runner took, with the children's faces softened (scripts/blur-faces.mjs)
 const HUB = { name: "Woolsack Residence", lat: -33.9573, lng: 18.4633 }; // near the UCT residence, on Woolsack Drive
 const FPS = 30;
-const BACKDROP = "0x17291f"; // the dark green of the Izza header
 
 type Pt = { lat: number; lng: number };
 type Frame = { t: number; jpg: Buffer };
@@ -66,7 +66,7 @@ async function notification(page: Page, code: string, text: string) {
     ([c, t]) => {
       const el = document.createElement("div");
       el.style.cssText =
-        "position:fixed;top:10px;left:10px;right:10px;z-index:2147483647;display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.97);box-shadow:0 10px 30px rgba(0,0,0,.35);font-family:system-ui,sans-serif;color:#1d1a16;transform:translateY(-120px);transition:transform .35s ease";
+        "position:fixed;top:78px;right:24px;width:380px;z-index:2147483647;display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.97);box-shadow:0 10px 30px rgba(0,0,0,.35);font-family:system-ui,sans-serif;color:#1d1a16;transform:translateY(-120px);transition:transform .35s ease";
       el.innerHTML =
         '<div style="width:38px;height:38px;border-radius:10px;background:#c8641e;color:#fff;display:grid;place-items:center;font:800 20px system-ui">i</div>' +
         '<div style="line-height:1.3"><div style="font-size:12px;color:#6b6258">Izza · now</div><div style="font-weight:700;font-size:15px">Parcel ' + c + '</div><div style="font-size:14px">' + t + "</div></div>";
@@ -122,7 +122,7 @@ async function encode(frames: Frame[], endMs: number, out: string) {
     [
       "-hide_banner", "-loglevel", "error", "-y",
       "-f", "image2pipe", "-c:v", "mjpeg", "-framerate", String(FPS), "-i", "pipe:0",
-      "-vf", `scale=-2:1080:flags=lanczos,pad=1920:1080:(ow-iw)/2:0:color=${BACKDROP}`,
+      "-vf", "scale=1920:1080:flags=lanczos",
       "-c:v", "libvpx-vp9", "-crf", "16", "-b:v", "0", "-quality", "good", "-cpu-used", "2", "-row-mt", "1", "-pix_fmt", "yuv420p", "-an", out,
     ],
     { stdio: ["pipe", "inherit", "inherit"] },
@@ -180,11 +180,13 @@ test("record the pitch video", async ({ browser, baseURL }) => {
   const adminApi = await api("admin");
   expect((await adminApi.patch(`/api/parcels/${code}`, { data: { action: "receive", paid: true } })).ok()).toBeTruthy();
   const runnerApi = await api("runner");
+  expect((await runnerApi.patch(`/api/parcels/${code}`, { data: { action: "accept" } })).ok()).toBeTruthy();
 
   // The recording: a phone that starts at the hub, captured as full-resolution frames.
   const ctx = await browser.newContext({
-    ...devices["Pixel 7"],
     baseURL,
+    viewport: { width: 1280, height: 720 },
+    deviceScaleFactor: 1.5,
     permissions: ["geolocation"],
     geolocation: { latitude: HUB.lat, longitude: HUB.lng },
   });
@@ -229,34 +231,7 @@ test("record the pitch video", async ({ browser, baseURL }) => {
   const pause = (ms: number) => page.waitForTimeout(ms);
   const customerUrl = `/track/${code}?k=${key}`;
 
-  // 1. The hub: where the parcel is waiting. 1.5 seconds.
-  await off(async () => {
-    await become(ctx, null);
-    await page.goto(customerUrl);
-    await expect(page.locator(".tracker")).toBeVisible();
-    await page.locator(".tracker").evaluate((el) => el.scrollIntoView({ block: "center" }));
-    await caption(page, `Our delivery hub: ${HUB.name}`);
-  });
-  await pause(1500);
-
-  // 2. A runner takes the job. It waits for the customer's address, and the runner can take it now.
-  const card = page.locator("article", { hasText: code });
-  await off(async () => {
-    await become(ctx, "runner");
-    await page.goto("/runner");
-    await expect(card).toBeVisible();
-    await card.evaluate((el) => el.scrollIntoView({ block: "center" }));
-    await caption(page, "A runner takes the job");
-  });
-  await pause(900);
-  await card.getByRole("button", { name: "Accept this delivery" }).click();
-  await off(async () => {
-    await expect(page.getByRole("status", { name: "Waiting" })).toBeVisible();
-    await caption(page, "It waits for the customer's address");
-  });
-  await pause(1000);
-
-  // 3. The customer types where they are: Mfuleni. 2.5 seconds of typing.
+  // 1. The customer types where they are: Mfuleni. 2.5 seconds of typing.
   await off(async () => {
     await become(ctx, null);
     await page.goto(customerUrl);
@@ -294,7 +269,7 @@ test("record the pitch video", async ({ browser, baseURL }) => {
   const at = (p: number) => drive[Math.min(drive.length - 1, Math.round(p * (drive.length - 1)))];
   await pause(800);
 
-  // 4. The runner's steps have started: collect it, photograph it, set off.
+  // 2. The runner's steps have started: collect it, photograph it, set off.
   await off(async () => {
     await become(ctx, "runner");
     await page.goto(`/runner/${code}`);
@@ -320,7 +295,7 @@ test("record the pitch video", async ({ browser, baseURL }) => {
   await off(async () => caption(page, "Turn-by-turn to Mfuleni"));
   await pause(700);
 
-  // 5. The whole trip, zoomed out so the area can be seen: 6 seconds, sped up.
+  // 3. The whole trip, zoomed out so the area can be seen: 6 seconds, sped up.
   const nav = page.getByRole("dialog", { name: "Navigation" });
   await page.getByRole("button", { name: "Start navigation" }).click();
   await off(async () => {
@@ -346,7 +321,7 @@ test("record the pitch video", async ({ browser, baseURL }) => {
     await page.getByRole("button", { name: "I've arrived at the customer" }).click();
   });
 
-  // 6. The customer's code, then the runner types it for real: 3 seconds.
+  // 4. The customer's code, then the runner types it for real: 3 seconds.
   await off(async () => {
     await become(ctx, null);
     await page.goto(customerUrl);
@@ -371,7 +346,7 @@ test("record the pitch video", async ({ browser, baseURL }) => {
   });
   await pause(300);
 
-  // 7. The picture the customer gets, for 4 seconds. It zooms in on the child holding the muffin, so the eye knows where to look.
+  // 5. The picture the customer gets, for 4 seconds. It zooms in on the child holding the muffin, so the eye knows where to look.
   const photo = page.getByAltText("Your parcel at the door");
   await off(async () => {
     await become(ctx, null);
@@ -391,14 +366,14 @@ test("record the pitch video", async ({ browser, baseURL }) => {
   });
   await pause(4000);
 
-  // 8. All four steps, finished: the updates the customer got. 2.5 seconds.
+  // 6. All four steps, finished: the updates the customer got. 2.5 seconds.
   await off(async () => {
     await page.locator(".tracker").evaluate((el) => el.scrollIntoView({ block: "center" }));
     await caption(page, "An update at every step");
   });
   await pause(2500);
 
-  // 9. Delivered, and the customer is told. Zoomed in for 2 seconds, and the video ends.
+  // 7. Delivered, and the customer is told. Zoomed in for 2 seconds, and the video ends.
   await off(async () => {
     await page.evaluate(() => window.scrollTo({ top: 0 }));
     await caption(page, null);

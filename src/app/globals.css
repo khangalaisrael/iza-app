@@ -2096,3 +2096,11 @@ html {
   border: 1px solid var(--primary);
   background: color-mix(in srgb, var(--primary) 8%, transparent);
 }
+
+/* On a computer the single-column screens sit in the middle, with the title row above them, instead of hugging the left edge. */
+.portalMain.narrow {
+  align-items: center;
+}
+.portal:has(.portalMain.narrow) .portalCrumb {
+  max-width: calc(680px + 2 * clamp(14px, 4vw, 40px));
+}
