@@ -117,7 +117,7 @@ export function SiteFooter() {
         <div className={styles.footerGrid}>
           <div className={styles.footerBrand}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className={styles.footerLogo} src="/izza-logo.png" alt="izza, bringing it closer" width={354} height={245} />
+            <img className={styles.footerLogo} src="/izza-mark.png" alt="izza" width={354} height={210} />
             <p>Delivered by your neighbours.</p>
             <LanguageLinks />
           </div>

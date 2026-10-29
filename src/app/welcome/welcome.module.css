@@ -1230,7 +1230,7 @@
 
 /* The logo's dark lettering needs a light panel on the dark green footer. */
 .footerLogo {
-  background: #fff;
+  background: var(--white);
   padding: 10px 14px;
   border-radius: 14px;
 }
