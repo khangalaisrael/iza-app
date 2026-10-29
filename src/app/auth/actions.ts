@@ -7,7 +7,7 @@ import { landingFor } from "@/lib/roles";
 import { notifyTeam, sendTeamPush } from "@/lib/notify";
 import { releaseRunnerJobs } from "@/lib/store";
 import { addResetRequest, clearResetRequest, consumeReset, createReset, setPassword } from "@/lib/reset";
-import { POINT_KINDS, createPoint, setPointStatusForOwner } from "@/lib/pointStore";
+import { POINT_KINDS, createPoint, deletePoint, getPointById, setPointStatusForOwner, updatePoint } from "@/lib/pointStore";
 import {
   clearFailures,
   createUser,
@@ -162,4 +162,26 @@ export async function approveUserAction(form: FormData): Promise<void> {
     await setPointStatusForOwner(id, decision === "approve" ? "approved" : "rejected");
   }
   redirect("/ops");
+}
+
+// The team renames a place or changes its opening hours.
+export async function updatePointAction(_prev: AuthState, form: FormData): Promise<AuthState> {
+  await requireUser(["admin"], "/ops");
+  const id = String(form.get("pointId") ?? "");
+  const name = String(form.get("pointName") ?? "").trim();
+  const hours = String(form.get("pointHours") ?? "").trim();
+  const values = { pointName: name, pointHours: hours };
+  if (!(await getPointById(id))) return { error: "That place no longer exists.", values };
+  if (name.length < 2 || name.length > 60) return { error: "Give the place a name.", values };
+  if (hours.length < 3 || hours.length > 80) return { error: "Tell us when it is open, for example 07:00 to 20:00.", values };
+  await updatePoint(id, { name, hours });
+  redirect("/ops?updated=1");
+}
+
+// The team removes a place, as long as nothing is on its way to it.
+export async function deletePointAction(_prev: AuthState, form: FormData): Promise<AuthState> {
+  await requireUser(["admin"], "/ops");
+  const result = await deletePoint(String(form.get("pointId") ?? ""));
+  if (!result.ok) return { error: result.error };
+  redirect("/ops?removed=1");
 }

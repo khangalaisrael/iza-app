@@ -527,3 +527,53 @@ test("on the team page, anything that needs a decision is on top and the latest 
   await team.locator("details.activity > summary").click();
   expect(await team.locator("details.activity").evaluate((d) => (d as HTMLDetailsElement).open)).toBe(true);
 });
+
+test("the team can rename an Izza point, change its hours, and delete it", async ({ browser, baseURL }) => {
+  const ctx = await browser.newContext({
+    baseURL,
+    storageState: "e2e/.auth/admin.json",
+    geolocation: { latitude: -33.9452, longitude: 18.5322 },
+    permissions: ["geolocation"],
+  });
+  const page = await ctx.newPage();
+  await page.goto("/ops");
+  const form = page.getByRole("region", { name: "Add an Izza point" });
+  await form.getByLabel("Name of the place").fill("Short Lived Hub");
+  await form.getByRole("button", { name: "Use my location" }).click();
+  await expect(form.getByText("Location saved.")).toBeVisible();
+  await form.getByLabel("When is it open?").fill("08:00 to 17:00");
+  await form.getByRole("button", { name: "Add this Izza point" }).click();
+  await expect(page).toHaveURL(/added=1/);
+
+  const list = page.getByRole("region", { name: "Izza points" });
+  const row = list.locator("li", { hasText: "Short Lived Hub" });
+  await row.getByRole("button", { name: "Edit Short Lived Hub" }).click();
+  const edit = list.getByRole("form", { name: "Edit Short Lived Hub" });
+  await edit.getByLabel("Name of the place").fill("x");
+  await edit.getByRole("button", { name: "Save" }).click();
+  await expect(edit.getByRole("alert")).toContainText("Give the place a name");
+  await edit.getByLabel("Name of the place").fill("Renamed Hub");
+  await edit.getByLabel("When is it open?").fill("09:00 to 16:00");
+  await edit.getByRole("button", { name: "Save" }).click();
+  await expect(page).toHaveURL(/updated=1/);
+
+  const renamed = page.getByRole("region", { name: "Izza points" }).locator("li", { hasText: "Renamed Hub" });
+  await expect(renamed).toContainText("09:00 to 16:00");
+  await expect(page.getByRole("region", { name: "Izza points" }).locator("strong", { hasText: "Short Lived Hub" })).toHaveCount(0);
+  // The public list shows the new name.
+  const visitor = await browser.newPage({ baseURL });
+  await visitor.goto("/points");
+  await expect(visitor.getByText("Renamed Hub")).toBeVisible();
+
+  // Deleting asks once more, and then it is gone for everyone.
+  await renamed.getByRole("button", { name: "Delete Renamed Hub" }).click();
+  await renamed.getByRole("button", { name: "Keep it" }).click();
+  await expect(renamed).toBeVisible();
+  await renamed.getByRole("button", { name: "Delete Renamed Hub" }).click();
+  await renamed.getByRole("button", { name: "Yes, delete it" }).click();
+  await expect(page).toHaveURL(/removed=1/);
+  await expect(page.getByRole("region", { name: "Izza points" }).locator("li", { hasText: "Renamed Hub" })).toHaveCount(0);
+  await visitor.reload();
+  await expect(visitor.getByText("Renamed Hub")).toHaveCount(0);
+  await ctx.close();
+});

@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { approveUserAction, setUserActiveAction } from "@/app/auth/actions";
 import AddPointForm from "@/components/AddPointForm";
+import PointRow from "@/components/PointRow";
 import AssignRunner from "@/components/AssignRunner";
 import AutoRefresh from "@/components/AutoRefresh";
 import ChimeOnChange from "@/components/ChimeOnChange";
@@ -15,7 +16,7 @@ import { listResetRequests } from "@/lib/reset";
 import PortalShell from "@/components/PortalShell";
 import RequireRole from "@/components/RequireRole";
 import { FEE_DOOR_EXTRA, FEE_POINT, LAST_STAGE, awaitingAddress, doorReady, statusOf, type Parcel } from "@/lib/parcels";
-import { listPendingPoints } from "@/lib/pointStore";
+import { listApprovedPoints, listPendingPoints } from "@/lib/pointStore";
 import { RULES, ageText } from "@/lib/rules";
 import { listParcels, recentEvents, runnerEarnings } from "@/lib/store";
 import { listActiveRunners, listAllUsers, listPendingUsers } from "@/lib/users";
@@ -42,7 +43,7 @@ const DAY = 24 * 60 * 60 * 1000;
 async function Board() {
   await connection();
   const now = Date.now();
-  const [all, runners, pending, pendingPoints, problems, trips, feed, resetRequests, alertTopic, people] = await Promise.all([
+  const [all, runners, pending, pendingPoints, problems, trips, feed, resetRequests, alertTopic, people, livePoints] = await Promise.all([
     listParcels(),
     listActiveRunners(),
     listPendingUsers(),
@@ -53,6 +54,7 @@ async function Board() {
     listResetRequests(),
     teamTopic(),
     listAllUsers(),
+    listApprovedPoints(),
   ]);
 
   // People waiting for approval already have their own list above, so they are left out here.
@@ -368,6 +370,16 @@ async function Board() {
                 {everyone.length === 0 && <li className="muted">Nobody has signed up yet.</li>}
               </ul>
             </details>
+          </section>
+
+          <section className="card stack" style={{ gap: 10 }} aria-labelledby="points-h">
+            <h2 id="points-h">Izza points</h2>
+            <ul className="stack" style={{ gap: 14, listStyle: "none", padding: 0, margin: 0 }}>
+              {livePoints.map((p) => (
+                <PointRow key={p.id} id={p.id} name={p.name} kind={p.kind} address={p.address} hours={p.hours} />
+              ))}
+              {livePoints.length === 0 && <li className="muted">No Izza points yet.</li>}
+            </ul>
           </section>
 
           <section className="card stack" style={{ gap: 10 }} aria-labelledby="add-point">

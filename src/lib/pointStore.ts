@@ -99,3 +99,22 @@ export async function createPoint(input: {
 export async function setPointStatusForOwner(ownerId: string, status: "approved" | "rejected"): Promise<void> {
   await (await db()).query("UPDATE points SET status = $1 WHERE owner_id = $2", [status, ownerId]);
 }
+
+// The team can rename a place or change its hours. Parcels keep the name they were booked with in plain text, so those follow the new
+// name too and a customer is never told to go to a place that no longer has that name.
+export async function updatePoint(id: string, input: { name: string; hours: string }): Promise<void> {
+  const d = await db();
+  await d.query("UPDATE points SET name = $1, hours = $2 WHERE id = $3", [input.name, input.hours, id]);
+  await d.query("UPDATE parcels SET point = $1 WHERE point_id = $2", [input.name, id]);
+}
+
+// A place with parcels still on their way cannot be deleted: someone is going to or collecting from it. Finished and cancelled
+// parcels keep the name they had, in plain text, and just lose the link to the place.
+export async function deletePoint(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const d = await db();
+  const [row] = await d.query<{ n: string | number }>("SELECT count(*) AS n FROM parcels WHERE point_id = $1 AND stage < 4 AND cancelled_at IS NULL", [id]);
+  if (Number(row?.n ?? 0) > 0) return { ok: false, error: "Parcels are still on their way to or waiting at this place. Finish or cancel them first." };
+  await d.query("UPDATE parcels SET point_id = NULL WHERE point_id = $1", [id]);
+  await d.query("DELETE FROM points WHERE id = $1", [id]);
+  return { ok: true };
+}
