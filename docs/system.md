@@ -9,8 +9,8 @@ A **business** (township seller, online shop) sends parcels to an **Izza point**
 neighbourhood such as a tuckshop, spaza, salon or the Izza hub. The **customer** (the person the parcel is
 for) then decides:
 
-- **Collect at the Izza point.** R12 in total. They show their delivery code at the counter.
-- **Bring it to my door.** R20 in total, which is R8 extra. A local runner brings it using the landmark or pin.
+- **Collect at the Izza point.** R20 in total. They show their delivery code at the counter.
+- **Bring it to my door.** R35 in total, which is R15 extra. A local runner brings it using the landmark or pin.
 
 ## Who uses it (roles)
 

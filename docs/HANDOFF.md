@@ -7,10 +7,10 @@ A neighbourhood parcel network for Cape Town townships. Parcels go to an **Izza 
 
 ## The three journeys
 1. Sent to the hub, **collected by the customer**: no runner.
-2. Sent to the hub, **door delivery** (R20, R8 extra): a runner collects from the hub and delivers with the customer's 4-digit code.
+2. Sent to the hub, **door delivery** (R35, R15 extra): a runner collects from the hub and delivers with the customer's 4-digit code.
 3. **Sent from home**: a customer or business brings it to the hub, or asks a runner to collect it. A parcel sent by a customer shows to the team as "New from a customer".
 
-Stages: 0 Booked, 1 Picked up, 2 At the Izza point, 3 On the way, 4 Delivered. Fees: R12 collect, R20 door.
+Stages: 0 Booked, 1 Picked up, 2 At the Izza point, 3 On the way, 4 Delivered. Fees: R20 collect, R35 door (the pitch prices, set 29 Oct 2026).
 
 ## Roles
 customer, business, runner, point, admin. Business, runner and point sign-ups wait for admin approval. Customers need no account to track a parcel. A runner has no Send. Workers land in their own workspace after sign-in (`src/lib/roles.ts`, menu in `src/lib/nav.ts`).

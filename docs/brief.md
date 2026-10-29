@@ -7,7 +7,7 @@ Act as a logistics lead for a township last-mile network, then as the CEO who re
 
 ## Parcel journeys (the only three)
 1. **Sent to the hub, collected by the customer.** A business or a customer sends a parcel to an Izza point (the hub, a spaza, a salon, a hall). The customer collects it with their code. **No runner is used.**
-2. **Sent to the hub, brought to the door.** The customer asks for door delivery (R20, R8 extra). A runner collects it **from the hub** and gives it to the customer.
+2. **Sent to the hub, brought to the door.** The customer asks for door delivery (R35, R15 extra). A runner collects it **from the hub** and gives it to the customer.
 3. **Sent from home to the hub.** A customer (or business) either **brings the parcel to the hub themselves**, or **asks a runner to collect it** from their home. When a customer sends a parcel to the hub, **the team is notified**.
 
 ## Runner trip (like Uber)

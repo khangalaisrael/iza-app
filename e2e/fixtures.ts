@@ -43,8 +43,9 @@ export { expect };
 // The top menu: a row of links on a computer, the tab bar at the bottom on a phone. Returns whichever one is showing.
 // On a phone some choices live on the More page, so tests look items up by their text.
 export async function topMenu(page: import("@playwright/test").Page) {
-  // The tab bar streams in after the page, so wait for it to exist before asking whether it is showing.
-  await page.locator('nav[aria-label="Menu"], nav[aria-label="Main"]').first().waitFor({ state: "attached" });
+  // The tab bar streams in after the page, and the top menu can arrive first even on a phone, where it is hidden.
+  // So wait for whichever one is actually showing, then hand that one back.
+  await page.locator('nav[aria-label="Menu"]:visible, nav[aria-label="Main"]:visible').first().waitFor();
   const tabs = page.getByRole("navigation", { name: "Menu" });
   if (await tabs.isVisible()) return tabs;
   return page.getByRole("navigation", { name: "Main" });

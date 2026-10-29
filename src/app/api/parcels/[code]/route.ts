@@ -88,7 +88,7 @@ async function receive(parcel: Parcel, user: User, body: Body | null) {
   const isItsPoint = user.role === "point" && !!point && point.ownerId === user.id;
   if (!isItsPoint && user.role !== "admin") return deny("Only the Izza point this parcel was sent to can confirm it.", 403);
   if (parcel.stage !== 0 || parcel.dropoff !== "self") return deny("That parcel isn't waiting to be brought in.", 409);
-  // One tap can say both things: it arrived, and the sender's R12 was taken in cash.
+  // One tap can say both things: it arrived, and the sender's R20 was taken in cash.
   const takeCash = body?.paid === true && !parcel.paidAt;
   await saveParcel({ ...parcel, stage: 2, ...(takeCash && { paidAt: Date.now(), paidBy: user.name }) });
   await addEvent(parcel.code, "received", `Received at ${parcel.point}. Ready for you.`, point?.name ?? user.name);

@@ -94,7 +94,7 @@ const SCHEMA = [
   // Cash payments: when the fee was received and by whom.
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS paid_at BIGINT`,
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS paid_by TEXT`,
-  // The customer's R8 for door delivery, paid to the runner at the door.
+  // The customer's R15 for door delivery, paid to the runner at the door.
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS door_paid_at BIGINT`,
   // The receiver's secret link key, and a sender cancelling. Parcels from before the key existed get one now.
   `ALTER TABLE parcels ADD COLUMN IF NOT EXISTS access_key TEXT`,

@@ -82,7 +82,7 @@ test("on a phone the main choices are a tab bar at the bottom, and More lists th
 test("the website opens with a heading and a way to send and track", async ({ page }) => {
   await page.goto("/welcome");
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Order anywhere. Collect around the corner.");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Bringing it closer.");
   await page.getByLabel("Parcel code").fill("IZA-4821");
   await page.getByRole("button", { name: "Find it" }).click();
   await expect(page).toHaveURL(/\/track\/IZA-4821$/);
@@ -90,8 +90,8 @@ test("the website opens with a heading and a way to send and track", async ({ pa
 
 test("the website questions open and close", async ({ page }) => {
   await page.goto("/");
-  await page.getByText("How much does it cost?").click();
-  await expect(page.getByText("R12 if you collect at an Izza point")).toBeVisible();
+  await page.getByText("Do I need a street address?").click();
+  await expect(page.getByText(/Drop a pin or describe a landmark/)).toBeVisible();
 });
 
 test("join us offers runners, Izza points and businesses their own way in", async ({ page }) => {
@@ -114,8 +114,8 @@ test("join us offers runners, Izza points and businesses their own way in", asyn
 test("the business page explains what the customer pays", async ({ page }) => {
   await page.goto("/business");
   await expect(page.getByRole("heading", { name: "Your customers, reached. Wherever they live." })).toBeVisible();
-  await expect(page.getByText(/R12 to an Izza point/)).toBeVisible();
-  await expect(page.getByText(/they pay R8 extra/)).toBeVisible();
+  await expect(page.getByText(/R20 to an Izza point/)).toBeVisible();
+  await expect(page.getByText(/they pay R15 extra/)).toBeVisible();
 });
 
 test("a customer sees the parcels addressed to their number, and nobody else's", async ({ as, page }) => {

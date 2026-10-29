@@ -128,7 +128,7 @@ test("the runner has a map with a find-my-location button that works on a comput
 test("the home screen is for customers, and everyone who works is taken to their own place", async ({ as }) => {
   const customer = await (await as("customer")).newPage();
   await customer.goto("/");
-  await expect(customer.getByRole("link", { name: /Earn with Izza/ })).toBeVisible();
+  await expect(customer.getByRole("main").getByRole("link", { name: /Become a runner/ })).toBeVisible();
   await expect((await topMenu(customer)).getByText("For my business", { exact: true })).toHaveCount(0);
 
   const lands: [Parameters<typeof as>[0], RegExp][] = [
@@ -144,9 +144,9 @@ test("the home screen is for customers, and everyone who works is taken to their
   }
 });
 
-test("the home page explains Izza, with a code box and big buttons", async ({ page }) => {
+test("the home page explains Izza, with a code box and buttons a thumb can hit", async ({ page }) => {
   await page.goto("/");
-  for (const name of ["How Izza works", "Then you choose", "Safe, because it is local", "Izza is for everyone on the street"]) {
+  for (const name of ["How it works", "Izza is for everyone", "Izza points near you", "Good to know"]) {
     await expect(page.getByRole("heading", { name })).toBeVisible();
   }
   await expect(page.getByLabel("Parcel code")).toBeVisible();
