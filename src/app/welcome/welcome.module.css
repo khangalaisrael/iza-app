@@ -194,15 +194,15 @@
   gap: 22px;
 }
 .heroText h1 {
-  font-size: clamp(2.5rem, 5.4vw, 4.4rem);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
-  font-weight: 800;
+  font-size: clamp(2.3rem, 5vw, 3.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-weight: 600;
   max-width: 14ch;
 }
 .heroText p {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   line-height: 1.5;
   color: var(--muted);
   max-width: 34ch;
@@ -215,9 +215,9 @@
   padding-top: 6px;
 }
 .ctas :global(.btn) {
-  min-height: 54px;
-  padding: 0 28px;
-  font-size: 1.05rem;
+  min-height: 48px;
+  padding: 0 24px;
+  font-size: 1rem;
   white-space: nowrap;
 }
 .secondary {

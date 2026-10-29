@@ -19,7 +19,7 @@
   /* An Ndebele band: an outlined ochre diamond with olive above and rust below, the way the walls are painted. Used thin. */
   --ndebele: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='16' viewBox='0 0 32 16'%3E%3Cpath d='M0 0H16L0 8ZM32 0H16L32 8Z' fill='%23474e30'/%3E%3Cpath d='M0 16H16L0 8ZM32 16H16L32 8Z' fill='%23934c1a'/%3E%3Cpath d='M16 .8L30.4 8 16 15.2 1.6 8Z' fill='%23c8913c' stroke='%232b1a12' stroke-width='1.6'/%3E%3Cpath d='M16 4.4L23.2 8 16 11.6 8.8 8Z' fill='%23f3eee4' stroke='%232b1a12' stroke-width='1.2'/%3E%3Cpath d='M16 6.6L18.8 8 16 9.4 13.2 8Z' fill='%232b1a12'/%3E%3C/svg%3E");
 
-  --font-heading: var(--font-rubik), system-ui, sans-serif;
+  --font-heading: var(--font-bricolage), system-ui, sans-serif;
   --font-body: var(--font-nunito), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
@@ -220,7 +220,7 @@ select {
   border-radius: 24px;
   background: var(--honey);
   color: #fff;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 16px;
   cursor: pointer;
   display: inline-flex;
@@ -627,12 +627,12 @@ body {
   gap: 12px;
 }
 
-/* Buttons: easy to hit, always a clear label */
+/* Buttons: easy to hit, always a clear label, never shouting. 48px still clears the 44px a thumb needs. */
 .btn {
-  min-height: 56px;
-  font-size: 18px;
-  padding: 0 26px;
-  border-radius: 28px;
+  min-height: 48px;
+  font-size: 16px;
+  padding: 0 22px;
+  border-radius: 24px;
   text-align: center;
 }
 .btn-soft {
@@ -2033,4 +2033,54 @@ html {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+/* "Add Izza to your home screen": a quiet card under the home hero. */
+.installCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 4px;
+  padding: 12px 12px 12px 14px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.installCard img {
+  flex-shrink: 0;
+  border-radius: 10px;
+}
+.installText {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.installText strong {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+.installText b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.installAdd {
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.installClose {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
 }
