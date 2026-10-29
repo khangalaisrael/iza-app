@@ -91,7 +91,7 @@ export function tabsFor(role: Role | null): Tab[] {
     case "admin":
       return [{ label: "Team", href: "/ops", icon: "team" }, sendTab, trackTab, more];
     default:
-      return [sendTab, trackTab, { label: "Hubs", href: "/points", icon: "hub" }, more];
+      return [sendTab, trackTab, { label: "Join us", href: "/join", icon: "point" }, more];
   }
 }
 

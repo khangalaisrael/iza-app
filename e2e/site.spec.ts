@@ -63,7 +63,7 @@ test("the website has the same menu on every page, like the design", async ({ br
 test("on a phone the main choices are a tab bar at the bottom, and More lists the rest", async ({ page }) => {
   await page.goto("/join");
   const tabs = await topMenu(page);
-  for (const name of ["Send", "Track", "Hubs", "More"]) await expect(tabs.getByText(name, { exact: true })).toBeVisible();
+  for (const name of ["Send", "Track", "Join us", "More"]) await expect(tabs.getByText(name, { exact: true })).toBeVisible();
 
   // The bar is pinned to the bottom of the screen, where the thumb is.
   const box = await tabs.boundingBox();
