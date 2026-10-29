@@ -6,6 +6,7 @@ import SendForm from "@/components/SendForm";
 import Shell from "@/components/Shell";
 import { currentUser } from "@/lib/auth";
 import { listApprovedPoints } from "@/lib/pointStore";
+import { recentSending } from "@/lib/store";
 
 export const metadata = { title: "Send a parcel · Izza" };
 
@@ -73,5 +74,15 @@ async function Content({ searchParams }: { searchParams: PageProps<"/send">["sea
   const { point } = await searchParams;
   const points = (await listApprovedPoints()).map(({ id, name, kind, hours, lat, lng }) => ({ id, name, kind, hours, lat, lng }));
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://izza-app.vercel.app";
-  return <SendForm points={points} siteUrl={siteUrl} initialPointId={Array.isArray(point) ? point[0] : point} fromCustomer={user.role === "customer"} />;
+  const { receivers, lastPickup } = await recentSending(user.id);
+  return (
+    <SendForm
+      points={points}
+      siteUrl={siteUrl}
+      initialPointId={Array.isArray(point) ? point[0] : point}
+      fromCustomer={user.role === "customer"}
+      recent={receivers}
+      lastPickup={lastPickup}
+    />
+  );
 }

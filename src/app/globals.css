@@ -1801,3 +1801,110 @@ html {
   color: var(--primary);
   box-shadow: 0 2px 10px rgb(19 32 27 / 0.4);
 }
+
+/* Collecting a parcel: the code, the place, whether it is open, and a way there. */
+.collectCard {
+  border: 3px solid var(--primary);
+  gap: 12px;
+}
+.collectCard .bigCode {
+  text-align: center;
+}
+.collectPlace {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.collectPlace > div {
+  display: grid;
+  gap: 2px;
+}
+.collectPlace span {
+  color: var(--muted);
+}
+.openChip {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.openChip.yes {
+  background: #d8f3e3;
+  color: #0b5a34;
+}
+.openChip.no {
+  background: var(--honey-bg);
+  color: var(--honey-ink);
+}
+.collectCard .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* A map that waits to be asked for. */
+.mapAsk {
+  display: grid;
+  gap: 4px;
+  min-height: 96px;
+  place-content: center;
+  width: 100%;
+  border: 2px dashed var(--line);
+  border-radius: 20px;
+  background: var(--white);
+  color: var(--ink);
+  text-align: center;
+  cursor: pointer;
+}
+.mapAsk small {
+  color: var(--muted);
+}
+
+/* The notice when there is no signal. It sits above the tab bar on a phone. */
+.offlineBar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  z-index: 60;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--ink);
+  color: #fff;
+  box-shadow: 0 8px 24px rgb(19 32 27 / 0.3);
+}
+@media (min-width: 1081px) {
+  .offlineBar {
+    bottom: 16px;
+    left: 16px;
+    right: auto;
+    max-width: 420px;
+  }
+}
+
+/* People you have sent to before, one tap to fill in their details. */
+.recentRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.recentChip {
+  display: grid;
+  gap: 0;
+  min-height: 52px;
+  padding: 6px 16px;
+  border: 0;
+  border-radius: 26px;
+  background: var(--tint);
+  color: var(--ink);
+  text-align: left;
+  font-weight: 800;
+  cursor: pointer;
+}
+.recentChip small {
+  color: var(--muted);
+  font-weight: 600;
+}

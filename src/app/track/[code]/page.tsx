@@ -7,7 +7,8 @@ import ChimeOnChange from "@/components/ChimeOnChange";
 import ChooseDelivery from "@/components/ChooseDelivery";
 import EventFeed from "@/components/EventFeed";
 import LanguageLinks from "@/components/LanguageLinks";
-import MapView from "@/components/MapView";
+import CollectCard from "@/components/CollectCard";
+import LazyMap from "@/components/LazyMap";
 import Tracker from "@/components/Tracker";
 import NotifyButton from "@/components/NotifyButton";
 import Shell from "@/components/Shell";
@@ -132,6 +133,8 @@ async function ParcelDetails({
         </p>
       )}
 
+      {isReceiver && !cancelled && parcel.stage === 2 && parcel.choice === "point" && point && <CollectCard code={parcel.code} point={point} now={now} />}
+
       {canChoose && awaitingAddress(parcel) && (
         <p className="lead" style={{ margin: 0 }}>
           {t(lang, "This parcel is being brought to your door. Tell us exactly where you are.")}
@@ -140,7 +143,7 @@ async function ParcelDetails({
 
       {canChoose && (
         <section className="card">
-          <ChooseDelivery key={`${parcel.choice}-${parcel.stage}`} code={parcel.code} pointName={parcel.point} current={parcel.choice} lang={lang} accessKey={keyOk ? key : undefined} />
+          <ChooseDelivery key={parcel.stage} code={parcel.code} pointName={parcel.point} current={parcel.choice} lang={lang} accessKey={keyOk ? key : undefined} />
         </section>
       )}
 
@@ -195,7 +198,8 @@ async function ParcelDetails({
       )}
 
       {showMap && (
-        <MapView
+        <LazyMap
+          auto={parcel.stage === 3}
           points={point ? [{ id: point.id, name: point.name, lat: point.lat, lng: point.lng }] : []}
           pin={parcel.choice === "door" ? dest : null}
           runner={runnerPos}

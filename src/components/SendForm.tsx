@@ -28,18 +28,23 @@ export default function SendForm({
   siteUrl,
   initialPointId,
   fromCustomer = false,
+  recent = [],
+  lastPickup,
 }: {
   points: PointChoice[];
   siteUrl: string;
   initialPointId?: string;
   fromCustomer?: boolean;
+  recent?: { name: string; phone: string }[];
+  lastPickup?: { text: string; lat?: number; lng?: number };
 }) {
   // "runner": a runner collects it from the sender. "self": the sender brings it to the hub themselves, so no runner is needed.
   const [dropoff, setDropoff] = useState<"runner" | "self">("runner");
   // "shop": they choose to collect or have it brought. "door": the sender does not know where they are, so they pin it.
   const [delivery, setDelivery] = useState<"shop" | "door">("shop");
-  const [from, setFrom] = useState("");
-  const [pickup, setPickup] = useState<Coords | null>(null);
+  // Start from where they usually hand parcels over, if they have sent before. They can change it.
+  const [from, setFrom] = useState(lastPickup?.text ?? "");
+  const [pickup, setPickup] = useState<Coords | null>(lastPickup?.lat !== undefined && lastPickup?.lng !== undefined ? { lat: lastPickup.lat, lng: lastPickup.lng } : null);
   const [toName, setToName] = useState("");
   const [toPhone, setToPhone] = useState("");
   const [chosenPoint, setChosenPoint] = useState(points.find((p) => p.id === initialPointId)?.id ?? "");
@@ -178,6 +183,27 @@ export default function SendForm({
       <section className="stack" aria-labelledby="who-for">
         <h2 id="who-for">Who is it for?</h2>
         <div className="card stack">
+          {recent.length > 0 && (
+            <div className="field">
+              <span className="muted">Send to someone again</span>
+              <div className="recentRow">
+                {recent.map((r) => (
+                  <button
+                    key={r.phone}
+                    type="button"
+                    className="recentChip"
+                    onClick={() => {
+                      setToName(r.name);
+                      setToPhone(r.phone);
+                    }}
+                  >
+                    {r.name}
+                    <small>{r.phone}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="field">
             <label htmlFor="toName">Their name</label>
             <input id="toName" className="input" value={toName} onChange={(e) => setToName(e.target.value)} autoComplete="off" />

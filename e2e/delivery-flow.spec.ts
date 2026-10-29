@@ -104,6 +104,15 @@ test("the customer collects: the runner works the job, the shop hands it over", 
   await expect(customer.getByLabel("Updates").getByText(/is on the way to collect it/)).toBeVisible();
   await expect(customer.getByLabel("Updates").getByText(/Dropped at Corner Shop/)).toBeVisible();
 
+  // Collecting is the moment that matters, so it has its own card: the code, the place, and a way there.
+  const collectCard = customer.getByRole("region", { name: "Collect your parcel" });
+  await expect(collectCard).toContainText(code);
+  await expect(collectCard).toContainText("Corner Shop");
+  await expect(collectCard).toContainText("There is nothing to pay");
+  await expect(collectCard.getByRole("link", { name: "Get directions" })).toHaveAttribute("href", /google\.com\/maps\/dir/);
+  // The map waits to be asked for, so the page costs almost no data until it is wanted.
+  await expect(customer.getByRole("button", { name: /Show the map/ })).toBeVisible();
+
   // The collection job is finished, and a collect-at-the-point parcel is not a delivery job.
   await runner.goto("/runner");
   await expect(runner.locator("article", { hasText: code })).toHaveCount(0);
@@ -629,6 +638,8 @@ test("live location starts by itself on the delivery leg, and the runner can nav
   await expect(runner.getByText(/Live\. The customer can see you/)).toBeVisible({ timeout: 25000 });
   await receiver.goto(receiverUrl(code));
   await expect(receiver.getByText("Your runner is live on the map.")).toBeVisible();
+  // While the runner is on the way the map is the point, so it loads without being asked.
+  await expect(receiver.getByRole("button", { name: /Show the map/ })).toHaveCount(0);
   await expect(receiver.locator(".trStep.tr-done")).toHaveCount(3);
   await expectTrackerAligned(receiver);
 
@@ -700,4 +711,30 @@ test("a chime is meant to play when a new job turns up for a runner, and sound c
   await expect(runner.getByRole("button", { name: /^Sound is off/ })).toBeVisible();
   await runner.reload();
   await expect(runner.getByRole("button", { name: /^Sound is off/ })).toBeVisible();
+});
+
+test("Send remembers who you sent to and where you hand parcels over", async ({ as }) => {
+  const business = await (await as("business")).newPage();
+  await book(business, { from: "Thembi's Stall, Gugulethu", to: "Recent Rita", phone: "082 555 0009" });
+
+  await business.goto("/send");
+  // The usual pickup place is already filled in, and the last customer is one tap away.
+  await expect(business.getByLabel("Pick up from")).toHaveValue("Thembi's Stall, Gugulethu");
+  const chip = business.getByRole("button", { name: /Recent Rita/ });
+  await expect(chip).toBeVisible();
+  await chip.click();
+  await expect(business.getByLabel("Their name")).toHaveValue("Recent Rita");
+  await expect(business.getByLabel("Their WhatsApp number")).toHaveValue("0825550009");
+});
+
+test("when the signal drops the page says so in plain words, and recovers by itself", async ({ browser, baseURL }) => {
+  const ctx = await browser.newContext({ baseURL });
+  const page = await ctx.newPage();
+  await page.goto("/track");
+  await expect(page.getByText("No signal.")).toHaveCount(0);
+  await ctx.setOffline(true);
+  await expect(page.getByRole("status").filter({ hasText: "No signal." })).toBeVisible();
+  await ctx.setOffline(false);
+  await expect(page.getByText("No signal.")).toHaveCount(0);
+  await ctx.close();
 });

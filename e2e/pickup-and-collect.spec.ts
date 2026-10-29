@@ -32,6 +32,7 @@ test("a business shares its location, and the runner gets directions inside the 
 test("a booking needs a pickup place or location, a name, a number and a point, and says so plainly", async ({ as }) => {
   const page = await (await as("business")).newPage();
   await page.goto("/send");
+  await page.getByLabel("Pick up from").fill("");
   await page.getByRole("button", { name: "Book it" }).click();
   await expect(page.locator("form [role=alert]")).toContainText("where to collect it");
   await page.getByLabel("Pick up from").fill("Somewhere");

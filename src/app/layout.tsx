@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Nunito_Sans, Rubik } from "next/font/google";
 import "./globals.css";
+import ConnectionBanner from "@/components/ConnectionBanner";
 
 const rubik = Rubik({
   variable: "--font-rubik",
@@ -31,7 +32,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${rubik.variable} ${nunito.variable} ${mono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <ConnectionBanner />
+      </body>
     </html>
   );
 }
